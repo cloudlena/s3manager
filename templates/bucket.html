@@ -1,0 +1,25 @@
+{{ define "content" }}
+<table class="striped">
+
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>Size</th>
+      <th>Owner</th>
+      <th>Last Modified</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{ range $object := . }}
+    <tr>
+      <td>{{ $object.Key }}</td>
+      <td>{{ $object.Size }} bytes</td>
+      <td>{{ $object.Owner }}</td>
+      <td>{{ $object.LastModified }}</td>
+    </tr>
+    {{ end }}
+  </tbody>
+
+</table>
+{{ end }}
