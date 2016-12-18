@@ -1,0 +1,34 @@
+{{ define "layout" }}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+
+  <title>S3 Manager</title>
+
+  <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
+</head>
+
+<body>
+  <nav class="purple" role="navigation">
+    <div class="nav-wrapper container">
+      <a href="/" class="brand-logo">S3 Manager</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="section">
+    {{ template "content" . }}
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/js/materialize.min.js"></script>
+</body>
+
+</html>
+{{ end }}

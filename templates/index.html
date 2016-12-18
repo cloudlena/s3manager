@@ -1,0 +1,54 @@
+{{ define "content" }}
+<div class="row">
+  <div class="col m12 l6">
+
+    {{ range $bucket := . }}
+    <a href="/buckets/{{ $bucket.Name }}" style="color: black;">
+      <div class="card">
+        <div class="card-content">
+          <div class="row" style="margin-bottom: 0;">
+            <div class="col">
+              <i class="material-icons large">cloud_circle</i>
+            </div>
+            <div class="col">
+              <span class="card-title">
+                {{ $bucket.Name }}
+              </span>
+              <p style="color: gray;">Created on {{ $bucket.CreationDate }}</p>
+        </div>
+          </div>
+        </div>
+      </div>
+    </a>
+    {{ end }}
+
+  </div>
+</div>
+
+<div class="fixed-action-btn">
+  <a class="btn-floating btn-large red" href="#modal-create-bucket">
+    <i class="large material-icons">add</i>
+  </a>
+</div>
+
+<div id="modal-create-bucket" class="modal">
+  <div class="modal-content">
+    <h4>Create Bucket</h4>
+    <br>
+    <div class="row">
+      <div class="col s6">
+        <form action="/api/buckets" method="POST">
+          <div class="input-field">
+              <input placeholder="My Bucket" id="name" type="text">
+              <label for="name">Name</label>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <a href="#!" class=" modal-action modal-close waves-effect waves-green btn-flat">Create</a>
+    <a href="#!" class=" modal-action modal-close waves-effect waves-green btn-flat">Cancel</a>
+  </div>
+</div>
+{{ end }}
