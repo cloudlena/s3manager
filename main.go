@@ -42,6 +42,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/buckets", bucketsHandler)
 	http.HandleFunc("/buckets/", bucketHandler)
 
 	log.Fatal(http.ListenAndServe(":"+port, nil))

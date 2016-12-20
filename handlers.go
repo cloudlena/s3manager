@@ -11,8 +11,13 @@ import (
 	minio "github.com/minio/minio-go"
 )
 
-// indexHandler handles the main page
+// indexHandler forwards to "/buckets"
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/buckets", http.StatusPermanentRedirect)
+}
+
+// bucketsHandler handles the main page
+func bucketsHandler(w http.ResponseWriter, r *http.Request) {
 	lp := path.Join("templates", "layout.html")
 	ip := path.Join("templates", "index.html")
 
