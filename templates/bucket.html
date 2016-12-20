@@ -1,25 +1,94 @@
 {{ define "content" }}
-<table>
+<nav class="purple" role="navigation">
+  <div class="nav-wrapper container">
+    <span href="#" class="brand-logo"><i class="material-icons">folder_open</i>{{ .BucketName }}</span>
+  </div>
+</nav>
 
-  <thead>
-    <tr>
-      <th>Key</th>
-      <th>Size</th>
-      <th>Owner</th>
-      <th>Last Modified</th>
-    </tr>
-  </thead>
+<div class="container">
+  <div class="section">
 
-  <tbody>
-    {{ range $object := . }}
-    <tr>
-      <td>{{ $object.Key }}</td>
-      <td>{{ $object.Size }} bytes</td>
-      <td>{{ $object.Owner }}</td>
-      <td>{{ $object.LastModified }}</td>
-    </tr>
+    <table class="highlight bordered">
+
+      <thead>
+        <tr>
+          <th></th>
+          <th>Key</th>
+          <th>Size</th>
+          <th>Owner</th>
+          <th>Last Modified</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {{ range $object := .Objects }}
+        <tr>
+          <td><i class="material-icons">{{ $object.Icon }}</i></td>
+          <td>{{ $object.Key }}</td>
+          <td>{{ $object.Size }} bytes</td>
+          <td>{{ $object.Owner }}</td>
+          <td>{{ $object.LastModified }}</td>
+          <td>
+            <!-- Dropdown Trigger -->
+            <a class='dropdown-button' href='#' data-activates='actions-dropdown-{{ $object.Key }}'>
+              Actions <i class="material-icons right">arrow_drop_down</i>
+            </a>
+
+            <!-- Dropdown Structure -->
+            <ul id='actions-dropdown-{{ $object.Key }}' class='dropdown-content'>
+              <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
+              <li><a href="#" onclick="deleteObject({{ $object.Key }})">Delete</a></li>
+            </ul>
+          </td>
+        </tr>
+        {{ end }}
+      </tbody>
+
+    </table>
+
+    {{ if not .Objects }}
+    <p style="text-align: center;margin-top: 2em;">Oh noes... No objects in <strong>{{ .BucketName }}</strong> yet...</p>
     {{ end }}
-  </tbody>
+    <p></p>
 
-</table>
+  </div>
+</div>
+
+<div class="fixed-action-btn">
+  <a class="btn-floating btn-large red" href="#modal-create-object">
+    <i class="large material-icons">add</i>
+  </a>
+</div>
+
+<div id="modal-create-object" class="modal">
+  <div class="modal-content">
+    <h4>Create Object</h4>
+    <br>
+    <div class="row">
+      <div class="col s6">
+        <form action="/api/buckets" method="POST" id="create-bucket-form">
+          <div class="input-field">
+              <input placeholder="My Bucket" id="name" type="text" name="name">
+              <label for="name">Name</label>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="submit" form="create-bucket-form" class="modal-action modal-close waves-effect waves-green btn-flat">Create</button>
+    <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
+  </div>
+</div>
+
+<script>
+  function deleteObject(objectName) {
+    $.ajax({
+      type: 'DELETE',
+      url: '/api/buckets/{{ .BucketName }}/objects/' + objectName,
+      success: function () { location.reload(); }
+    })
+  }
+</script>
 {{ end }}

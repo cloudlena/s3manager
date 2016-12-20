@@ -29,7 +29,25 @@ var routes = Routes{
 	Route{
 		"Load Bucket Page",
 		"GET",
-		"/buckets/{bucketID}",
+		"/buckets/{bucketName}",
 		bucketPageHandler,
+	},
+	Route{
+		"Create Bucket",
+		"POST",
+		"/api/buckets",
+		createBucketHandler,
+	},
+	Route{
+		"Download Object",
+		"GET",
+		"/api/buckets/{bucketName}/objects/{objectName}",
+		getObjectHandler,
+	},
+	Route{
+		"Delete Object",
+		"DELETE",
+		"/api/buckets/{bucketName}/objects/{objectName}",
+		deleteObjectHandler,
 	},
 }
