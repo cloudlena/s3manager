@@ -41,9 +41,7 @@ func main() {
 		panic(err)
 	}
 
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/buckets", bucketsHandler)
-	http.HandleFunc("/buckets/", bucketHandler)
+	router := NewRouter()
 
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
