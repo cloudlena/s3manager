@@ -6,10 +6,21 @@ import (
 	"net/http"
 	"path"
 
-	"strings"
-
+	"github.com/gorilla/mux"
 	minio "github.com/minio/minio-go"
 )
+
+// ObjectWithIcon is a minio object with an added icon
+type ObjectWithIcon struct {
+	minio.ObjectInfo
+	Icon string
+}
+
+// BucketPage defines the details page of a bucket
+type BucketPage struct {
+	BucketName string
+	Objects    []ObjectWithIcon
+}
 
 // indexPageHandler forwards to "/buckets"
 func indexPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,10 +48,10 @@ func bucketsPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// bucketHandler handles the main page
+// bucketHandler shows the details page of a bucket
 func bucketPageHandler(w http.ResponseWriter, r *http.Request) {
-	bucket := strings.Split(r.URL.Path, "/")[2]
-	var objects []minio.ObjectInfo
+	bucketName := mux.Vars(r)["bucketName"]
+	var objects []ObjectWithIcon
 
 	lp := path.Join("templates", "layout.html")
 	bp := path.Join("templates", "bucket.html")
@@ -50,20 +61,40 @@ func bucketPageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	// Create a done channel to control 'ListObjectsV2' go routine.
 	doneCh := make(chan struct{})
 
-	objectCh := minioClient.ListObjectsV2(bucket, "", false, doneCh)
+	objectCh := minioClient.ListObjectsV2(bucketName, "", false, doneCh)
 	for object := range objectCh {
 		if object.Err != nil {
 			fmt.Println(object.Err)
 			return
 		}
-		objects = append(objects, object)
+		objectWithIcon := ObjectWithIcon{object, getIcon(object.Key)}
+		objects = append(objects, objectWithIcon)
 	}
 
-	err = t.ExecuteTemplate(w, "layout", objects)
+	bucketPage := BucketPage{
+		BucketName: bucketName,
+		Objects:    objects,
+	}
+
+	err = t.ExecuteTemplate(w, "layout", bucketPage)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func getIcon(fileName string) string {
+	e := path.Ext(fileName)
+
+	switch e {
+	case ".tgz":
+		return "archive"
+	case ".png", ".jpg", ".gif", ".svg":
+		return "photo"
+	case ".mp3":
+		return "music_note"
+	}
+
+	return "insert_drive_file"
 }

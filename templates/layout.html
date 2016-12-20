@@ -14,20 +14,16 @@
 </head>
 
 <body>
-  <nav class="purple" role="navigation">
-    <div class="nav-wrapper container">
-      <a href="/" class="brand-logo">S3 Manager</a>
-    </div>
-  </nav>
 
-  <div class="container">
-    <div class="section">
-    {{ template "content" . }}
-    </div>
-  </div>
+  {{ template "content" . }}
 
   <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/js/materialize.min.js"></script>
+  <script>
+    $(document).ready(function(){
+      $('.modal').modal();
+    });
+  </script>
 </body>
 
 </html>

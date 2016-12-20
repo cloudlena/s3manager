@@ -1,27 +1,37 @@
 {{ define "content" }}
-<div class="row">
-  <div class="col m12 l6">
+<nav class="purple" role="navigation">
+  <div class="nav-wrapper container">
+    <a href="/" class="brand-logo">S3 Manager</a>
+  </div>
+</nav>
 
-    {{ range $bucket := . }}
-    <a href="/buckets/{{ $bucket.Name }}" style="color: black;">
-      <div class="card">
-        <div class="card-content">
-          <div class="row" style="margin-bottom: 0;">
-            <div class="col">
-              <i class="material-icons large">cloud_circle</i>
+<div class="container">
+  <div class="section">
+    <div class="row">
+
+      {{ range $bucket := . }}
+      <div class="col m12 l6">
+        <a href="/buckets/{{ $bucket.Name }}" style="color: black;">
+          <div class="card">
+            <div class="card-content">
+              <div class="row" style="margin-bottom: 0;">
+                <div class="col">
+                  <i class="material-icons large">folder_open</i>
+                </div>
+                <div class="col">
+                  <span class="card-title">
+                    {{ $bucket.Name }}
+                  </span>
+                  <p style="color: gray;">Created on {{ $bucket.CreationDate }}</p>
             </div>
-            <div class="col">
-              <span class="card-title">
-                {{ $bucket.Name }}
-              </span>
-              <p style="color: gray;">Created on {{ $bucket.CreationDate }}</p>
-        </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </a>
       </div>
-    </a>
-    {{ end }}
+      {{ end }}
 
+    </div>
   </div>
 </div>
 
@@ -37,9 +47,9 @@
     <br>
     <div class="row">
       <div class="col s6">
-        <form action="/api/buckets" method="POST">
+        <form id="create-bucket-form" onsubmit="createBucket()">
           <div class="input-field">
-              <input placeholder="My Bucket" id="name" type="text">
+              <input placeholder="My Bucket" id="name" type="text" name="name">
               <label for="name">Name</label>
             </div>
         </form>
@@ -47,8 +57,26 @@
     </div>
   </div>
   <div class="modal-footer">
-    <a href="#!" class=" modal-action modal-close waves-effect waves-green btn-flat">Create</a>
-    <a href="#!" class=" modal-action modal-close waves-effect waves-green btn-flat">Cancel</a>
+    <button type="submit" form="create-bucket-form" class="modal-action modal-close waves-effect waves-green btn-flat">Create</button>
+    <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
   </div>
 </div>
+
+<script>
+  function createBucket() {
+    var formData = {};
+    $.each($('#create-bucket-form')
+      .serializeArray(), function(i, field) {
+      formData[field.name] = field.value;
+    });
+    $.ajax({
+      type: 'POST',
+      url: '/api/buckets',
+      data: JSON.stringify(formData),
+      dataType: 'json',
+      contentType: 'application/json',
+      success: function() { location.reload(); }
+    });
+  }
+</script>
 {{ end }}
