@@ -9,6 +9,7 @@
   <div class="section">
     <div class="row">
 
+      {{ if . }}
       {{ range $bucket := . }}
       <div class="col m12 l6">
         <a href="/buckets/{{ $bucket.Name }}" style="color: black;">
@@ -23,12 +24,17 @@
                     {{ $bucket.Name }}
                   </span>
                   <p style="color: gray;">Created on {{ $bucket.CreationDate }}</p>
-            </div>
+                </div>
               </div>
             </div>
           </div>
         </a>
       </div>
+      {{ end }}
+      {{ end }}
+
+      {{ if not . }}
+      <p style="text-align: center;margin-top: 2em;">No buckets yet</p>
       {{ end }}
 
     </div>
@@ -47,7 +53,7 @@
     <br>
     <div class="row">
       <div class="col s6">
-        <form id="create-bucket-form" onsubmit="createBucket()">
+        <form id="create-bucket-form">
           <div class="input-field">
               <input placeholder="My Bucket" id="name" type="text" name="name">
               <label for="name">Name</label>
@@ -57,7 +63,7 @@
     </div>
   </div>
   <div class="modal-footer">
-    <button type="submit" form="create-bucket-form" class="modal-action modal-close waves-effect waves-green btn-flat">Create</button>
+    <button type="button" onclick="createBucket()" class="modal-action modal-close waves-effect waves-green btn-flat">Create</button>
     <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
   </div>
 </div>

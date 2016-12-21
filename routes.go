@@ -39,6 +39,12 @@ var routes = Routes{
 		createBucketHandler,
 	},
 	Route{
+		"Delete Bucket",
+		"DELETE",
+		"/api/buckets/{bucketName}",
+		deleteBucketHandler,
+	},
+	Route{
 		"Download Object",
 		"GET",
 		"/api/buckets/{bucketName}/objects/{objectName}",

@@ -2,11 +2,16 @@
 <nav class="purple" role="navigation">
   <div class="nav-wrapper container">
     <span href="#" class="brand-logo"><i class="material-icons">folder_open</i>{{ .BucketName }}</span>
+    {{ if not .Objects }}
+    <a href="#" class="right" onclick="deleteBucket({{ .BucketName }})"><i class="material-icons">delete</i> Delete</a>
+    {{ end }}
   </div>
 </nav>
 
 <div class="section">
+  <a href="/buckets" style="padding-left: 25px; vertical-align: middle;"><i class="material-icons" style="vertical-align: middle;">arrow_back</i> Buckets</a>
 
+  {{ if .Objects }}
   <table class="highlight bordered">
 
     <thead>
@@ -23,7 +28,7 @@
     <tbody>
       {{ range $index, $object := .Objects }}
       <tr>
-        <td><i class="material-icons">{{ $object.Icon }}</i></td>
+        <td style="padding-left: 25px;"><i class="material-icons">{{ $object.Icon }}</i></td>
         <td>{{ $object.Key }}</td>
         <td>{{ $object.Size }} bytes</td>
         <td>{{ $object.Owner }}</td>
@@ -37,7 +42,7 @@
           <!-- Dropdown Structure -->
           <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
             <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
-            <li><a href="#" onclick="deleteObject({{ $object.Key }})">Delete</a></li>
+            <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
           </ul>
         </td>
       </tr>
@@ -45,11 +50,11 @@
     </tbody>
 
   </table>
+  {{ end }}
 
   {{ if not .Objects }}
-  <p style="text-align: center;margin-top: 2em;">Oh noes... No objects in <strong>{{ .BucketName }}</strong> yet...</p>
+  <p style="text-align: center;margin-top: 2em;">No objects in <strong>{{ .BucketName }}</strong> yet</p>
   {{ end }}
-  <p></p>
 
 </div>
 
@@ -86,11 +91,18 @@
 </div>
 
 <script>
-  function deleteObject(objectName) {
+  function deleteObject(bucketName, objectName) {
     $.ajax({
       type: 'DELETE',
-      url: '/api/buckets/{{ .BucketName }}/objects/' + objectName,
+      url: '/api/buckets/' + bucketName + '/objects/' + objectName,
       success: function () { location.reload(); }
+    })
+  }
+  function deleteBucket(bucketName) {
+    $.ajax({
+      type: 'DELETE',
+      url: '/api/buckets/' + bucketName,
+      success: function () { window.location.replace('/buckets'); }
     })
   }
 </script>
