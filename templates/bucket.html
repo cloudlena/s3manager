@@ -5,54 +5,52 @@
   </div>
 </nav>
 
-<div class="container">
-  <div class="section">
+<div class="section">
 
-    <table class="highlight bordered">
+  <table class="highlight bordered">
 
-      <thead>
-        <tr>
-          <th></th>
-          <th>Key</th>
-          <th>Size</th>
-          <th>Owner</th>
-          <th>Last Modified</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Key</th>
+        <th>Size</th>
+        <th>Owner</th>
+        <th>Last Modified</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
 
-      <tbody>
-        {{ range $object := .Objects }}
-        <tr>
-          <td><i class="material-icons">{{ $object.Icon }}</i></td>
-          <td>{{ $object.Key }}</td>
-          <td>{{ $object.Size }} bytes</td>
-          <td>{{ $object.Owner }}</td>
-          <td>{{ $object.LastModified }}</td>
-          <td>
-            <!-- Dropdown Trigger -->
-            <a class='dropdown-button' href='#' data-activates='actions-dropdown-{{ $object.Key }}'>
-              Actions <i class="material-icons right">arrow_drop_down</i>
-            </a>
+    <tbody>
+      {{ range $index, $object := .Objects }}
+      <tr>
+        <td><i class="material-icons">{{ $object.Icon }}</i></td>
+        <td>{{ $object.Key }}</td>
+        <td>{{ $object.Size }} bytes</td>
+        <td>{{ $object.Owner }}</td>
+        <td>{{ $object.LastModified }}</td>
+        <td>
+          <!-- Dropdown Trigger -->
+          <a class='dropdown-button' href='#' data-activates='actions-dropdown-{{ $index }}'>
+            Actions <i class="material-icons right">arrow_drop_down</i>
+          </a>
 
-            <!-- Dropdown Structure -->
-            <ul id='actions-dropdown-{{ $object.Key }}' class='dropdown-content'>
-              <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
-              <li><a href="#" onclick="deleteObject({{ $object.Key }})">Delete</a></li>
-            </ul>
-          </td>
-        </tr>
-        {{ end }}
-      </tbody>
+          <!-- Dropdown Structure -->
+          <ul id='actions-dropdown-{{ $index }}' class='dropdown-content'>
+            <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
+            <li><a href="#" onclick="deleteObject({{ $object.Key }})">Delete</a></li>
+          </ul>
+        </td>
+      </tr>
+      {{ end }}
+    </tbody>
 
-    </table>
+  </table>
 
-    {{ if not .Objects }}
-    <p style="text-align: center;margin-top: 2em;">Oh noes... No objects in <strong>{{ .BucketName }}</strong> yet...</p>
-    {{ end }}
-    <p></p>
+  {{ if not .Objects }}
+  <p style="text-align: center;margin-top: 2em;">Oh noes... No objects in <strong>{{ .BucketName }}</strong> yet...</p>
+  {{ end }}
+  <p></p>
 
-  </div>
 </div>
 
 <div class="fixed-action-btn">
@@ -67,17 +65,22 @@
     <br>
     <div class="row">
       <div class="col s6">
-        <form action="/api/buckets" method="POST" id="create-bucket-form">
-          <div class="input-field">
-              <input placeholder="My Bucket" id="name" type="text" name="name">
-              <label for="name">Name</label>
+        <form action="/api/buckets/{{ .BucketName }}/objects" method="POST" id="create-object-form" enctype="multipart/form-data">
+          <div class="file-field input-field">
+            <div class="btn">
+              <span>File</span>
+              <input type="file" name="file">
             </div>
+            <div class="file-path-wrapper">
+              <input class="file-path validate" type="text">
+            </div>
+          </div>
         </form>
       </div>
     </div>
   </div>
   <div class="modal-footer">
-    <button type="submit" form="create-bucket-form" class="modal-action modal-close waves-effect waves-green btn-flat">Create</button>
+    <button type="submit" form="create-object-form" class="modal-action modal-close waves-effect waves-green btn-flat">Upload</button>
     <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
   </div>
 </div>

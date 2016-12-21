@@ -62,6 +62,30 @@ func getObjectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// createObjectHandler allows to upload a new object
+func createObjectHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	err := r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		panic(err)
+	}
+
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+	defer file.Close()
+
+	fmt.Fprintf(w, "%v", handler.Header)
+
+	_, err = minioClient.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
+	if err != nil {
+		panic(err)
+	}
+}
+
 // deleteObjectHandler deletes an object
 func deleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
