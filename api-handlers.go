@@ -11,6 +11,14 @@ import (
 	"github.com/minio/minio-go"
 )
 
+// CopyObjectInfo is the information about an object to copy
+type CopyObjectInfo struct {
+	BucketName       string `json:"bucketName"`
+	ObjectName       string `json:"objectName"`
+	SourceBucketName string `json:"sourceBucketName"`
+	SourceObjectName string `json:"sourceObjectName"`
+}
+
 // createBucketHandler creates a new bucket
 func createBucketHandler(w http.ResponseWriter, r *http.Request) {
 	var bucket minio.BucketInfo
@@ -41,6 +49,18 @@ func createBucketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// deleteBucketHandler deletes a bucket
+func deleteBucketHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	err := minioClient.RemoveBucket(vars["bucketName"])
+	if err != nil {
+		panic(err)
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // getObjectHandler downloads an object to the client
 func getObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -66,24 +86,57 @@ func getObjectHandler(w http.ResponseWriter, r *http.Request) {
 func createObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := r.ParseMultipartForm(32 << 20)
-	if err != nil {
-		panic(err)
-	}
+	if r.Header.Get("Content-Type") == "application/json" {
+		var copy CopyObjectInfo
+		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
+		if err != nil {
+			panic(err)
+		}
+		if err = r.Body.Close(); err != nil {
+			panic(err)
+		}
+		err = json.Unmarshal(body, &copy)
+		if err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
 
-	file, handler, err := r.FormFile("file")
-	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
-	defer file.Close()
+		var copyConds = minio.NewCopyConditions()
+		objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
+		fmt.Println(copy)
+		fmt.Println(objectSource)
+		err = minioClient.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	_, err = minioClient.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
-	if err != nil {
-		panic(err)
-	}
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(copy)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err := r.ParseMultipartForm(32 << 20)
+		if err != nil {
+			panic(err)
+		}
 
-	w.WriteHeader(http.StatusCreated)
+		file, handler, err := r.FormFile("file")
+		if err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		defer file.Close()
+
+		_, err = minioClient.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
+		if err != nil {
+			panic(err)
+		}
+
+		w.WriteHeader(http.StatusCreated)
+	}
 }
 
 // deleteObjectHandler deletes an object
