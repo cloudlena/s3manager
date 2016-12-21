@@ -45,6 +45,12 @@ var routes = Routes{
 		getObjectHandler,
 	},
 	Route{
+		"Upload Object",
+		"POST",
+		"/api/buckets/{bucketName}/objects",
+		createObjectHandler,
+	},
+	Route{
 		"Delete Object",
 		"DELETE",
 		"/api/buckets/{bucketName}/objects/{objectName}",
