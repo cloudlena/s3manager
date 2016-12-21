@@ -78,12 +78,12 @@ func createObjectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fmt.Fprintf(w, "%v", handler.Header)
-
 	_, err = minioClient.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
 	if err != nil {
 		panic(err)
 	}
+
+	w.WriteHeader(http.StatusCreated)
 }
 
 // deleteObjectHandler deletes an object

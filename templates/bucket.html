@@ -30,12 +30,12 @@
         <td>{{ $object.LastModified }}</td>
         <td>
           <!-- Dropdown Trigger -->
-          <a class='dropdown-button' href='#' data-activates='actions-dropdown-{{ $index }}'>
+          <a class="dropdown-button waves-effect waves-teal btn-flat" href="#" data-activates="actions-dropdown-{{ $index }}">
             Actions <i class="material-icons right">arrow_drop_down</i>
           </a>
 
           <!-- Dropdown Structure -->
-          <ul id='actions-dropdown-{{ $index }}' class='dropdown-content'>
+          <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
             <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
             <li><a href="#" onclick="deleteObject({{ $object.Key }})">Delete</a></li>
           </ul>
