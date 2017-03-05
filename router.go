@@ -14,12 +14,11 @@ func NewRouter() *mux.Router {
 		var handler http.Handler
 
 		handler = route.HandlerFunc
-		handler = Logger(handler, route.Name)
+		handler = Logger(handler)
 
 		router.
 			Methods(route.Method).
 			Path(route.Pattern).
-			Name(route.Name).
 			Handler(handler)
 	}
 
