@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -22,14 +21,8 @@ type CopyObjectInfo struct {
 // createBucketHandler creates a new bucket
 func createBucketHandler(w http.ResponseWriter, r *http.Request) {
 	var bucket minio.BucketInfo
-	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
-	if err != nil {
-		panic(err)
-	}
-	if err = r.Body.Close(); err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal(body, &bucket)
+
+	err := json.NewDecoder(r.Body).Decode(&bucket)
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
@@ -45,7 +38,8 @@ func createBucketHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(bucket)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -55,7 +49,8 @@ func deleteBucketHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := minioClient.RemoveBucket(vars["bucketName"])
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -88,14 +83,8 @@ func createObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("Content-Type") == "application/json" {
 		var copy CopyObjectInfo
-		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
-		if err != nil {
-			panic(err)
-		}
-		if err = r.Body.Close(); err != nil {
-			panic(err)
-		}
-		err = json.Unmarshal(body, &copy)
+
+		err := json.NewDecoder(r.Body).Decode(&copy)
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -120,7 +109,8 @@ func createObjectHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
-			panic(err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
 		}
 
 		file, handler, err := r.FormFile("file")
@@ -132,7 +122,8 @@ func createObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 		_, err = minioClient.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
 		if err != nil {
-			panic(err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
 		}
 
 		w.WriteHeader(http.StatusCreated)
