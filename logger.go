@@ -7,17 +7,21 @@ import (
 )
 
 // Logger logs HTTP requests
-func Logger(inner http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+func Logger() Middleware {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
 
-		inner.ServeHTTP(w, r)
+			defer func() {
+				log.Printf(
+					"%s\t%s\t%s",
+					r.Method,
+					r.RequestURI,
+					time.Since(start),
+				)
+			}()
 
-		log.Printf(
-			"%s\t%s\t%s",
-			r.Method,
-			r.RequestURI,
-			time.Since(start),
-		)
-	})
+			next(w, r)
+		}
+	}
 }
