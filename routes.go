@@ -12,6 +12,10 @@ type Route struct {
 // Routes is an array of routes
 type Routes []Route
 
+var s = &Server{
+	s3: NewMinioClient(),
+}
+
 var routes = Routes{
 	Route{
 		"GET",
@@ -21,36 +25,36 @@ var routes = Routes{
 	Route{
 		"GET",
 		"/buckets",
-		Chain(bucketsPageHandler, Logger()),
+		Chain(s.bucketsPageHandler, Logger()),
 	},
 	Route{
 		"GET",
 		"/buckets/{bucketName}",
-		Chain(bucketPageHandler, Logger()),
+		Chain(s.bucketPageHandler, Logger()),
 	},
 	Route{
 		"POST",
 		"/api/buckets",
-		Chain(createBucketHandler, Logger()),
+		Chain(s.CreateBucketHandler, Logger()),
 	},
 	Route{
 		"DELETE",
 		"/api/buckets/{bucketName}",
-		Chain(deleteBucketHandler, Logger()),
+		Chain(s.deleteBucketHandler, Logger()),
 	},
 	Route{
 		"GET",
 		"/api/buckets/{bucketName}/objects/{objectName}",
-		Chain(getObjectHandler, Logger()),
+		Chain(s.getObjectHandler, Logger()),
 	},
 	Route{
 		"POST",
 		"/api/buckets/{bucketName}/objects",
-		Chain(createObjectHandler, Logger()),
+		Chain(s.createObjectHandler, Logger()),
 	},
 	Route{
 		"DELETE",
 		"/api/buckets/{bucketName}/objects/{objectName}",
-		Chain(deleteObjectHandler, Logger()),
+		Chain(s.deleteObjectHandler, Logger()),
 	},
 }
