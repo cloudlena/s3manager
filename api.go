@@ -18,8 +18,8 @@ type CopyObjectInfo struct {
 	SourceObjectName string `json:"sourceObjectName"`
 }
 
-// createBucketHandler creates a new bucket
-func createBucketHandler(w http.ResponseWriter, r *http.Request) {
+// CreateBucketHandler creates a new bucket
+func (s *Server) CreateBucketHandler(w http.ResponseWriter, r *http.Request) {
 	var bucket minio.BucketInfo
 
 	err := json.NewDecoder(r.Body).Decode(&bucket)
@@ -28,7 +28,7 @@ func createBucketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = minioClient.MakeBucket(bucket.Name, "")
+	err = s.s3.MakeBucket(bucket.Name, "")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -36,6 +36,7 @@ func createBucketHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
+
 	err = json.NewEncoder(w).Encode(bucket)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -44,24 +45,24 @@ func createBucketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // deleteBucketHandler deletes a bucket
-func deleteBucketHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) deleteBucketHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := minioClient.RemoveBucket(vars["bucketName"])
+	err := s.s3.RemoveBucket(vars["bucketName"])
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // getObjectHandler downloads an object to the client
-func getObjectHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	objectName := vars["objectName"]
 
-	object, err := minioClient.GetObject(vars["bucketName"], objectName)
+	object, err := s.s3.GetObject(vars["bucketName"], objectName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -78,7 +79,7 @@ func getObjectHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // createObjectHandler allows to upload a new object
-func createObjectHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) createObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	if r.Header.Get("Content-Type") == "application/json" {
@@ -94,7 +95,7 @@ func createObjectHandler(w http.ResponseWriter, r *http.Request) {
 		objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
 		fmt.Println(copy)
 		fmt.Println(objectSource)
-		err = minioClient.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
+		err = s.s3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -120,7 +121,7 @@ func createObjectHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
-		_, err = minioClient.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
+		_, err = s.s3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -131,10 +132,10 @@ func createObjectHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // deleteObjectHandler deletes an object
-func deleteObjectHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) deleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	err := minioClient.RemoveObject(vars["bucketName"], vars["objectName"])
+	err := s.s3.RemoveObject(vars["bucketName"], vars["objectName"])
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

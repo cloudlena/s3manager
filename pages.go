@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"path"
@@ -27,29 +26,32 @@ func indexPageHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/buckets", http.StatusPermanentRedirect)
 }
 
-// bucketsHandler handles the main page
-func bucketsPageHandler(w http.ResponseWriter, r *http.Request) {
+// bucketsPageHandler shows all buckets
+func (s *Server) bucketsPageHandler(w http.ResponseWriter, r *http.Request) {
 	lp := path.Join("templates", "layout.html")
 	ip := path.Join("templates", "index.html")
 
 	t, err := template.ParseFiles(lp, ip)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	buckets, err := minioClient.ListBuckets()
+	buckets, err := s.s3.ListBuckets()
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	err = t.ExecuteTemplate(w, "layout", buckets)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
 
-// bucketHandler shows the details page of a bucket
-func bucketPageHandler(w http.ResponseWriter, r *http.Request) {
+// bucketPageHandler shows the details page of a bucket
+func (s *Server) bucketPageHandler(w http.ResponseWriter, r *http.Request) {
 	bucketName := mux.Vars(r)["bucketName"]
 	var objects []ObjectWithIcon
 
@@ -58,18 +60,19 @@ func bucketPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	t, err := template.ParseFiles(lp, bp)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	doneCh := make(chan struct{})
 
-	objectCh := minioClient.ListObjectsV2(bucketName, "", false, doneCh)
+	objectCh := s.s3.ListObjectsV2(bucketName, "", false, doneCh)
 	for object := range objectCh {
 		if object.Err != nil {
-			fmt.Println(object.Err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		objectWithIcon := ObjectWithIcon{object, getIcon(object.Key)}
+		objectWithIcon := ObjectWithIcon{object, icon(object.Key)}
 		objects = append(objects, objectWithIcon)
 	}
 
@@ -80,11 +83,13 @@ func bucketPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = t.ExecuteTemplate(w, "layout", bucketPage)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
 
-func getIcon(fileName string) string {
+// icon returns an icon for a file type
+func icon(fileName string) string {
 	e := path.Ext(fileName)
 
 	switch e {
