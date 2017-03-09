@@ -20,17 +20,17 @@ var routes = Routes{
 	Route{
 		"GET",
 		"/",
-		Chain(indexPageHandler, Logger()),
+		Chain(IndexPageHandler, Logger()),
 	},
 	Route{
 		"GET",
 		"/buckets",
-		Chain(s.bucketsPageHandler, Logger()),
+		Chain(s.BucketsPageHandler, Logger()),
 	},
 	Route{
 		"GET",
 		"/buckets/{bucketName}",
-		Chain(s.bucketPageHandler, Logger()),
+		Chain(s.BucketPageHandler, Logger()),
 	},
 	Route{
 		"POST",
@@ -40,21 +40,21 @@ var routes = Routes{
 	Route{
 		"DELETE",
 		"/api/buckets/{bucketName}",
-		Chain(s.deleteBucketHandler, Logger()),
+		Chain(s.DeleteBucketHandler, Logger()),
 	},
 	Route{
 		"GET",
 		"/api/buckets/{bucketName}/objects/{objectName}",
-		Chain(s.getObjectHandler, Logger()),
+		Chain(s.GetObjectHandler, Logger()),
 	},
 	Route{
 		"POST",
 		"/api/buckets/{bucketName}/objects",
-		Chain(s.createObjectHandler, Logger()),
+		Chain(s.CreateObjectHandler, Logger()),
 	},
 	Route{
 		"DELETE",
 		"/api/buckets/{bucketName}/objects/{objectName}",
-		Chain(s.deleteObjectHandler, Logger()),
+		Chain(s.DeleteObjectHandler, Logger()),
 	},
 }

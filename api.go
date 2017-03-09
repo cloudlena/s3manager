@@ -44,8 +44,8 @@ func (s *Server) CreateBucketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// deleteBucketHandler deletes a bucket
-func (s *Server) deleteBucketHandler(w http.ResponseWriter, r *http.Request) {
+// DeleteBucketHandler deletes a bucket
+func (s *Server) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	err := s.s3.RemoveBucket(vars["bucketName"])
@@ -57,8 +57,8 @@ func (s *Server) deleteBucketHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// getObjectHandler downloads an object to the client
-func (s *Server) getObjectHandler(w http.ResponseWriter, r *http.Request) {
+// GetObjectHandler downloads an object to the client
+func (s *Server) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	objectName := vars["objectName"]
 
@@ -78,8 +78,8 @@ func (s *Server) getObjectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// createObjectHandler allows to upload a new object
-func (s *Server) createObjectHandler(w http.ResponseWriter, r *http.Request) {
+// CreateObjectHandler allows to upload a new object
+func (s *Server) CreateObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	if r.Header.Get("Content-Type") == "application/json" {
@@ -131,8 +131,8 @@ func (s *Server) createObjectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// deleteObjectHandler deletes an object
-func (s *Server) deleteObjectHandler(w http.ResponseWriter, r *http.Request) {
+// DeleteObjectHandler deletes an object
+func (s *Server) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	err := s.s3.RemoveObject(vars["bucketName"], vars["objectName"])

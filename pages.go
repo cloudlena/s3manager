@@ -21,13 +21,13 @@ type BucketPage struct {
 	Objects    []ObjectWithIcon
 }
 
-// indexPageHandler forwards to "/buckets"
-func indexPageHandler(w http.ResponseWriter, r *http.Request) {
+// IndexPageHandler forwards to "/buckets"
+func IndexPageHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/buckets", http.StatusPermanentRedirect)
 }
 
-// bucketsPageHandler shows all buckets
-func (s *Server) bucketsPageHandler(w http.ResponseWriter, r *http.Request) {
+// BucketsPageHandler shows all buckets
+func (s *Server) BucketsPageHandler(w http.ResponseWriter, r *http.Request) {
 	lp := path.Join("templates", "layout.html")
 	ip := path.Join("templates", "index.html")
 
@@ -50,8 +50,8 @@ func (s *Server) bucketsPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// bucketPageHandler shows the details page of a bucket
-func (s *Server) bucketPageHandler(w http.ResponseWriter, r *http.Request) {
+// BucketPageHandler shows the details page of a bucket
+func (s *Server) BucketPageHandler(w http.ResponseWriter, r *http.Request) {
 	bucketName := mux.Vars(r)["bucketName"]
 	var objects []ObjectWithIcon
 
