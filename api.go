@@ -44,40 +44,6 @@ func (s *Server) CreateBucketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteBucketHandler deletes a bucket
-func (s *Server) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	err := s.s3.RemoveBucket(vars["bucketName"])
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// GetObjectHandler downloads an object to the client
-func (s *Server) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	objectName := vars["objectName"]
-
-	object, err := s.s3.GetObject(vars["bucketName"], objectName)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
-	w.Header().Set("Content-Type", "application/octet-stream")
-
-	_, err = io.Copy(w, object)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-}
-
 // CreateObjectHandler allows to upload a new object
 func (s *Server) CreateObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -131,6 +97,19 @@ func (s *Server) CreateObjectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteBucketHandler deletes a bucket
+func (s *Server) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	err := s.s3.RemoveBucket(vars["bucketName"])
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // DeleteObjectHandler deletes an object
 func (s *Server) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -142,4 +121,25 @@ func (s *Server) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// GetObjectHandler downloads an object to the client
+func (s *Server) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	objectName := vars["objectName"]
+
+	object, err := s.s3.GetObject(vars["bucketName"], objectName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	_, err = io.Copy(w, object)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }

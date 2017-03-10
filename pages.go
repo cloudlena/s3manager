@@ -9,45 +9,16 @@ import (
 	minio "github.com/minio/minio-go"
 )
 
-// ObjectWithIcon is a minio object with an added icon
-type ObjectWithIcon struct {
-	minio.ObjectInfo
-	Icon string
-}
-
 // BucketPage defines the details page of a bucket
 type BucketPage struct {
 	BucketName string
 	Objects    []ObjectWithIcon
 }
 
-// IndexPageHandler forwards to "/buckets"
-func IndexPageHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/buckets", http.StatusPermanentRedirect)
-}
-
-// BucketsPageHandler shows all buckets
-func (s *Server) BucketsPageHandler(w http.ResponseWriter, r *http.Request) {
-	lp := path.Join("templates", "layout.html")
-	ip := path.Join("templates", "index.html")
-
-	t, err := template.ParseFiles(lp, ip)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	buckets, err := s.s3.ListBuckets()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	err = t.ExecuteTemplate(w, "layout", buckets)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+// ObjectWithIcon is a minio object with an added icon
+type ObjectWithIcon struct {
+	minio.ObjectInfo
+	Icon string
 }
 
 // BucketPageHandler shows the details page of a bucket
@@ -86,6 +57,35 @@ func (s *Server) BucketPageHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+}
+
+// BucketsPageHandler shows all buckets
+func (s *Server) BucketsPageHandler(w http.ResponseWriter, r *http.Request) {
+	lp := path.Join("templates", "layout.html")
+	ip := path.Join("templates", "index.html")
+
+	t, err := template.ParseFiles(lp, ip)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	buckets, err := s.s3.ListBuckets()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = t.ExecuteTemplate(w, "layout", buckets)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+// IndexHandler forwards to "/buckets"
+func IndexHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/buckets", http.StatusPermanentRedirect)
 }
 
 // icon returns an icon for a file type
