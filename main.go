@@ -24,7 +24,7 @@ func main() {
 		s3: NewMinioClient(),
 	}
 
-	router := mux.NewRouter().StrictSlash(true)
+	router := mux.NewRouter()
 
 	router.
 		Methods("GET").
