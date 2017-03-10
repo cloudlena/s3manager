@@ -7,9 +7,9 @@ import (
 )
 
 // Logger logs HTTP requests
-func Logger() Middleware {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
+func Logger() Adapter {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
 			defer func() {
@@ -21,7 +21,7 @@ func Logger() Middleware {
 				)
 			}()
 
-			next(w, r)
-		}
+			next.ServeHTTP(w, r)
+		})
 	}
 }

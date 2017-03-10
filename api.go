@@ -19,49 +19,17 @@ type CopyObjectInfo struct {
 }
 
 // CreateBucketHandler creates a new bucket
-func (s *Server) CreateBucketHandler(w http.ResponseWriter, r *http.Request) {
-	var bucket minio.BucketInfo
+func (s *Server) CreateBucketHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var bucket minio.BucketInfo
 
-	err := json.NewDecoder(r.Body).Decode(&bucket)
-	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
-
-	err = s.s3.MakeBucket(bucket.Name, "")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusCreated)
-
-	err = json.NewEncoder(w).Encode(bucket)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-}
-
-// CreateObjectHandler allows to upload a new object
-func (s *Server) CreateObjectHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	if r.Header.Get("Content-Type") == "application/json" {
-		var copy CopyObjectInfo
-
-		err := json.NewDecoder(r.Body).Decode(&copy)
+		err := json.NewDecoder(r.Body).Decode(&bucket)
 		if err != nil {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
 
-		var copyConds = minio.NewCopyConditions()
-		objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
-		fmt.Println(copy)
-		fmt.Println(objectSource)
-		err = s.s3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
+		err = s.s3.MakeBucket(bucket.Name, "")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -69,77 +37,119 @@ func (s *Server) CreateObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusCreated)
-		err = json.NewEncoder(w).Encode(copy)
+
+		err = json.NewEncoder(w).Encode(bucket)
 		if err != nil {
-			panic(err)
-		}
-	} else {
-		err := r.ParseMultipartForm(32 << 20)
-		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+	})
+}
 
-		file, handler, err := r.FormFile("file")
-		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			return
+// CreateObjectHandler allows to upload a new object
+func (s *Server) CreateObjectHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+
+		if r.Header.Get("Content-Type") == "application/json" {
+			var copy CopyObjectInfo
+
+			err := json.NewDecoder(r.Body).Decode(&copy)
+			if err != nil {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
+
+			var copyConds = minio.NewCopyConditions()
+			objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
+			fmt.Println(copy)
+			fmt.Println(objectSource)
+			err = s.s3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusCreated)
+			err = json.NewEncoder(w).Encode(copy)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			err := r.ParseMultipartForm(32 << 20)
+			if err != nil {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
+
+			file, handler, err := r.FormFile("file")
+			if err != nil {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
+			defer file.Close()
+
+			_, err = s.s3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
+			if err != nil {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
+
+			w.WriteHeader(http.StatusCreated)
 		}
-		defer file.Close()
-
-		_, err = s.s3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
-		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
-	}
+	})
 }
 
 // DeleteBucketHandler deletes a bucket
-func (s *Server) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+func (s *Server) DeleteBucketHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
 
-	err := s.s3.RemoveBucket(vars["bucketName"])
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		err := s.s3.RemoveBucket(vars["bucketName"])
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
+	})
 }
 
 // DeleteObjectHandler deletes an object
-func (s *Server) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+func (s *Server) DeleteObjectHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
 
-	err := s.s3.RemoveObject(vars["bucketName"], vars["objectName"])
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		err := s.s3.RemoveObject(vars["bucketName"], vars["objectName"])
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusOK)
+	})
 }
 
 // GetObjectHandler downloads an object to the client
-func (s *Server) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	objectName := vars["objectName"]
+func (s *Server) GetObjectHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		objectName := vars["objectName"]
 
-	object, err := s.s3.GetObject(vars["bucketName"], objectName)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		object, err := s.s3.GetObject(vars["bucketName"], objectName)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
-	w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
+		w.Header().Set("Content-Type", "application/octet-stream")
 
-	_, err = io.Copy(w, object)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		_, err = io.Copy(w, object)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	})
 }
