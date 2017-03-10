@@ -22,70 +22,76 @@ type ObjectWithIcon struct {
 }
 
 // BucketPageHandler shows the details page of a bucket
-func (s *Server) BucketPageHandler(w http.ResponseWriter, r *http.Request) {
-	bucketName := mux.Vars(r)["bucketName"]
-	var objects []ObjectWithIcon
+func (s *Server) BucketPageHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bucketName := mux.Vars(r)["bucketName"]
+		var objects []ObjectWithIcon
 
-	lp := path.Join("templates", "layout.html")
-	bp := path.Join("templates", "bucket.html")
+		lp := path.Join("templates", "layout.html")
+		bp := path.Join("templates", "bucket.html")
 
-	t, err := template.ParseFiles(lp, bp)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	doneCh := make(chan struct{})
-
-	objectCh := s.s3.ListObjectsV2(bucketName, "", false, doneCh)
-	for object := range objectCh {
-		if object.Err != nil {
+		t, err := template.ParseFiles(lp, bp)
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		objectWithIcon := ObjectWithIcon{object, icon(object.Key)}
-		objects = append(objects, objectWithIcon)
-	}
 
-	bucketPage := BucketPage{
-		BucketName: bucketName,
-		Objects:    objects,
-	}
+		doneCh := make(chan struct{})
 
-	err = t.ExecuteTemplate(w, "layout", bucketPage)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		objectCh := s.s3.ListObjectsV2(bucketName, "", false, doneCh)
+		for object := range objectCh {
+			if object.Err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			objectWithIcon := ObjectWithIcon{object, icon(object.Key)}
+			objects = append(objects, objectWithIcon)
+		}
+
+		bucketPage := BucketPage{
+			BucketName: bucketName,
+			Objects:    objects,
+		}
+
+		err = t.ExecuteTemplate(w, "layout", bucketPage)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	})
 }
 
 // BucketsPageHandler shows all buckets
-func (s *Server) BucketsPageHandler(w http.ResponseWriter, r *http.Request) {
-	lp := path.Join("templates", "layout.html")
-	ip := path.Join("templates", "index.html")
+func (s *Server) BucketsPageHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lp := path.Join("templates", "layout.html")
+		ip := path.Join("templates", "index.html")
 
-	t, err := template.ParseFiles(lp, ip)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		t, err := template.ParseFiles(lp, ip)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	buckets, err := s.s3.ListBuckets()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		buckets, err := s.s3.ListBuckets()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	err = t.ExecuteTemplate(w, "layout", buckets)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+		err = t.ExecuteTemplate(w, "layout", buckets)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	})
 }
 
 // IndexHandler forwards to "/buckets"
-func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/buckets", http.StatusPermanentRedirect)
+func IndexHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/buckets", http.StatusPermanentRedirect)
+	})
 }
 
 // icon returns an icon for a file type
