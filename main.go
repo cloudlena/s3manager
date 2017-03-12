@@ -11,7 +11,7 @@ import (
 
 // Server is a server containing a minio client
 type Server struct {
-	s3 *minio.Client
+	S3 *minio.Client
 }
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 	}
 
 	s := &Server{
-		s3: NewMinioClient(),
+		S3: NewMinioClient(),
 	}
 
 	router := mux.NewRouter()
