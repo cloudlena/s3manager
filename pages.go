@@ -38,7 +38,7 @@ func (s *Server) BucketPageHandler() http.Handler {
 
 		doneCh := make(chan struct{})
 
-		objectCh := s.s3.ListObjectsV2(bucketName, "", false, doneCh)
+		objectCh := s.S3.ListObjectsV2(bucketName, "", false, doneCh)
 		for object := range objectCh {
 			if object.Err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -73,7 +73,7 @@ func (s *Server) BucketsPageHandler() http.Handler {
 			return
 		}
 
-		buckets, err := s.s3.ListBuckets()
+		buckets, err := s.S3.ListBuckets()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

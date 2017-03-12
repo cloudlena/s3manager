@@ -29,7 +29,7 @@ func (s *Server) CreateBucketHandler() http.Handler {
 			return
 		}
 
-		err = s.s3.MakeBucket(bucket.Name, "")
+		err = s.S3.MakeBucket(bucket.Name, "")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -64,7 +64,7 @@ func (s *Server) CreateObjectHandler() http.Handler {
 			objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
 			fmt.Println(copy)
 			fmt.Println(objectSource)
-			err = s.s3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
+			err = s.S3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -90,7 +90,7 @@ func (s *Server) CreateObjectHandler() http.Handler {
 			}
 			defer file.Close()
 
-			_, err = s.s3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
+			_, err = s.S3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
 			if err != nil {
 				w.WriteHeader(http.StatusUnprocessableEntity)
 				return
@@ -106,7 +106,7 @@ func (s *Server) DeleteBucketHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 
-		err := s.s3.RemoveBucket(vars["bucketName"])
+		err := s.S3.RemoveBucket(vars["bucketName"])
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -121,7 +121,7 @@ func (s *Server) DeleteObjectHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 
-		err := s.s3.RemoveObject(vars["bucketName"], vars["objectName"])
+		err := s.S3.RemoveObject(vars["bucketName"], vars["objectName"])
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -137,7 +137,7 @@ func (s *Server) GetObjectHandler() http.Handler {
 		vars := mux.Vars(r)
 		objectName := vars["objectName"]
 
-		object, err := s.s3.GetObject(vars["bucketName"], objectName)
+		object, err := s.S3.GetObject(vars["bucketName"], objectName)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
