@@ -2,6 +2,7 @@ package main
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"path"
 
@@ -32,7 +33,8 @@ func (s *Server) BucketPageHandler() http.Handler {
 
 		t, err := template.ParseFiles(lp, bp)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error parsing templates:", err)
 			return
 		}
 
@@ -41,7 +43,8 @@ func (s *Server) BucketPageHandler() http.Handler {
 		objectCh := s.S3.ListObjectsV2(bucketName, "", false, doneCh)
 		for object := range objectCh {
 			if object.Err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println("error listing objects:", err)
 				return
 			}
 			objectWithIcon := ObjectWithIcon{object, icon(object.Key)}
@@ -55,7 +58,8 @@ func (s *Server) BucketPageHandler() http.Handler {
 
 		err = t.ExecuteTemplate(w, "layout", bucketPage)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error executing template:", err)
 			return
 		}
 	})
@@ -69,19 +73,22 @@ func (s *Server) BucketsPageHandler() http.Handler {
 
 		t, err := template.ParseFiles(lp, ip)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error parsing templates:", err)
 			return
 		}
 
 		buckets, err := s.S3.ListBuckets()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error listing buckets:", err)
 			return
 		}
 
 		err = t.ExecuteTemplate(w, "layout", buckets)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error executing template:", err)
 			return
 		}
 	})
