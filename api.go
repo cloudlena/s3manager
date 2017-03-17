@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -25,13 +26,15 @@ func (s *Server) CreateBucketHandler() http.Handler {
 
 		err := json.NewDecoder(r.Body).Decode(&bucket)
 		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			log.Println("error decoding json:", err)
 			return
 		}
 
 		err = s.S3.MakeBucket(bucket.Name, "")
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error making bucket:", err)
 			return
 		}
 
@@ -40,7 +43,8 @@ func (s *Server) CreateBucketHandler() http.Handler {
 
 		err = json.NewEncoder(w).Encode(bucket)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error encoding json:", err)
 			return
 		}
 	})
@@ -56,7 +60,8 @@ func (s *Server) CreateObjectHandler() http.Handler {
 
 			err := json.NewDecoder(r.Body).Decode(&copy)
 			if err != nil {
-				w.WriteHeader(http.StatusUnprocessableEntity)
+				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+				log.Println("error decoding json:", err)
 				return
 			}
 
@@ -66,7 +71,8 @@ func (s *Server) CreateObjectHandler() http.Handler {
 			fmt.Println(objectSource)
 			err = s.S3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println("error copying object:", err)
 				return
 			}
 
@@ -74,25 +80,30 @@ func (s *Server) CreateObjectHandler() http.Handler {
 			w.WriteHeader(http.StatusCreated)
 			err = json.NewEncoder(w).Encode(copy)
 			if err != nil {
-				panic(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println("error encoding json:", err)
+				return
 			}
 		} else {
 			err := r.ParseMultipartForm(32 << 20)
 			if err != nil {
-				w.WriteHeader(http.StatusUnprocessableEntity)
+				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+				log.Println("error parsing form:", err)
 				return
 			}
 
 			file, handler, err := r.FormFile("file")
 			if err != nil {
-				w.WriteHeader(http.StatusUnprocessableEntity)
+				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+				log.Println("error getting form file:", err)
 				return
 			}
 			defer file.Close()
 
 			_, err = s.S3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
 			if err != nil {
-				w.WriteHeader(http.StatusUnprocessableEntity)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println("error putting object:", err)
 				return
 			}
 
@@ -108,7 +119,8 @@ func (s *Server) DeleteBucketHandler() http.Handler {
 
 		err := s.S3.RemoveBucket(vars["bucketName"])
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error removing bucket:", err)
 			return
 		}
 
@@ -123,7 +135,8 @@ func (s *Server) DeleteObjectHandler() http.Handler {
 
 		err := s.S3.RemoveObject(vars["bucketName"], vars["objectName"])
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error removing object:", err)
 			return
 		}
 
@@ -139,7 +152,8 @@ func (s *Server) GetObjectHandler() http.Handler {
 
 		object, err := s.S3.GetObject(vars["bucketName"], objectName)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error getting object:", err)
 			return
 		}
 
@@ -148,7 +162,8 @@ func (s *Server) GetObjectHandler() http.Handler {
 
 		_, err = io.Copy(w, object)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("error copying object:", err)
 			return
 		}
 	})
