@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 // Server is a server containing a minio client

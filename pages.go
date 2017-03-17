@@ -7,7 +7,7 @@ import (
 	"path"
 
 	"github.com/gorilla/mux"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 // BucketPage defines the details page of a bucket

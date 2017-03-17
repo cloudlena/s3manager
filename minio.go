@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 // NewMinioClient creates a new Minio client
