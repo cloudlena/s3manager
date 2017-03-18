@@ -25,19 +25,20 @@ func main() {
 	}
 
 	router := mux.NewRouter()
+	logger := log.New(os.Stdout, "request: ", log.Lshortfile)
 
 	router.
 		Methods("GET").
 		Path("/").
-		Handler(Adapt(IndexHandler(), Logger()))
+		Handler(Adapt(IndexHandler(), Logging(logger)))
 	router.
 		Methods("GET").
 		Path("/buckets").
-		Handler(Adapt(s.BucketsPageHandler(), Logger()))
+		Handler(Adapt(s.BucketsPageHandler(), Logging(logger)))
 	router.
 		Methods("GET").
 		Path("/buckets/{bucketName}").
-		Handler(Adapt(s.BucketPageHandler(), Logger()))
+		Handler(Adapt(s.BucketPageHandler(), Logging(logger)))
 
 	api := router.PathPrefix("/api").Subrouter()
 
@@ -45,23 +46,23 @@ func main() {
 	buckets.
 		Methods("POST").
 		Path("").
-		Handler(Adapt(s.CreateBucketHandler(), Logger()))
+		Handler(Adapt(s.CreateBucketHandler(), Logging(logger)))
 	buckets.
 		Methods("DELETE").
 		Path("/{bucketName}").
-		Handler(Adapt(s.DeleteBucketHandler(), Logger()))
+		Handler(Adapt(s.DeleteBucketHandler(), Logging(logger)))
 	buckets.
 		Methods("POST").
 		Path("/{bucketName}/objects").
-		Handler(Adapt(s.CreateObjectHandler(), Logger()))
+		Handler(Adapt(s.CreateObjectHandler(), Logging(logger)))
 	buckets.
 		Methods("GET").
 		Path("/{bucketName}/objects/{objectName}").
-		Handler(Adapt(s.GetObjectHandler(), Logger()))
+		Handler(Adapt(s.GetObjectHandler(), Logging(logger)))
 	buckets.
 		Methods("DELETE").
 		Path("/{bucketName}/objects/{objectName}").
-		Handler(Adapt(s.DeleteObjectHandler(), Logger()))
+		Handler(Adapt(s.DeleteObjectHandler(), Logging(logger)))
 
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
