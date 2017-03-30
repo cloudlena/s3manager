@@ -1,0 +1,15 @@
+hash: 7dca8ea81fe671d950fb6be894196f33ffd39619039913b4fe573cd6c6f8d720
+updated: 2017-03-30T15:17:43.230828675+02:00
+imports:
+- name: github.com/gorilla/context
+  version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
+- name: github.com/gorilla/mux
+  version: 392c28fe23e1c45ddba891b0320b3b5df220beea
+- name: github.com/minio/minio-go
+  version: dcaae9ec4d0b0a81d17f22f6d7a186491f6a55ec
+  subpackages:
+  - pkg/policy
+  - pkg/s3signer
+  - pkg/s3utils
+  - pkg/set
+testImports: []
