@@ -18,5 +18,5 @@ A Web GUI to written in Go to manage S3 buckets from any provider.
 ## Push to Cloud Foundry
 
 1. Set environment variables in `manifest.yml`
-1. Set hostname in `manifest.yml` that isn't taken yet
+1. Set hostname that isn't taken yet in `manifest.yml`
 1. Run `cf push`
