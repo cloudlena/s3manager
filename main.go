@@ -6,18 +6,15 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/minio/minio-go"
+	"github.com/mastertinner/s3-manager/adapters"
+	"github.com/mastertinner/s3-manager/buckets"
+	"github.com/mastertinner/s3-manager/datasources"
+	"github.com/mastertinner/s3-manager/objects"
+	"github.com/mastertinner/s3-manager/views"
 )
 
-// Server is a server containing a minio client
-type Server struct {
-	S3 *minio.Client
-}
-
 func main() {
-	s := &Server{
-		S3: NewMinioClient(),
-	}
+	s3 := datasources.NewMinioClient()
 
 	logger := log.New(os.Stdout, "request: ", log.Lshortfile)
 	router := mux.NewRouter()
@@ -25,39 +22,63 @@ func main() {
 	router.
 		Methods("GET").
 		Path("/").
-		Handler(Adapt(IndexHandler(), Logging(logger)))
+		Handler(adapters.Adapt(
+			views.IndexHandler(),
+			adapters.Logging(logger),
+		))
 	router.
 		Methods("GET").
 		Path("/buckets").
-		Handler(Adapt(s.BucketsPageHandler(), Logging(logger)))
+		Handler(adapters.Adapt(
+			views.BucketsHandler(s3),
+			adapters.Logging(logger),
+		))
 	router.
 		Methods("GET").
 		Path("/buckets/{bucketName}").
-		Handler(Adapt(s.BucketPageHandler(), Logging(logger)))
+		Handler(adapters.Adapt(
+			views.BucketHandler(s3),
+			adapters.Logging(logger),
+		))
 
 	api := router.PathPrefix("/api").Subrouter()
 
-	buckets := api.PathPrefix("/buckets").Subrouter()
-	buckets.
+	br := api.PathPrefix("/buckets").Subrouter()
+	br.
 		Methods("POST").
 		Path("").
-		Handler(Adapt(s.CreateBucketHandler(), Logging(logger)))
-	buckets.
+		Handler(adapters.Adapt(
+			buckets.CreateHandler(s3),
+			adapters.Logging(logger),
+		))
+	br.
 		Methods("DELETE").
 		Path("/{bucketName}").
-		Handler(Adapt(s.DeleteBucketHandler(), Logging(logger)))
-	buckets.
+		Handler(adapters.Adapt(
+			buckets.DeleteHandler(s3),
+			adapters.Logging(logger),
+		))
+	br.
 		Methods("POST").
 		Path("/{bucketName}/objects").
-		Handler(Adapt(s.CreateObjectHandler(), Logging(logger)))
-	buckets.
+		Handler(adapters.Adapt(
+			objects.CreateHandler(s3),
+			adapters.Logging(logger),
+		))
+	br.
 		Methods("GET").
 		Path("/{bucketName}/objects/{objectName}").
-		Handler(Adapt(s.GetObjectHandler(), Logging(logger)))
-	buckets.
+		Handler(adapters.Adapt(
+			objects.GetHandler(s3),
+			adapters.Logging(logger),
+		))
+	br.
 		Methods("DELETE").
 		Path("/{bucketName}/objects/{objectName}").
-		Handler(Adapt(s.DeleteObjectHandler(), Logging(logger)))
+		Handler(adapters.Adapt(
+			objects.DeleteHandler(s3),
+			adapters.Logging(logger),
+		))
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
