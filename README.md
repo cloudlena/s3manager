@@ -12,5 +12,11 @@ A Web GUI to written in Go to manage S3 buckets from any provider.
 ## Run locally
 
 1. Set all environment variables
-1. Run `go build .`
+1. Run `go build`
 1. Run the binary and visit <http://localhost:8080>
+
+## Push to Cloud Foundry
+
+1. Set environment variables in `manifest.yml`
+1. Set hostname in `manifest.yml` that isn't taken yet
+1. Run `cf push`
