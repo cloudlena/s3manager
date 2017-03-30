@@ -1,4 +1,4 @@
-package: github.com/mastertinner/s3manager
+package: github.com/mastertinner/s3-manager
 import:
 - package: github.com/minio/minio-go
   version: ^2.0.2
