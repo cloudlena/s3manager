@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -26,15 +25,15 @@ func (s *Server) CreateBucketHandler() http.Handler {
 
 		err := json.NewDecoder(r.Body).Decode(&bucket)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-			log.Println("error decoding json:", err)
+			msg := "error decoding json"
+			handleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
 			return
 		}
 
 		err = s.S3.MakeBucket(bucket.Name, "")
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error making bucket:", err)
+			msg := "error making bucket"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -43,8 +42,8 @@ func (s *Server) CreateBucketHandler() http.Handler {
 
 		err = json.NewEncoder(w).Encode(bucket)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error encoding json:", err)
+			msg := "error encoding json"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 	})
@@ -60,50 +59,49 @@ func (s *Server) CreateObjectHandler() http.Handler {
 
 			err := json.NewDecoder(r.Body).Decode(&copy)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-				log.Println("error decoding json:", err)
+				msg := "error decoding json"
+				handleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
 				return
 			}
 
 			var copyConds = minio.NewCopyConditions()
 			objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
-			fmt.Println(copy)
-			fmt.Println(objectSource)
 			err = s.S3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Println("error copying object:", err)
+				msg := "error copying object"
+				handleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			w.WriteHeader(http.StatusCreated)
+
 			err = json.NewEncoder(w).Encode(copy)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Println("error encoding json:", err)
+				msg := "error encoding json"
+				handleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 		} else {
 			err := r.ParseMultipartForm(32 << 20)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-				log.Println("error parsing form:", err)
+				msg := "error parsing form"
+				handleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
 				return
 			}
 
 			file, handler, err := r.FormFile("file")
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-				log.Println("error getting form file:", err)
+				msg := "error getting form file"
+				handleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 			defer file.Close()
 
 			_, err = s.S3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Println("error putting object:", err)
+				msg := "error putting object"
+				handleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 
@@ -119,8 +117,8 @@ func (s *Server) DeleteBucketHandler() http.Handler {
 
 		err := s.S3.RemoveBucket(vars["bucketName"])
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error removing bucket:", err)
+			msg := "error removing bucket"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -135,8 +133,8 @@ func (s *Server) DeleteObjectHandler() http.Handler {
 
 		err := s.S3.RemoveObject(vars["bucketName"], vars["objectName"])
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error removing object:", err)
+			msg := "error removing object"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -152,8 +150,8 @@ func (s *Server) GetObjectHandler() http.Handler {
 
 		object, err := s.S3.GetObject(vars["bucketName"], objectName)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error getting object:", err)
+			msg := "error getting object"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -162,8 +160,8 @@ func (s *Server) GetObjectHandler() http.Handler {
 
 		_, err = io.Copy(w, object)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error copying object:", err)
+			msg := "error copying object"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 	})

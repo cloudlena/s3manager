@@ -2,7 +2,6 @@ package main
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 	"path"
 
@@ -33,18 +32,17 @@ func (s *Server) BucketPageHandler() http.Handler {
 
 		t, err := template.ParseFiles(lp, bp)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error parsing templates:", err)
+			msg := "error parsing templates"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 
 		doneCh := make(chan struct{})
-
 		objectCh := s.S3.ListObjectsV2(bucketName, "", false, doneCh)
 		for object := range objectCh {
 			if object.Err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Println("error listing objects:", err)
+				msg := "error listing objects"
+				handleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 			objectWithIcon := ObjectWithIcon{object, icon(object.Key)}
@@ -58,8 +56,8 @@ func (s *Server) BucketPageHandler() http.Handler {
 
 		err = t.ExecuteTemplate(w, "layout", bucketPage)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error executing template:", err)
+			msg := "error executing template"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 	})
@@ -73,22 +71,22 @@ func (s *Server) BucketsPageHandler() http.Handler {
 
 		t, err := template.ParseFiles(lp, ip)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error parsing templates:", err)
+			msg := "error parsing templates"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 
 		buckets, err := s.S3.ListBuckets()
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error listing buckets:", err)
+			msg := "error listing buckets"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 
 		err = t.ExecuteTemplate(w, "layout", buckets)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println("error executing template:", err)
+			msg := "error executing template"
+			handleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 	})

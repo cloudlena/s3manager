@@ -15,17 +15,12 @@ type Server struct {
 }
 
 func main() {
-	port := os.Getenv("PORT")
-	if len(port) == 0 {
-		port = "8080"
-	}
-
 	s := &Server{
 		S3: NewMinioClient(),
 	}
 
-	router := mux.NewRouter()
 	logger := log.New(os.Stdout, "request: ", log.Lshortfile)
+	router := mux.NewRouter()
 
 	router.
 		Methods("GET").
@@ -64,5 +59,9 @@ func main() {
 		Path("/{bucketName}/objects/{objectName}").
 		Handler(Adapt(s.DeleteObjectHandler(), Logging(logger)))
 
+	port := os.Getenv("PORT")
+	if len(port) == 0 {
+		port = "8080"
+	}
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
