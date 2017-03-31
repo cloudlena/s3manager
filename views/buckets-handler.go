@@ -12,10 +12,10 @@ import (
 // BucketsHandler shows all buckets
 func BucketsHandler(s3 *minio.Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		lp := path.Join("views", "layout.html")
+		l := path.Join("views", "layout.html")
 		p := path.Join("views", "buckets.html")
 
-		t, err := template.ParseFiles(lp, p)
+		t, err := template.ParseFiles(l, p)
 		if err != nil {
 			msg := "error parsing templates"
 			web.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
