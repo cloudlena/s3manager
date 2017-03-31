@@ -23,10 +23,10 @@ func BucketHandler(s3 *minio.Client) http.Handler {
 		bucketName := mux.Vars(r)["bucketName"]
 		var objs []objects.WithIcon
 
-		lp := path.Join("views", "layout.html")
+		l := path.Join("views", "layout.html")
 		p := path.Join("views", "bucket.html")
 
-		t, err := template.ParseFiles(lp, p)
+		t, err := template.ParseFiles(l, p)
 		if err != nil {
 			msg := "error parsing templates"
 			web.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
