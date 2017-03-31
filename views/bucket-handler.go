@@ -34,7 +34,7 @@ func BucketHandler(s3 *minio.Client) http.Handler {
 		}
 
 		doneCh := make(chan struct{})
-		objectCh := s3.ListObjectsV2(bucketName, "", false, doneCh)
+		objectCh := s3.ListObjectsV2(bucketName, "", true, doneCh)
 		for object := range objectCh {
 			if object.Err != nil {
 				msg := "error listing objects"
