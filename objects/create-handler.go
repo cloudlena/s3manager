@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/mastertinner/s3-manager/web"
+	"github.com/mastertinner/s3-manager/datasources"
+	"github.com/mastertinner/s3-manager/utils"
 	minio "github.com/minio/minio-go"
 )
 
@@ -19,7 +20,7 @@ type CopyObjectInfo struct {
 }
 
 // CreateHandler allows to upload a new object
-func CreateHandler(s3 *minio.Client) http.Handler {
+func CreateHandler(s3 datasources.S3Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 
@@ -29,16 +30,16 @@ func CreateHandler(s3 *minio.Client) http.Handler {
 			err := json.NewDecoder(r.Body).Decode(&copy)
 			if err != nil {
 				msg := "error decoding json"
-				web.HandleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
+				utils.HandleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
 				return
 			}
 
-			var copyConds = minio.NewCopyConditions()
+			copyConds := minio.NewCopyConditions()
 			objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
 			err = s3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
 			if err != nil {
 				msg := "error copying object"
-				web.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
+				utils.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 
@@ -48,21 +49,21 @@ func CreateHandler(s3 *minio.Client) http.Handler {
 			err = json.NewEncoder(w).Encode(copy)
 			if err != nil {
 				msg := "error encoding json"
-				web.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
+				utils.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 		} else {
 			err := r.ParseMultipartForm(32 << 20)
 			if err != nil {
 				msg := "error parsing form"
-				web.HandleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
+				utils.HandleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
 				return
 			}
 
 			file, handler, err := r.FormFile("file")
 			if err != nil {
 				msg := "error getting form file"
-				web.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
+				utils.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 			defer file.Close()
@@ -70,7 +71,7 @@ func CreateHandler(s3 *minio.Client) http.Handler {
 			_, err = s3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
 			if err != nil {
 				msg := "error putting object"
-				web.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
+				utils.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
 				return
 			}
 

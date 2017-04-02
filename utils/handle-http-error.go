@@ -1,4 +1,4 @@
-package web
+package utils
 
 import (
 	"log"
