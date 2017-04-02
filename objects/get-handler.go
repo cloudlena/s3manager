@@ -6,12 +6,12 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/mastertinner/s3-manager/web"
-	minio "github.com/minio/minio-go"
+	"github.com/mastertinner/s3-manager/datasources"
+	"github.com/mastertinner/s3-manager/utils"
 )
 
 // GetHandler downloads an object to the client
-func GetHandler(s3 *minio.Client) http.Handler {
+func GetHandler(s3 datasources.S3Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		objectName := vars["objectName"]
@@ -19,7 +19,7 @@ func GetHandler(s3 *minio.Client) http.Handler {
 		object, err := s3.GetObject(vars["bucketName"], objectName)
 		if err != nil {
 			msg := "error getting object"
-			web.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
+			utils.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -29,7 +29,7 @@ func GetHandler(s3 *minio.Client) http.Handler {
 		_, err = io.Copy(w, object)
 		if err != nil {
 			msg := "error copying object"
-			web.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
+			utils.HandleHTTPError(w, msg, err, http.StatusInternalServerError)
 			return
 		}
 	})
