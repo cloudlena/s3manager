@@ -27,10 +27,52 @@ func TestBucketViewHandler(t *testing.T) {
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
+				ObjectInfos: []minio.ObjectInfo{
+					{Key: "testFile"},
+				},
 			},
 			bucketName:            "testBucket",
 			expectedStatusCode:    http.StatusOK,
 			expectedBodyCountains: "testBucket",
+		},
+		"success (archive)": {
+			s3: &S3ClientMock{
+				Buckets: []minio.BucketInfo{
+					{Name: "testBucket"},
+				},
+				ObjectInfos: []minio.ObjectInfo{
+					{Key: "archive.tar.gz"},
+				},
+			},
+			bucketName:            "testBucket",
+			expectedStatusCode:    http.StatusOK,
+			expectedBodyCountains: "archive",
+		},
+		"success (image)": {
+			s3: &S3ClientMock{
+				Buckets: []minio.BucketInfo{
+					{Name: "testBucket"},
+				},
+				ObjectInfos: []minio.ObjectInfo{
+					{Key: "testImage.png"},
+				},
+			},
+			bucketName:            "testBucket",
+			expectedStatusCode:    http.StatusOK,
+			expectedBodyCountains: "photo",
+		},
+		"success (sound)": {
+			s3: &S3ClientMock{
+				Buckets: []minio.BucketInfo{
+					{Name: "testBucket"},
+				},
+				ObjectInfos: []minio.ObjectInfo{
+					{Key: "testSound.mp3"},
+				},
+			},
+			bucketName:            "testBucket",
+			expectedStatusCode:    http.StatusOK,
+			expectedBodyCountains: "music_note",
 		},
 		"bucket doesn't exist": {
 			s3:                    &S3ClientMock{},
