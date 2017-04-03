@@ -22,7 +22,17 @@ func TestBucketViewHandler(t *testing.T) {
 		expectedStatusCode    int
 		expectedBodyCountains string
 	}{
-		"success": {
+		"success (empty bucket)": {
+			s3: &S3ClientMock{
+				Buckets: []minio.BucketInfo{
+					{Name: "testBucket"},
+				},
+			},
+			bucketName:            "testBucket",
+			expectedStatusCode:    http.StatusOK,
+			expectedBodyCountains: "No objects in",
+		},
+		"success (with file)": {
 			s3: &S3ClientMock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
