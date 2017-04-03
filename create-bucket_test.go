@@ -1,4 +1,4 @@
-package buckets_test
+package main
 
 import (
 	"bytes"
@@ -7,45 +7,38 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/mastertinner/s3-manager/buckets"
-	"github.com/mastertinner/s3-manager/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateHandler(t *testing.T) {
+func TestCreateBucketHandler(t *testing.T) {
 	assert := assert.New(t)
 
-	tests := []struct {
-		description        string
-		s3Client           *mock.S3Client
+	tests := map[string]struct {
+		s3Client           S3Client
 		body               string
 		expectedStatusCode int
 		expectedBody       string
 	}{
-		{
-			description:        "success",
-			s3Client:           &mock.S3Client{},
+		"success": {
+			s3Client:           &S3ClientMock{},
 			body:               "{\"name\":\"myBucket\"}",
 			expectedStatusCode: http.StatusCreated,
 			expectedBody:       "{\"name\":\"myBucket\",\"creationDate\":\"0001-01-01T00:00:00Z\"}\n",
 		},
-		{
-			description:        "empty request",
-			s3Client:           &mock.S3Client{},
+		"empty request": {
+			s3Client:           &S3ClientMock{},
 			body:               "",
 			expectedStatusCode: http.StatusUnprocessableEntity,
 			expectedBody:       "error decoding json\n",
 		},
-		{
-			description:        "malformed request",
-			s3Client:           &mock.S3Client{},
+		"malformed request": {
+			s3Client:           &S3ClientMock{},
 			body:               "}",
 			expectedStatusCode: http.StatusUnprocessableEntity,
 			expectedBody:       "error decoding json\n",
 		},
-		{
-			description: "s3 error",
-			s3Client: &mock.S3Client{
+		"s3 error": {
+			s3Client: &S3ClientMock{
 				Err: errors.New("internal S3 error"),
 			},
 			body:               "{\"name\":\"myBucket\"}",
@@ -59,11 +52,11 @@ func TestCreateHandler(t *testing.T) {
 		assert.NoError(err)
 
 		rr := httptest.NewRecorder()
-		handler := buckets.CreateHandler(tc.s3Client)
+		handler := CreateBucketHandler(tc.s3Client)
 
 		handler.ServeHTTP(rr, req)
 
-		assert.Equal(tc.expectedStatusCode, rr.Code, tc.description)
-		assert.Equal(tc.expectedBody, rr.Body.String(), tc.description)
+		assert.Equal(tc.expectedStatusCode, rr.Code)
+		assert.Equal(tc.expectedBody, rr.Body.String())
 	}
 }
