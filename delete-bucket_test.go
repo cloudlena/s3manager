@@ -13,17 +13,17 @@ func TestDeleteBucketHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	tests := map[string]struct {
-		s3Client           S3Client
+		s3                 S3Client
 		expectedStatusCode int
 		expectedBody       string
 	}{
 		"success": {
-			s3Client:           &S3ClientMock{},
+			s3:                 &S3ClientMock{},
 			expectedStatusCode: http.StatusNoContent,
 			expectedBody:       "",
 		},
 		"s3 error": {
-			s3Client: &S3ClientMock{
+			s3: &S3ClientMock{
 				Err: errors.New("internal S3 error"),
 			},
 			expectedStatusCode: http.StatusInternalServerError,
@@ -36,7 +36,7 @@ func TestDeleteBucketHandler(t *testing.T) {
 		assert.NoError(err)
 
 		rr := httptest.NewRecorder()
-		handler := DeleteBucketHandler(tc.s3Client)
+		handler := DeleteBucketHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
 

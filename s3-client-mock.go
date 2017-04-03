@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 
 	minio "github.com/minio/minio-go"
@@ -26,8 +27,36 @@ func (s S3ClientMock) ListBuckets() ([]minio.BucketInfo, error) {
 	return s.Buckets, s.Err
 }
 
-func (s S3ClientMock) ListObjectsV2(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
-	return make(<-chan minio.ObjectInfo)
+func (s S3ClientMock) ListObjectsV2(bucketName string, p string, r bool, d <-chan struct{}) <-chan minio.ObjectInfo {
+	// Add error if exists
+	if s.Err != nil {
+		s.ObjectInfos = append(s.ObjectInfos, minio.ObjectInfo{
+			Err: s.Err,
+		})
+	}
+
+	// Check if bucket exists
+	found := false
+	for _, b := range s.Buckets {
+		if b.Name == bucketName {
+			found = true
+		}
+	}
+	if !found {
+		s.ObjectInfos = append(s.ObjectInfos, minio.ObjectInfo{
+			Err: errors.New("The specified bucket does not exist."),
+		})
+
+	}
+
+	objCh := make(chan minio.ObjectInfo, len(s.ObjectInfos))
+	defer close(objCh)
+
+	for _, obj := range s.ObjectInfos {
+		objCh <- obj
+	}
+
+	return objCh
 }
 
 func (s S3ClientMock) MakeBucket(string, string) error {
