@@ -8,3 +8,6 @@ import:
   version: ^1.1.4
   subpackages:
   - assert
+- package: github.com/mastertinner/adapters
+  subpackages:
+  - logging
