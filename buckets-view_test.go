@@ -34,7 +34,7 @@ func TestBucketsViewHandler(t *testing.T) {
 		},
 		"s3 error": {
 			s3: &S3ClientMock{
-				Err: errors.New("internal S3 error"),
+				Err: errors.New("mocked S3 error"),
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: "error listing buckets\n",
