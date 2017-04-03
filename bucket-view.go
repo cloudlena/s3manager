@@ -75,11 +75,11 @@ func icon(fileName string) string {
 	e := path.Ext(fileName)
 
 	switch e {
-	case ".tgz":
+	case ".tgz", ".gz":
 		return "archive"
 	case ".png", ".jpg", ".gif", ".svg":
 		return "photo"
-	case ".mp3":
+	case ".mp3", ".wav":
 		return "music_note"
 	}
 
