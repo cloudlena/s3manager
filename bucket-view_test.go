@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
+	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,24 +17,34 @@ func TestBucketViewHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	tests := map[string]struct {
-		s3                 S3Client
-		bucketName         string
-		expectedStatusCode int
-		expectedBody       string
+		s3                    S3Client
+		bucketName            string
+		expectedStatusCode    int
+		expectedBodyCountains string
 	}{
+		"success": {
+			s3: &S3ClientMock{
+				Buckets: []minio.BucketInfo{
+					{Name: "testBucket"},
+				},
+			},
+			bucketName:            "testBucket",
+			expectedStatusCode:    http.StatusOK,
+			expectedBodyCountains: "testBucket",
+		},
 		"bucket doesn't exist": {
-			s3:                 &S3ClientMock{},
-			bucketName:         "testBucket",
-			expectedStatusCode: http.StatusNotFound,
-			expectedBody:       "bucket not found\n",
+			s3:                    &S3ClientMock{},
+			bucketName:            "testBucket",
+			expectedStatusCode:    http.StatusNotFound,
+			expectedBodyCountains: "bucket not found\n",
 		},
 		"s3 error": {
 			s3: &S3ClientMock{
 				Err: errors.New("internal S3 error"),
 			},
-			bucketName:         "testBucket",
-			expectedStatusCode: http.StatusInternalServerError,
-			expectedBody:       "error listing objects\n",
+			bucketName:            "testBucket",
+			expectedStatusCode:    http.StatusInternalServerError,
+			expectedBodyCountains: "error listing objects\n",
 		},
 	}
 
@@ -56,6 +67,6 @@ func TestBucketViewHandler(t *testing.T) {
 		assert.NoError(err)
 
 		assert.Equal(tc.expectedStatusCode, resp.StatusCode)
-		assert.Equal(tc.expectedBody, string(body))
+		assert.Contains(string(body), tc.expectedBodyCountains)
 	}
 }
