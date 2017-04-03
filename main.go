@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	s3 := NewMinioClient()
+	s3 := newMinioClient()
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	router := mux.NewRouter()
 

@@ -7,23 +7,23 @@ import (
 	"github.com/minio/minio-go"
 )
 
-// NewMinioClient creates a new Minio client
-func NewMinioClient() *minio.Client {
+// newMinioClient creates a new Minio client
+func newMinioClient() *minio.Client {
 	var err error
 	var client *minio.Client
 
 	s3Endpoint := os.Getenv("S3_ENDPOINT")
-	if len(s3Endpoint) == 0 {
+	if s3Endpoint == "" {
 		s3Endpoint = "s3.amazonaws.com"
 	}
 
 	s3AccessKeyID := os.Getenv("S3_ACCESS_KEY_ID")
-	if len(s3AccessKeyID) == 0 {
+	if s3AccessKeyID == "" {
 		log.Fatal("Please set S3_ACCESS_KEY_ID")
 	}
 
 	s3SecretAccessKey := os.Getenv("S3_SECRET_ACCESS_KEY")
-	if len(s3SecretAccessKey) == 0 {
+	if s3SecretAccessKey == "" {
 		log.Fatal("Please set S3_SECRET_ACCESS_KEY")
 	}
 

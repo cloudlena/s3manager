@@ -37,7 +37,7 @@ func TestBucketViewHandler(t *testing.T) {
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
-				ObjectInfos: []minio.ObjectInfo{
+				Objects: []minio.ObjectInfo{
 					{Key: "testFile"},
 				},
 			},
@@ -50,7 +50,7 @@ func TestBucketViewHandler(t *testing.T) {
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
-				ObjectInfos: []minio.ObjectInfo{
+				Objects: []minio.ObjectInfo{
 					{Key: "archive.tar.gz"},
 				},
 			},
@@ -63,7 +63,7 @@ func TestBucketViewHandler(t *testing.T) {
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
-				ObjectInfos: []minio.ObjectInfo{
+				Objects: []minio.ObjectInfo{
 					{Key: "testImage.png"},
 				},
 			},
@@ -76,7 +76,7 @@ func TestBucketViewHandler(t *testing.T) {
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
-				ObjectInfos: []minio.ObjectInfo{
+				Objects: []minio.ObjectInfo{
 					{Key: "testSound.mp3"},
 				},
 			},
@@ -92,7 +92,7 @@ func TestBucketViewHandler(t *testing.T) {
 		},
 		"s3 error": {
 			s3: &S3ClientMock{
-				Err: errors.New("internal S3 error"),
+				Err: errors.New("mocked S3 error"),
 			},
 			bucketName:            "testBucket",
 			expectedStatusCode:    http.StatusInternalServerError,

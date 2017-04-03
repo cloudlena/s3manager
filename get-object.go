@@ -27,7 +27,17 @@ func GetObjectHandler(s3 S3Client) http.Handler {
 		_, err = io.Copy(w, object)
 		if err != nil {
 			msg := "error copying object"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			code := http.StatusInternalServerError
+			if err.Error() == "The specified key does not exist." {
+				msg = "object not found"
+				code = http.StatusNotFound
+			}
+			if err.Error() == "The specified bucket does not exist." {
+				msg = "bucket not found"
+				code = http.StatusNotFound
+			}
+
+			handleHTTPError(w, msg, err, code)
 			return
 		}
 	})
