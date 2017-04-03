@@ -1,4 +1,4 @@
-package buckets_test
+package main
 
 import (
 	"errors"
@@ -6,29 +6,24 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/mastertinner/s3-manager/buckets"
-	"github.com/mastertinner/s3-manager/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDeleteHandler(t *testing.T) {
+func TestDeleteBucketHandler(t *testing.T) {
 	assert := assert.New(t)
 
-	tests := []struct {
-		description        string
-		s3Client           *mock.S3Client
+	tests := map[string]struct {
+		s3Client           S3Client
 		expectedStatusCode int
 		expectedBody       string
 	}{
-		{
-			description:        "success",
-			s3Client:           &mock.S3Client{},
+		"success": {
+			s3Client:           &S3ClientMock{},
 			expectedStatusCode: http.StatusNoContent,
 			expectedBody:       "",
 		},
-		{
-			description: "s3 error",
-			s3Client: &mock.S3Client{
+		"s3 error": {
+			s3Client: &S3ClientMock{
 				Err: errors.New("internal S3 error"),
 			},
 			expectedStatusCode: http.StatusInternalServerError,
@@ -41,11 +36,11 @@ func TestDeleteHandler(t *testing.T) {
 		assert.NoError(err)
 
 		rr := httptest.NewRecorder()
-		handler := buckets.DeleteHandler(tc.s3Client)
+		handler := DeleteBucketHandler(tc.s3Client)
 
 		handler.ServeHTTP(rr, req)
 
-		assert.Equal(tc.expectedStatusCode, rr.Code, tc.description)
-		assert.Equal(tc.expectedBody, rr.Body.String(), tc.description)
+		assert.Equal(tc.expectedStatusCode, rr.Code)
+		assert.Equal(tc.expectedBody, rr.Body.String())
 	}
 }
