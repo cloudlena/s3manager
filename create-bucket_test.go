@@ -14,31 +14,31 @@ func TestCreateBucketHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	tests := map[string]struct {
-		s3Client           S3Client
+		s3                 S3Client
 		body               string
 		expectedStatusCode int
 		expectedBody       string
 	}{
 		"success": {
-			s3Client:           &S3ClientMock{},
+			s3:                 &S3ClientMock{},
 			body:               "{\"name\":\"myBucket\"}",
 			expectedStatusCode: http.StatusCreated,
 			expectedBody:       "{\"name\":\"myBucket\",\"creationDate\":\"0001-01-01T00:00:00Z\"}\n",
 		},
 		"empty request": {
-			s3Client:           &S3ClientMock{},
+			s3:                 &S3ClientMock{},
 			body:               "",
 			expectedStatusCode: http.StatusUnprocessableEntity,
 			expectedBody:       "error decoding json\n",
 		},
 		"malformed request": {
-			s3Client:           &S3ClientMock{},
+			s3:                 &S3ClientMock{},
 			body:               "}",
 			expectedStatusCode: http.StatusUnprocessableEntity,
 			expectedBody:       "error decoding json\n",
 		},
 		"s3 error": {
-			s3Client: &S3ClientMock{
+			s3: &S3ClientMock{
 				Err: errors.New("internal S3 error"),
 			},
 			body:               "{\"name\":\"myBucket\"}",
@@ -52,7 +52,7 @@ func TestCreateBucketHandler(t *testing.T) {
 		assert.NoError(err)
 
 		rr := httptest.NewRecorder()
-		handler := CreateBucketHandler(tc.s3Client)
+		handler := CreateBucketHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
 

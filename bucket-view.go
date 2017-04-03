@@ -38,11 +38,18 @@ func BucketViewHandler(s3 S3Client) http.Handler {
 		}
 
 		doneCh := make(chan struct{})
+		defer close(doneCh)
 		objectCh := s3.ListObjectsV2(bucketName, "", true, doneCh)
 		for object := range objectCh {
 			if object.Err != nil {
 				msg := "error listing objects"
-				handleHTTPError(w, msg, err, http.StatusInternalServerError)
+				code := http.StatusInternalServerError
+				if object.Err.Error() == "The specified bucket does not exist." {
+					msg = "bucket not found"
+					code = http.StatusNotFound
+				}
+
+				handleHTTPError(w, msg, object.Err, code)
 				return
 			}
 			objectWithIcon := ObjectWithIcon{object, icon(object.Key)}
