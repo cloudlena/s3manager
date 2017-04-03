@@ -20,6 +20,6 @@ func DeleteHandler(s3 datasources.S3Client) http.Handler {
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	})
 }
