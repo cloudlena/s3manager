@@ -1,6 +1,6 @@
 # S3 Manager
 
-A Web GUI to written in Go to manage S3 buckets from any provider.
+A Web GUI written in Go to manage S3 buckets from any provider.
 
 ## Environment Variables
 
