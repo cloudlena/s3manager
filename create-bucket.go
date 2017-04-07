@@ -26,7 +26,7 @@ func CreateBucketHandler(s3 S3Client) http.Handler {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.Header().Set(headerContentType, contentTypeJSON)
 		w.WriteHeader(http.StatusCreated)
 
 		err = json.NewEncoder(w).Encode(bucket)

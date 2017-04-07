@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	minio "github.com/minio/minio-go"
@@ -22,7 +23,7 @@ func CreateObjectHandler(s3 S3Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 
-		if r.Header.Get("Content-Type") == "application/json" {
+		if strings.Contains(r.Header.Get(headerContentType), contentTypeJSON) {
 			var copy CopyObjectInfo
 
 			err := json.NewDecoder(r.Body).Decode(&copy)
@@ -41,7 +42,7 @@ func CreateObjectHandler(s3 S3Client) http.Handler {
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.Header().Set(headerContentType, contentTypeJSON)
 			w.WriteHeader(http.StatusCreated)
 
 			err = json.NewEncoder(w).Encode(copy)
@@ -66,7 +67,7 @@ func CreateObjectHandler(s3 S3Client) http.Handler {
 			}
 			defer file.Close()
 
-			_, err = s3.PutObject(vars["bucketName"], handler.Filename, file, "application/octet-stream")
+			_, err = s3.PutObject(vars["bucketName"], handler.Filename, file, contentTypeOctetStream)
 			if err != nil {
 				msg := "error putting object"
 				handleHTTPError(w, msg, err, http.StatusInternalServerError)

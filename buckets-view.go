@@ -9,8 +9,8 @@ import (
 // BucketsViewHandler shows all buckets
 func BucketsViewHandler(s3 S3Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		l := path.Join("templates", "layout.html.tmpl")
-		p := path.Join("templates", "buckets.html.tmpl")
+		l := path.Join(tmplDirectory, "layout.html.tmpl")
+		p := path.Join(tmplDirectory, "buckets.html.tmpl")
 
 		t, err := template.ParseFiles(l, p)
 		if err != nil {

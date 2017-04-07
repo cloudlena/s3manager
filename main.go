@@ -10,6 +10,14 @@ import (
 	"github.com/mastertinner/adapters/logging"
 )
 
+const (
+	tmplDirectory            = "templates"
+	headerContentType        = "Content-Type"
+	headerContentDisposition = "Content-Disposition"
+	contentTypeJSON          = "application/json"
+	contentTypeOctetStream   = "application/octet-stream"
+)
+
 func main() {
 	s3 := newMinioClient()
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
