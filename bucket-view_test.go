@@ -103,7 +103,7 @@ func TestBucketViewHandler(t *testing.T) {
 	for _, tc := range tests {
 		r := mux.NewRouter()
 		r.
-			Methods("GET").
+			Methods(http.MethodGet).
 			Path("/buckets/{bucketName}").
 			Handler(BucketViewHandler(tc.s3))
 

@@ -36,7 +36,7 @@ func TestGetObjectHandler(t *testing.T) {
 	for _, tc := range tests {
 		r := mux.NewRouter()
 		r.
-			Methods("GET").
+			Methods(http.MethodGet).
 			Path("/buckets/{bucketName}/objects/{objectName}").
 			Handler(GetObjectHandler(tc.s3))
 

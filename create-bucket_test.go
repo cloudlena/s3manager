@@ -48,7 +48,7 @@ func TestCreateBucketHandler(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		req, err := http.NewRequest("POST", "/api/buckets", bytes.NewBufferString(tc.body))
+		req, err := http.NewRequest(http.MethodPost, "/api/buckets", bytes.NewBufferString(tc.body))
 		assert.NoError(err)
 
 		rr := httptest.NewRecorder()

@@ -32,7 +32,7 @@ func TestDeleteBucketHandler(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		req, err := http.NewRequest("DELETE", "/api/buckets/bucketName", nil)
+		req, err := http.NewRequest(http.MethodDelete, "/api/buckets/bucketName", nil)
 		assert.NoError(err)
 
 		rr := httptest.NewRecorder()
