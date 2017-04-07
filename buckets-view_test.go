@@ -42,7 +42,7 @@ func TestBucketsViewHandler(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		req, err := http.NewRequest("GET", "/buckets", nil)
+		req, err := http.NewRequest(http.MethodGet, "/buckets", nil)
 		assert.NoError(err)
 
 		rr := httptest.NewRecorder()

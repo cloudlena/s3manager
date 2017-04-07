@@ -22,7 +22,7 @@ func TestIndexViewHandler(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		req, err := http.NewRequest("GET", "/", nil)
+		req, err := http.NewRequest(http.MethodGet, "/", nil)
 		assert.NoError(err)
 
 		rr := httptest.NewRecorder()
