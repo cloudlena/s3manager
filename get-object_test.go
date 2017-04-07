@@ -33,7 +33,7 @@ func TestGetObjectHandler(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
+	for tcID, tc := range tests {
 		r := mux.NewRouter()
 		r.
 			Methods(http.MethodGet).
@@ -45,13 +45,13 @@ func TestGetObjectHandler(t *testing.T) {
 
 		url := fmt.Sprintf("%s/buckets/%s/objects/%s", ts.URL, tc.bucketName, tc.objectName)
 		resp, err := http.Get(url)
-		assert.NoError(err)
+		assert.NoError(err, tcID)
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
-		assert.NoError(err)
+		assert.NoError(err, tcID)
 
-		assert.Equal(tc.expectedStatusCode, resp.StatusCode)
-		assert.Contains(string(body), tc.expectedBodyCountains)
+		assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
+		assert.Contains(string(body), tc.expectedBodyCountains, tcID)
 	}
 }

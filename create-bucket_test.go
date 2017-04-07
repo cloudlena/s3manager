@@ -47,16 +47,16 @@ func TestCreateBucketHandler(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
+	for tcID, tc := range tests {
 		req, err := http.NewRequest(http.MethodPost, "/api/buckets", bytes.NewBufferString(tc.body))
-		assert.NoError(err)
+		assert.NoError(err, tcID)
 
 		rr := httptest.NewRecorder()
 		handler := CreateBucketHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
 
-		assert.Equal(tc.expectedStatusCode, rr.Code)
-		assert.Equal(tc.expectedBody, rr.Body.String())
+		assert.Equal(tc.expectedStatusCode, rr.Code, tcID)
+		assert.Equal(tc.expectedBody, rr.Body.String(), tcID)
 	}
 }

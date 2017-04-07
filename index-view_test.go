@@ -21,16 +21,16 @@ func TestIndexViewHandler(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
+	for tcID, tc := range tests {
 		req, err := http.NewRequest(http.MethodGet, "/", nil)
-		assert.NoError(err)
+		assert.NoError(err, tcID)
 
 		rr := httptest.NewRecorder()
 		handler := IndexViewHandler()
 
 		handler.ServeHTTP(rr, req)
 
-		assert.Equal(tc.expectedStatusCode, rr.Code)
-		assert.Contains(rr.Body.String(), tc.expectedBodyContains)
+		assert.Equal(tc.expectedStatusCode, rr.Code, tcID)
+		assert.Contains(rr.Body.String(), tc.expectedBodyContains, tcID)
 	}
 }

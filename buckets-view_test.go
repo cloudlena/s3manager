@@ -41,16 +41,16 @@ func TestBucketsViewHandler(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
+	for tcID, tc := range tests {
 		req, err := http.NewRequest(http.MethodGet, "/buckets", nil)
-		assert.NoError(err)
+		assert.NoError(err, tcID)
 
 		rr := httptest.NewRecorder()
 		handler := BucketsViewHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
 
-		assert.Equal(tc.expectedStatusCode, rr.Code)
-		assert.Contains(rr.Body.String(), tc.expectedBodyContains)
+		assert.Equal(tc.expectedStatusCode, rr.Code, tcID)
+		assert.Contains(rr.Body.String(), tc.expectedBodyContains, tcID)
 	}
 }
