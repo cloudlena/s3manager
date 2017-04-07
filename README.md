@@ -1,5 +1,7 @@
 # S3 Manager
 
+[![Build Status](https://travis-ci.org/mastertinner/s3-manager.svg?branch=master)](https://travis-ci.org/mastertinner/s3-manager)
+
 A Web GUI written in Go to manage S3 buckets from any provider.
 
 ## Environment Variables
