@@ -14,10 +14,12 @@ type S3ClientMock struct {
 	Err     error
 }
 
+// CopyObject mocks minio.Client.CopyObject
 func (s S3ClientMock) CopyObject(string, string, string, minio.CopyConditions) error {
 	return s.Err
 }
 
+// GetObject mocks minio.Client.GetObject
 func (s S3ClientMock) GetObject(bucketName string, objectName string) (*minio.Object, error) {
 	if s.Err != nil {
 		return nil, s.Err
@@ -26,10 +28,12 @@ func (s S3ClientMock) GetObject(bucketName string, objectName string) (*minio.Ob
 	return &minio.Object{}, nil
 }
 
+// ListBuckets mocks minio.Client.ListBuckets
 func (s S3ClientMock) ListBuckets() ([]minio.BucketInfo, error) {
 	return s.Buckets, s.Err
 }
 
+// ListObjectsV2 mocks minio.Client.ListObjectsV2
 func (s S3ClientMock) ListObjectsV2(bucketName string, p string, r bool, d <-chan struct{}) <-chan minio.ObjectInfo {
 	// Add error if exists
 	if s.Err != nil {
@@ -63,18 +67,22 @@ func (s S3ClientMock) ListObjectsV2(bucketName string, p string, r bool, d <-cha
 	return objCh
 }
 
+// MakeBucket mocks minio.Client.MakeBucket
 func (s S3ClientMock) MakeBucket(string, string) error {
 	return s.Err
 }
 
+// PutObject mocks minio.Client.PutObject
 func (s S3ClientMock) PutObject(string, string, io.Reader, string) (int64, error) {
 	return 0, s.Err
 }
 
+// RemoveBucket mocks minio.Client.RemoveBucket
 func (s S3ClientMock) RemoveBucket(string) error {
 	return s.Err
 }
 
+// RemoveObject mocks minio.Client.RemoveObject
 func (s S3ClientMock) RemoveObject(string, string) error {
 	return s.Err
 }
