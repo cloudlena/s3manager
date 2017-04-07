@@ -21,8 +21,8 @@ func GetObjectHandler(s3 S3Client) http.Handler {
 			return
 		}
 
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
-		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set(headerContentDisposition, fmt.Sprintf("attachment; filename=\"%s\"", objectName))
+		w.Header().Set(headerContentType, contentTypeOctetStream)
 
 		_, err = io.Copy(w, object)
 		if err != nil {

@@ -27,8 +27,8 @@ func BucketViewHandler(s3 S3Client) http.Handler {
 		bucketName := mux.Vars(r)["bucketName"]
 		var objs []ObjectWithIcon
 
-		l := path.Join("templates", "layout.html.tmpl")
-		p := path.Join("templates", "bucket.html.tmpl")
+		l := path.Join(tmplDirectory, "layout.html.tmpl")
+		p := path.Join(tmplDirectory, "bucket.html.tmpl")
 
 		t, err := template.ParseFiles(l, p)
 		if err != nil {
