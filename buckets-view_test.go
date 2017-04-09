@@ -37,7 +37,7 @@ func TestBucketsViewHandler(t *testing.T) {
 				Err: errors.New("mocked S3 error"),
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
-			expectedBodyContains: "error listing buckets\n",
+			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},
 	}
 

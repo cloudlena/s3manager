@@ -14,15 +14,13 @@ func CreateBucketHandler(s3 S3Client) http.Handler {
 
 		err := json.NewDecoder(r.Body).Decode(&bucket)
 		if err != nil {
-			msg := "error decoding json"
-			handleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
+			handleHTTPError(w, http.StatusUnprocessableEntity, err)
 			return
 		}
 
 		err = s3.MakeBucket(bucket.Name, "")
 		if err != nil {
-			msg := "error making bucket"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -31,8 +29,7 @@ func CreateBucketHandler(s3 S3Client) http.Handler {
 
 		err = json.NewEncoder(w).Encode(bucket)
 		if err != nil {
-			msg := "error encoding json"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 	})

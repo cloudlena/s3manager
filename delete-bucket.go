@@ -13,8 +13,7 @@ func DeleteBucketHandler(s3 S3Client) http.Handler {
 
 		err := s3.RemoveBucket(vars["bucketName"])
 		if err != nil {
-			msg := "error removing bucket"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 

@@ -13,21 +13,21 @@ func TestDeleteBucketHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	tests := map[string]struct {
-		s3                 S3Client
-		expectedStatusCode int
-		expectedBody       string
+		s3                   S3Client
+		expectedStatusCode   int
+		expectedBodyContains string
 	}{
 		"success": {
-			s3:                 &S3ClientMock{},
-			expectedStatusCode: http.StatusNoContent,
-			expectedBody:       "",
+			s3:                   &S3ClientMock{},
+			expectedStatusCode:   http.StatusNoContent,
+			expectedBodyContains: "",
 		},
 		"s3 error": {
 			s3: &S3ClientMock{
 				Err: errors.New("mocked S3 error"),
 			},
-			expectedStatusCode: http.StatusInternalServerError,
-			expectedBody:       "error removing bucket\n",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},
 	}
 
@@ -41,6 +41,6 @@ func TestDeleteBucketHandler(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(tc.expectedStatusCode, rr.Code, tcID)
-		assert.Equal(tc.expectedBody, rr.Body.String(), tcID)
+		assert.Contains(rr.Body.String(), tc.expectedBodyContains, tcID)
 	}
 }

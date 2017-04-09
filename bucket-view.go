@@ -32,8 +32,7 @@ func BucketViewHandler(s3 S3Client) http.Handler {
 
 		t, err := template.ParseFiles(l, p)
 		if err != nil {
-			msg := "error parsing templates"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -42,14 +41,12 @@ func BucketViewHandler(s3 S3Client) http.Handler {
 		objectCh := s3.ListObjectsV2(bucketName, "", true, doneCh)
 		for object := range objectCh {
 			if object.Err != nil {
-				msg := "error listing objects"
 				code := http.StatusInternalServerError
-				if object.Err.Error() == "The specified bucket does not exist." {
-					msg = "bucket not found"
+				if object.Err.Error() == ErrBucketDoesNotExist {
 					code = http.StatusNotFound
 				}
 
-				handleHTTPError(w, msg, object.Err, code)
+				handleHTTPError(w, code, object.Err)
 				return
 			}
 			objectWithIcon := ObjectWithIcon{object, icon(object.Key)}
@@ -63,8 +60,7 @@ func BucketViewHandler(s3 S3Client) http.Handler {
 
 		err = t.ExecuteTemplate(w, "layout", bucketPage)
 		if err != nil {
-			msg := "error executing template"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 	})

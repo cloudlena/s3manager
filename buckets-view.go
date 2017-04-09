@@ -14,22 +14,19 @@ func BucketsViewHandler(s3 S3Client) http.Handler {
 
 		t, err := template.ParseFiles(l, p)
 		if err != nil {
-			msg := "error parsing templates"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		buckets, err := s3.ListBuckets()
 		if err != nil {
-			msg := "error listing buckets"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		err = t.ExecuteTemplate(w, "layout", buckets)
 		if err != nil {
-			msg := "error executing template"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 	})
