@@ -20,7 +20,7 @@ func TestDeleteBucketHandler(t *testing.T) {
 		"success": {
 			s3:                   &S3ClientMock{},
 			expectedStatusCode:   http.StatusNoContent,
-			expectedBodyContains: "",
+			expectedBodyContains: http.StatusText(http.StatusNoContent),
 		},
 		"s3 error": {
 			s3: &S3ClientMock{
