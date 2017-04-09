@@ -19,25 +19,29 @@ const (
 )
 
 func main() {
-	s3 := newMinioClient()
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
-	router := mux.NewRouter()
+	s3, err := newMinioClient()
+	if err != nil {
+		log.Fatalln("error creating s3 client:", err)
+	}
 
-	router.
+	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+
+	r := mux.NewRouter()
+	r.
 		Methods(http.MethodGet).
 		Path("/").
 		Handler(adapters.Adapt(
 			IndexViewHandler(),
 			logging.Handler(logger),
 		))
-	router.
+	r.
 		Methods(http.MethodGet).
 		Path("/buckets").
 		Handler(adapters.Adapt(
 			BucketsViewHandler(s3),
 			logging.Handler(logger),
 		))
-	router.
+	r.
 		Methods(http.MethodGet).
 		Path("/buckets/{bucketName}").
 		Handler(adapters.Adapt(
@@ -45,7 +49,7 @@ func main() {
 			logging.Handler(logger),
 		))
 
-	api := router.PathPrefix("/api").Subrouter()
+	api := r.PathPrefix("/api").Subrouter()
 
 	br := api.PathPrefix("/buckets").Subrouter()
 	br.
@@ -88,5 +92,5 @@ func main() {
 	if len(port) == 0 {
 		port = "8080"
 	}
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }

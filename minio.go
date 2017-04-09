@@ -1,16 +1,16 @@
 package main
 
 import (
-	"log"
+	"errors"
 	"os"
 
 	"github.com/minio/minio-go"
 )
 
 // newMinioClient creates a new Minio client
-func newMinioClient() *minio.Client {
+func newMinioClient() (*minio.Client, error) {
 	var err error
-	var client *minio.Client
+	var c *minio.Client
 
 	s3Endpoint := os.Getenv("S3_ENDPOINT")
 	if s3Endpoint == "" {
@@ -19,22 +19,19 @@ func newMinioClient() *minio.Client {
 
 	s3AccessKeyID := os.Getenv("S3_ACCESS_KEY_ID")
 	if s3AccessKeyID == "" {
-		log.Fatal("Please set S3_ACCESS_KEY_ID")
+		return c, errors.New("no S3_ACCESS_KEY_ID found")
 	}
 
 	s3SecretAccessKey := os.Getenv("S3_SECRET_ACCESS_KEY")
 	if s3SecretAccessKey == "" {
-		log.Fatal("Please set S3_SECRET_ACCESS_KEY")
+		return c, errors.New("no S3_SECRET_ACCESS_KEY found")
 	}
 
 	if os.Getenv("V2_SIGNING") == "true" {
-		client, err = minio.NewV2(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, true)
+		c, err = minio.NewV2(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, true)
 	} else {
-		client, err = minio.New(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, true)
-	}
-	if err != nil {
-		log.Fatal(err)
+		c, err = minio.New(s3Endpoint, s3AccessKeyID, s3SecretAccessKey, true)
 	}
 
-	return client
+	return c, err
 }
