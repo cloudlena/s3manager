@@ -29,7 +29,7 @@ func TestGetObjectHandler(t *testing.T) {
 			bucketName:            "testBucket",
 			objectName:            "testObject",
 			expectedStatusCode:    http.StatusInternalServerError,
-			expectedBodyCountains: "error getting object\n",
+			expectedBodyCountains: http.StatusText(http.StatusInternalServerError),
 		},
 	}
 

@@ -13,8 +13,7 @@ func DeleteObjectHandler(s3 S3Client) http.Handler {
 
 		err := s3.RemoveObject(vars["bucketName"], vars["objectName"])
 		if err != nil {
-			msg := "error removing object"
-			handleHTTPError(w, msg, err, http.StatusInternalServerError)
+			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 

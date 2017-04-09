@@ -28,8 +28,7 @@ func CreateObjectHandler(s3 S3Client) http.Handler {
 
 			err := json.NewDecoder(r.Body).Decode(&copy)
 			if err != nil {
-				msg := "error decoding json"
-				handleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
+				handleHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 
@@ -37,8 +36,7 @@ func CreateObjectHandler(s3 S3Client) http.Handler {
 			objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
 			err = s3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
 			if err != nil {
-				msg := "error copying object"
-				handleHTTPError(w, msg, err, http.StatusInternalServerError)
+				handleHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 
@@ -47,30 +45,26 @@ func CreateObjectHandler(s3 S3Client) http.Handler {
 
 			err = json.NewEncoder(w).Encode(copy)
 			if err != nil {
-				msg := "error encoding json"
-				handleHTTPError(w, msg, err, http.StatusInternalServerError)
+				handleHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		} else {
 			err := r.ParseMultipartForm(32 << 20)
 			if err != nil {
-				msg := "error parsing form"
-				handleHTTPError(w, msg, err, http.StatusUnprocessableEntity)
+				handleHTTPError(w, http.StatusUnprocessableEntity, err)
 				return
 			}
 
 			file, handler, err := r.FormFile("file")
 			if err != nil {
-				msg := "error getting form file"
-				handleHTTPError(w, msg, err, http.StatusInternalServerError)
+				handleHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 			defer file.Close()
 
 			_, err = s3.PutObject(vars["bucketName"], handler.Filename, file, contentTypeOctetStream)
 			if err != nil {
-				msg := "error putting object"
-				handleHTTPError(w, msg, err, http.StatusInternalServerError)
+				handleHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 

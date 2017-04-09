@@ -88,7 +88,7 @@ func TestBucketViewHandler(t *testing.T) {
 			s3:                    &S3ClientMock{},
 			bucketName:            "testBucket",
 			expectedStatusCode:    http.StatusNotFound,
-			expectedBodyCountains: "bucket not found\n",
+			expectedBodyCountains: http.StatusText(http.StatusNotFound),
 		},
 		"s3 error": {
 			s3: &S3ClientMock{
@@ -96,7 +96,7 @@ func TestBucketViewHandler(t *testing.T) {
 			},
 			bucketName:            "testBucket",
 			expectedStatusCode:    http.StatusInternalServerError,
-			expectedBodyCountains: "error listing objects\n",
+			expectedBodyCountains: http.StatusText(http.StatusInternalServerError),
 		},
 	}
 
