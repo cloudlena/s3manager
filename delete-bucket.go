@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -20,6 +19,6 @@ func DeleteBucketHandler(s3 S3Client) http.Handler {
 
 		code := http.StatusNoContent
 		w.WriteHeader(code)
-		fmt.Fprint(w, http.StatusText(code))
+		w.Write([]byte(http.StatusText(code)))
 	})
 }
