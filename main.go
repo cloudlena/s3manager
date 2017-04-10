@@ -31,7 +31,7 @@ func main() {
 		Methods(http.MethodGet).
 		Path("/").
 		Handler(adapters.Adapt(
-			IndexViewHandler(),
+			http.RedirectHandler("/buckets", http.StatusPermanentRedirect),
 			logging.Handler(logger),
 		))
 	r.
