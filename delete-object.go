@@ -17,8 +17,6 @@ func DeleteObjectHandler(s3 S3Client) http.Handler {
 			return
 		}
 
-		code := http.StatusNoContent
-		w.WriteHeader(code)
-		w.Write([]byte(http.StatusText(code)))
+		w.WriteHeader(http.StatusNoContent)
 	})
 }
