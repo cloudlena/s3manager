@@ -15,6 +15,7 @@ const (
 	headerContentType        = "Content-Type"
 	headerContentDisposition = "Content-Disposition"
 	contentTypeJSON          = "application/json"
+	contentTypeMultipartForm = "multipart/form-data"
 	contentTypeOctetStream   = "application/octet-stream"
 )
 
@@ -68,9 +69,18 @@ func main() {
 		))
 	br.
 		Methods(http.MethodPost).
+		Headers(headerContentType, contentTypeJSON).
 		Path("/{bucketName}/objects").
 		Handler(adapters.Adapt(
-			CreateObjectHandler(s3),
+			CreateObjectFromJSONHandler(s3),
+			logging.Handler(logger),
+		))
+	br.
+		Methods(http.MethodPost).
+		HeadersRegexp(headerContentType, contentTypeMultipartForm).
+		Path("/{bucketName}/objects").
+		Handler(adapters.Adapt(
+			CreateObjectFromFormHandler(s3),
 			logging.Handler(logger),
 		))
 	br.
