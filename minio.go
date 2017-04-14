@@ -19,12 +19,12 @@ func newMinioClient() (*minio.Client, error) {
 
 	s3AccessKeyID := os.Getenv("S3_ACCESS_KEY_ID")
 	if s3AccessKeyID == "" {
-		return c, errors.New("no S3_ACCESS_KEY_ID found")
+		return nil, errors.New("no S3_ACCESS_KEY_ID found")
 	}
 
 	s3SecretAccessKey := os.Getenv("S3_SECRET_ACCESS_KEY")
 	if s3SecretAccessKey == "" {
-		return c, errors.New("no S3_SECRET_ACCESS_KEY found")
+		return nil, errors.New("no S3_SECRET_ACCESS_KEY found")
 	}
 
 	if os.Getenv("V2_SIGNING") == "true" {
