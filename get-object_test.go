@@ -16,20 +16,20 @@ func TestGetObjectHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	tests := map[string]struct {
-		s3                    S3Client
-		bucketName            string
-		objectName            string
-		expectedStatusCode    int
-		expectedBodyCountains string
+		s3                   S3Client
+		bucketName           string
+		objectName           string
+		expectedStatusCode   int
+		expectedBodyContains string
 	}{
 		"s3 error": {
 			s3: &S3ClientMock{
 				Err: errors.New("mocked S3 error"),
 			},
-			bucketName:            "testBucket",
-			objectName:            "testObject",
-			expectedStatusCode:    http.StatusInternalServerError,
-			expectedBodyCountains: http.StatusText(http.StatusInternalServerError),
+			bucketName:           "testBucket",
+			objectName:           "testObject",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},
 	}
 
@@ -52,6 +52,6 @@ func TestGetObjectHandler(t *testing.T) {
 		assert.NoError(err, tcID)
 
 		assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
-		assert.Contains(string(body), tc.expectedBodyCountains, tcID)
+		assert.Contains(string(body), tc.expectedBodyContains, tcID)
 	}
 }

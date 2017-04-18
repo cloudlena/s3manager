@@ -17,10 +17,10 @@ func TestBucketViewHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	tests := map[string]struct {
-		s3                    S3Client
-		bucketName            string
-		expectedStatusCode    int
-		expectedBodyCountains string
+		s3                   S3Client
+		bucketName           string
+		expectedStatusCode   int
+		expectedBodyContains string
 	}{
 		"success (empty bucket)": {
 			s3: &S3ClientMock{
@@ -28,9 +28,9 @@ func TestBucketViewHandler(t *testing.T) {
 					{Name: "testBucket"},
 				},
 			},
-			bucketName:            "testBucket",
-			expectedStatusCode:    http.StatusOK,
-			expectedBodyCountains: "No objects in",
+			bucketName:           "testBucket",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "No objects in",
 		},
 		"success (with file)": {
 			s3: &S3ClientMock{
@@ -41,9 +41,9 @@ func TestBucketViewHandler(t *testing.T) {
 					{Key: "testFile"},
 				},
 			},
-			bucketName:            "testBucket",
-			expectedStatusCode:    http.StatusOK,
-			expectedBodyCountains: "testBucket",
+			bucketName:           "testBucket",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "testBucket",
 		},
 		"success (archive)": {
 			s3: &S3ClientMock{
@@ -54,9 +54,9 @@ func TestBucketViewHandler(t *testing.T) {
 					{Key: "archive.tar.gz"},
 				},
 			},
-			bucketName:            "testBucket",
-			expectedStatusCode:    http.StatusOK,
-			expectedBodyCountains: "archive",
+			bucketName:           "testBucket",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "archive",
 		},
 		"success (image)": {
 			s3: &S3ClientMock{
@@ -67,9 +67,9 @@ func TestBucketViewHandler(t *testing.T) {
 					{Key: "testImage.png"},
 				},
 			},
-			bucketName:            "testBucket",
-			expectedStatusCode:    http.StatusOK,
-			expectedBodyCountains: "photo",
+			bucketName:           "testBucket",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "photo",
 		},
 		"success (sound)": {
 			s3: &S3ClientMock{
@@ -80,23 +80,23 @@ func TestBucketViewHandler(t *testing.T) {
 					{Key: "testSound.mp3"},
 				},
 			},
-			bucketName:            "testBucket",
-			expectedStatusCode:    http.StatusOK,
-			expectedBodyCountains: "music_note",
+			bucketName:           "testBucket",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "music_note",
 		},
 		"bucket doesn't exist": {
-			s3:                    &S3ClientMock{},
-			bucketName:            "testBucket",
-			expectedStatusCode:    http.StatusNotFound,
-			expectedBodyCountains: http.StatusText(http.StatusNotFound),
+			s3:                   &S3ClientMock{},
+			bucketName:           "testBucket",
+			expectedStatusCode:   http.StatusNotFound,
+			expectedBodyContains: http.StatusText(http.StatusNotFound),
 		},
 		"s3 error": {
 			s3: &S3ClientMock{
 				Err: errors.New("mocked S3 error"),
 			},
-			bucketName:            "testBucket",
-			expectedStatusCode:    http.StatusInternalServerError,
-			expectedBodyCountains: http.StatusText(http.StatusInternalServerError),
+			bucketName:           "testBucket",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},
 	}
 
@@ -119,6 +119,6 @@ func TestBucketViewHandler(t *testing.T) {
 		assert.NoError(err, tcID)
 
 		assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
-		assert.Contains(string(body), tc.expectedBodyCountains, tcID)
+		assert.Contains(string(body), tc.expectedBodyContains, tcID)
 	}
 }
