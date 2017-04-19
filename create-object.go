@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -63,7 +64,12 @@ func CreateObjectFromFormHandler(s3 S3Client) http.Handler {
 			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
-		defer file.Close()
+		defer func() {
+			err = file.Close()
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}()
 
 		_, err = s3.PutObject(vars["bucketName"], handler.Filename, file, contentTypeOctetStream)
 		if err != nil {
