@@ -34,7 +34,7 @@ func (s S3ClientMock) ListBuckets() ([]minio.BucketInfo, error) {
 }
 
 // ListObjectsV2 mocks minio.Client.ListObjectsV2
-func (s S3ClientMock) ListObjectsV2(bucketName string, p string, r bool, d <-chan struct{}) <-chan minio.ObjectInfo {
+func (s S3ClientMock) ListObjectsV2(name string, p string, r bool, d <-chan struct{}) <-chan minio.ObjectInfo {
 	// Add error if exists
 	if s.Err != nil {
 		s.Objects = append(s.Objects, minio.ObjectInfo{
@@ -45,7 +45,7 @@ func (s S3ClientMock) ListObjectsV2(bucketName string, p string, r bool, d <-cha
 	// Check if bucket exists
 	found := false
 	for _, b := range s.Buckets {
-		if b.Name == bucketName {
+		if b.Name == name {
 			found = true
 			break
 		}
