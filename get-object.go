@@ -12,9 +12,10 @@ import (
 func GetObjectHandler(s3 S3Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
+		bucketName := vars["bucketName"]
 		objectName := vars["objectName"]
 
-		object, err := s3.GetObject(vars["bucketName"], objectName)
+		object, err := s3.GetObject(bucketName, objectName)
 		if err != nil {
 			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
