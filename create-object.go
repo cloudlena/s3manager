@@ -10,8 +10,6 @@ import (
 // CreateObjectHandler allows to upload a new object
 func CreateObjectHandler(s3 S3Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
 			handleHTTPError(w, http.StatusUnprocessableEntity, err)
@@ -30,7 +28,8 @@ func CreateObjectHandler(s3 S3Client) http.Handler {
 			}
 		}()
 
-		_, err = s3.PutObject(vars["bucketName"], handler.Filename, file, contentTypeOctetStream)
+		bucketName := mux.Vars(r)["bucketName"]
+		_, err = s3.PutObject(bucketName, handler.Filename, file, contentTypeOctetStream)
 		if err != nil {
 			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
