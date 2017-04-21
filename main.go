@@ -72,7 +72,7 @@ func main() {
 		Headers(headerContentType, contentTypeJSON).
 		Path("/{bucketName}/objects").
 		Handler(adapters.Adapt(
-			CreateObjectFromJSONHandler(s3),
+			CopyObjectHandler(s3),
 			logging.Handler(logger),
 		))
 	br.
@@ -80,7 +80,7 @@ func main() {
 		HeadersRegexp(headerContentType, contentTypeMultipartForm).
 		Path("/{bucketName}/objects").
 		Handler(adapters.Adapt(
-			CreateObjectFromFormHandler(s3),
+			CreateObjectHandler(s3),
 			logging.Handler(logger),
 		))
 	br.
