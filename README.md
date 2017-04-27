@@ -13,9 +13,18 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 
 ## Run locally
 
-1. Set all environment variables
+1. Set all necessary environment variables
 1. Run `go build`
 1. Run the binary and visit <http://localhost:8080>
+
+## Build with Docker
+
+1. Run `docker run --rm -v "${PWD}:/go/src/github.com/mastertinner/s3-manager" -w /go/src/github.com/mastertinner/s3-manager golang curl https://glide.sh/get | sh && glide install && go build`
+
+    To cross-compile for windows, use the `-e "GOOS=windows" -e "GOARCH=amd64"` flags (depending on your system, you might have to adjust `GOARCH`)
+
+    To cross-compile for macOS, use the `-e "GOOS=darwin" -e "GOARCH=amd64"` flags (depending on your system, you might have to adjust `GOARCH`)
+
 
 ## Push to Cloud Foundry
 
