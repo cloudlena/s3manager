@@ -1,0 +1,10 @@
+version: '2'
+services:
+
+    s3-manager:
+        build: .
+        ports:
+          - "8080:8080"
+        environment:
+          - S3_ACCESS_KEY_ID=xxx
+          - S3_SECRET_ACCESS_KEY=xxx
