@@ -27,7 +27,7 @@ func main() {
 
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	r := mux.NewRouter()
+	r := mux.NewRouter().StrictSlash(true)
 	r.
 		Methods(http.MethodGet).
 		Path("/").
@@ -50,9 +50,9 @@ func main() {
 			logging.Handler(logger),
 		))
 
-	api := r.PathPrefix("/api").Subrouter()
+	api := r.PathPrefix("/api").Subrouter().StrictSlash(true)
 
-	br := api.PathPrefix("/buckets").Subrouter()
+	br := api.PathPrefix("/buckets").Subrouter().StrictSlash(true)
 	br.
 		Methods(http.MethodPost).
 		Path("").
