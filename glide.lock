@@ -1,12 +1,12 @@
 hash: 9b88c8ce183463a407bdb87f79b6b857d8343a7bb5ce4723223c539c654d6d6d
-updated: 2017-04-21T10:35:42.790104635+02:00
+updated: 2017-05-03T10:21:06.902434164+02:00
 imports:
 - name: github.com/gorilla/context
   version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
 - name: github.com/gorilla/mux
   version: 392c28fe23e1c45ddba891b0320b3b5df220beea
 - name: github.com/mastertinner/adapters
-  version: 5510790dd79e084a0b849ec99df4403af9344b45
+  version: b1cb3d82590975623f722e92951658939fdfc328
   subpackages:
   - logging
 - name: github.com/minio/minio-go
