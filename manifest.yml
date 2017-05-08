@@ -3,8 +3,8 @@ applications:
 - name: s3-manager
   host: s3-manager
   memory: 64M
-  buildpack: https://github.com/cloudfoundry/go-buildpack.git
+  buildpack: https://github.com/cloudfoundry/binary-buildpack.git
+  command: ./entrypoint-cf.sh
 
-  env:
-    S3_ACCESS_KEY_ID: "xxx"
-    S3_SECRET_ACCESS_KEY: "xxx"
+  services:
+  - wp-storage
