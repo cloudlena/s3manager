@@ -1,4 +1,4 @@
-package main
+package s3manager
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetObjectHandler downloads an object to the client
-func GetObjectHandler(s3 S3Client) http.Handler {
+// GetObjectHandler downloads an object to the client.
+func GetObjectHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		bucketName := vars["bucketName"]
@@ -22,7 +22,7 @@ func GetObjectHandler(s3 S3Client) http.Handler {
 		}
 
 		w.Header().Set(headerContentDisposition, fmt.Sprintf("attachment; filename=\"%s\"", objectName))
-		w.Header().Set(headerContentType, contentTypeOctetStream)
+		w.Header().Set(HeaderContentType, contentTypeOctetStream)
 
 		_, err = io.Copy(w, object)
 		if err != nil {

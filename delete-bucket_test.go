@@ -1,4 +1,4 @@
-package main
+package s3manager_test
 
 import (
 	"errors"
@@ -6,24 +6,25 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/mastertinner/s3manager"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDeleteBucketHandler(t *testing.T) {
 	assert := assert.New(t)
 
-	tests := map[string]struct {
-		s3                   S3Client
+	cases := map[string]struct {
+		s3                   s3manager.S3
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"success": {
-			s3:                   &S3ClientMock{},
+			s3:                   &s3Mock{},
 			expectedStatusCode:   http.StatusNoContent,
 			expectedBodyContains: "",
 		},
 		"s3 error": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Err: errors.New("mocked S3 error"),
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
@@ -31,12 +32,12 @@ func TestDeleteBucketHandler(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range tests {
+	for tcID, tc := range cases {
 		req, err := http.NewRequest(http.MethodDelete, "/api/buckets/bucketName", nil)
 		assert.NoError(err, tcID)
 
 		rr := httptest.NewRecorder()
-		handler := DeleteBucketHandler(tc.s3)
+		handler := s3manager.DeleteBucketHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
 

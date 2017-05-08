@@ -1,4 +1,4 @@
-package main
+package s3manager_test
 
 import (
 	"errors"
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
+	"github.com/mastertinner/s3manager"
 	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,14 +17,14 @@ import (
 func TestBucketViewHandler(t *testing.T) {
 	assert := assert.New(t)
 
-	tests := map[string]struct {
-		s3                   S3Client
+	cases := map[string]struct {
+		s3                   s3manager.S3
 		bucketName           string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"success (empty bucket)": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
@@ -33,7 +34,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "No objects in",
 		},
 		"success (with file)": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
@@ -46,7 +47,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "testBucket",
 		},
 		"success (archive)": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
@@ -59,7 +60,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "archive",
 		},
 		"success (image)": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
@@ -72,7 +73,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "photo",
 		},
 		"success (sound)": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
@@ -85,13 +86,13 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "music_note",
 		},
 		"bucket doesn't exist": {
-			s3:                   &S3ClientMock{},
+			s3:                   &s3Mock{},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusNotFound,
 			expectedBodyContains: http.StatusText(http.StatusNotFound),
 		},
 		"s3 error": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Err: errors.New("mocked S3 error"),
 			},
 			bucketName:           "testBucket",
@@ -100,12 +101,12 @@ func TestBucketViewHandler(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range tests {
+	for tcID, tc := range cases {
 		r := mux.NewRouter()
 		r.
 			Methods(http.MethodGet).
 			Path("/buckets/{bucketName}").
-			Handler(BucketViewHandler(tc.s3))
+			Handler(s3manager.BucketViewHandler(tc.s3))
 
 		ts := httptest.NewServer(r)
 		defer ts.Close()

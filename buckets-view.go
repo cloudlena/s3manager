@@ -1,4 +1,4 @@
-package main
+package s3manager
 
 import (
 	"html/template"
@@ -6,8 +6,8 @@ import (
 	"path"
 )
 
-// BucketsViewHandler shows all buckets
-func BucketsViewHandler(s3 S3Client) http.Handler {
+// BucketsViewHandler renders all buckets on an HTML page.
+func BucketsViewHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := path.Join(tmplDirectory, "layout.html.tmpl")
 		p := path.Join(tmplDirectory, "buckets.html.tmpl")

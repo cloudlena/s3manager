@@ -1,109 +1,112 @@
 {{ define "content" }}
 <nav class="purple" role="navigation">
-  <div class="nav-wrapper container">
-    <span href="#" class="brand-logo"><i class="material-icons">folder_open</i>{{ .BucketName }}</span>
-    {{ if not .Objects }}
-    <a href="#" class="right" onclick="deleteBucket({{ .BucketName }})"><i class="material-icons">delete</i> Delete</a>
-    {{ end }}
-  </div>
+    <div class="nav-wrapper container">
+        <span href="#" class="brand-logo"><i class="material-icons">folder_open</i>{{ .BucketName }}</span>
+        {{ if not .Objects }}
+        <a href="#" class="right" onclick="deleteBucket({{ .BucketName }})"><i class="material-icons">delete</i> Delete</a>
+        {{ end }}
+    </div>
 </nav>
 
 <div class="section">
-  <a href="/buckets" style="padding-left: 25px; vertical-align: middle;"><i class="material-icons" style="vertical-align: middle;">arrow_back</i> Buckets</a>
+    <a href="/buckets" style="padding-left: 25px; vertical-align: middle;"><i class="material-icons" style="vertical-align: middle;">arrow_back</i> Buckets</a>
 
-  {{ if .Objects }}
-  <table class="highlight bordered">
+    {{ if .Objects }}
+    <table class="highlight bordered">
 
-    <thead>
-      <tr>
-        <th></th>
-        <th>Key</th>
-        <th>Size</th>
-        <th>Owner</th>
-        <th>Last Modified</th>
-        <th></th>
-      </tr>
-    </thead>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Key</th>
+                <th>Size</th>
+                <th>Owner</th>
+                <th>Last Modified</th>
+                <th></th>
+            </tr>
+        </thead>
 
-    <tbody>
-      {{ range $index, $object := .Objects }}
-      <tr>
-        <td style="padding-left: 25px;"><i class="material-icons">{{ $object.Icon }}</i></td>
-        <td>{{ $object.Key }}</td>
-        <td>{{ $object.Size }} bytes</td>
-        <td>{{ $object.Owner }}</td>
-        <td>{{ $object.LastModified }}</td>
-        <td>
-          <!-- Dropdown Trigger -->
-          <a class="dropdown-button waves-effect waves-teal btn-flat" href="#" data-activates="actions-dropdown-{{ $index }}">
-            Actions <i class="material-icons right">arrow_drop_down</i>
-          </a>
+        <tbody>
+            {{ range $index, $object := .Objects }}
+            <tr>
+                <td style="padding-left: 25px;"><i class="material-icons">{{ $object.Icon }}</i></td>
+                <td>{{ $object.Key }}</td>
+                <td>{{ $object.Size }} bytes</td>
+                <td>{{ $object.Owner }}</td>
+                <td>{{ $object.LastModified }}</td>
+                <td>
+                    <!-- Dropdown Trigger -->
+                    <a class="dropdown-button waves-effect waves-teal btn-flat" href="#" data-activates="actions-dropdown-{{ $index }}">
+                        Actions <i class="material-icons right">arrow_drop_down</i>
+                    </a>
 
-          <!-- Dropdown Structure -->
-          <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
-            <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
-            <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
-          </ul>
-        </td>
-      </tr>
-      {{ end }}
-    </tbody>
+                    <!-- Dropdown Structure -->
+                    <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
+                        <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
+                        <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
+                    </ul>
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
 
-  </table>
-  {{ end }}
+    </table>
+    {{ end }}
 
-  {{ if not .Objects }}
-  <p style="text-align: center;margin-top: 2em;">No objects in <strong>{{ .BucketName }}</strong> yet</p>
-  {{ end }}
+    {{ if not .Objects }}
+    <p style="text-align: center;margin-top: 2em;">No objects in <strong>{{ .BucketName }}</strong> yet</p>
+    {{ end }}
 
 </div>
 
 <div class="fixed-action-btn">
-  <a class="btn-floating btn-large red" href="#modal-create-object">
-    <i class="large material-icons">add</i>
-  </a>
+    <a class="btn-floating btn-large red" href="#modal-create-object">
+        <i class="large material-icons">add</i>
+    </a>
 </div>
 
 <div id="modal-create-object" class="modal">
-  <div class="modal-content">
-    <h4>Create Object</h4>
-    <br>
-    <div class="row">
-      <div class="col s6">
-        <form action="/api/buckets/{{ .BucketName }}/objects" method="POST" id="create-object-form" enctype="multipart/form-data">
-          <div class="file-field input-field">
-            <div class="btn">
-              <span>File</span>
-              <input type="file" name="file">
+    <form action="/api/buckets/{{ .BucketName }}/objects" method="POST" id="create-object-form" enctype="multipart/form-data">
+
+        <div class="modal-content">
+            <h4>Create Object</h4>
+            <br>
+            <div class="row">
+                <div class="col s6">
+                    <div class="file-field input-field">
+                        <div class="btn">
+                            <span>File</span>
+                            <input type="file" name="file">
+                        </div>
+                        <div class="file-path-wrapper">
+                            <input class="file-path validate" type="text">
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="file-path-wrapper">
-              <input class="file-path validate" type="text">
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  <div class="modal-footer">
-    <button type="submit" form="create-object-form" class="modal-action modal-close waves-effect waves-green btn-flat">Upload</button>
-    <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
-  </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="submit" class="modal-action modal-close waves-effect waves-green btn-flat">Upload</button>
+            <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
+        </div>
+
+    </form>
 </div>
 
 <script>
-  function deleteObject(bucketName, objectName) {
+function deleteObject(bucketName, objectName) {
     $.ajax({
-      type: 'DELETE',
-      url: '/api/buckets/' + bucketName + '/objects/' + objectName,
-      success: function () { location.reload(); }
+        type: 'DELETE',
+        url: '/api/buckets/' + bucketName + '/objects/' + objectName,
+        success: function () { location.reload(); }
     })
-  }
-  function deleteBucket(bucketName) {
+}
+function deleteBucket(bucketName) {
     $.ajax({
-      type: 'DELETE',
-      url: '/api/buckets/' + bucketName,
-      success: function () { window.location.replace('/buckets'); }
+        type: 'DELETE',
+        url: '/api/buckets/' + bucketName,
+        success: function () { window.location.replace('/buckets'); }
     })
-  }
+}
 </script>
 {{ end }}

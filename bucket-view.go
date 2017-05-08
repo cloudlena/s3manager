@@ -1,4 +1,4 @@
-package main
+package s3manager
 
 import (
 	"html/template"
@@ -9,23 +9,23 @@ import (
 	minio "github.com/minio/minio-go"
 )
 
-// ObjectWithIcon is a minio object with an added icon
-type ObjectWithIcon struct {
+// objectWithIcon is a minio object with an added icon.
+type objectWithIcon struct {
 	minio.ObjectInfo
 	Icon string
 }
 
-// BucketPage defines the details page of a bucket
-type BucketPage struct {
+// bucketPage defines the details page of a bucket.
+type bucketPage struct {
 	BucketName string
-	Objects    []ObjectWithIcon
+	Objects    []objectWithIcon
 }
 
-// BucketViewHandler shows the details page of a bucket
-func BucketViewHandler(s3 S3Client) http.Handler {
+// BucketViewHandler shows the details page of a bucket.
+func BucketViewHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
-		var objs []ObjectWithIcon
+		var objs []objectWithIcon
 
 		l := path.Join(tmplDirectory, "layout.html.tmpl")
 		p := path.Join(tmplDirectory, "bucket.html.tmpl")
@@ -49,16 +49,16 @@ func BucketViewHandler(s3 S3Client) http.Handler {
 				handleHTTPError(w, code, object.Err)
 				return
 			}
-			objectWithIcon := ObjectWithIcon{object, icon(object.Key)}
-			objs = append(objs, objectWithIcon)
+			obj := objectWithIcon{object, icon(object.Key)}
+			objs = append(objs, obj)
 		}
 
-		bucketPage := BucketPage{
+		page := bucketPage{
 			BucketName: bucketName,
 			Objects:    objs,
 		}
 
-		err = t.ExecuteTemplate(w, "layout", bucketPage)
+		err = t.ExecuteTemplate(w, "layout", page)
 		if err != nil {
 			handleHTTPError(w, http.StatusInternalServerError, err)
 			return
@@ -66,7 +66,7 @@ func BucketViewHandler(s3 S3Client) http.Handler {
 	})
 }
 
-// icon returns an icon for a file type
+// icon returns an icon for a file type.
 func icon(fileName string) string {
 	e := path.Ext(fileName)
 
