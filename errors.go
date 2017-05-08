@@ -1,17 +1,17 @@
-package main
+package s3manager
 
 import (
 	"log"
 	"net/http"
 )
 
-// Common error messages within the app
+// Error codes that may be returned from an S3 backend.
 const (
 	ErrBucketDoesNotExist = "The specified bucket does not exist."
 	ErrKeyDoesNotExist    = "The specified key does not exist."
 )
 
-// handleHTTPError handles HTTP errors
+// handleHTTPError handles HTTP errors.
 func handleHTTPError(w http.ResponseWriter, statusCode int, err error) {
 	msg := http.StatusText(statusCode)
 	http.Error(w, msg, statusCode)

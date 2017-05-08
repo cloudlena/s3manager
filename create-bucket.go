@@ -1,4 +1,4 @@
-package main
+package s3manager
 
 import (
 	"encoding/json"
@@ -7,8 +7,8 @@ import (
 	minio "github.com/minio/minio-go"
 )
 
-// CreateBucketHandler creates a new bucket
-func CreateBucketHandler(s3 S3Client) http.Handler {
+// CreateBucketHandler creates a new bucket.
+func CreateBucketHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var bucket minio.BucketInfo
 
@@ -24,7 +24,7 @@ func CreateBucketHandler(s3 S3Client) http.Handler {
 			return
 		}
 
-		w.Header().Set(headerContentType, contentTypeJSON)
+		w.Header().Set(HeaderContentType, ContentTypeJSON)
 		w.WriteHeader(http.StatusCreated)
 
 		err = json.NewEncoder(w).Encode(bucket)

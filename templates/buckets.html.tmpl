@@ -1,88 +1,91 @@
 {{ define "content" }}
 <nav class="purple" role="navigation">
-  <div class="nav-wrapper container">
-    <a href="/" class="brand-logo">S3 Manager</a>
-  </div>
+    <div class="nav-wrapper container">
+        <a href="/" class="brand-logo">S3 Manager</a>
+    </div>
 </nav>
 
 <div class="container">
-  <div class="section">
-    <div class="row">
+    <div class="section">
+        <div class="row">
 
-      {{ if . }}
-      {{ range $bucket := . }}
-      <div class="col m12 l6">
-        <a href="/buckets/{{ $bucket.Name }}" style="color: black;">
-          <div class="card">
-            <div class="card-content">
-              <div class="row" style="margin-bottom: 0;">
-                <div class="col">
-                  <i class="material-icons large">folder_open</i>
-                </div>
-                <div class="col">
-                  <span class="card-title">
-                    {{ $bucket.Name }}
-                  </span>
-                  <p style="color: gray;">Created on {{ $bucket.CreationDate }}</p>
-                </div>
-              </div>
+            {{ if . }}
+            {{ range $bucket := . }}
+            <div class="col m12 l6">
+                <a href="/buckets/{{ $bucket.Name }}" style="color: black;">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="row" style="margin-bottom: 0;">
+                                <div class="col">
+                                    <i class="material-icons large">folder_open</i>
+                                </div>
+                                <div class="col">
+                                    <span class="card-title">
+                                        {{ $bucket.Name }}
+                                    </span>
+                                    <p style="color: gray;">Created on {{ $bucket.CreationDate }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
             </div>
-          </div>
-        </a>
-      </div>
-      {{ end }}
-      {{ end }}
+            {{ end }}
+            {{ end }}
 
-      {{ if not . }}
-      <p style="text-align: center;margin-top: 2em;">No buckets yet</p>
-      {{ end }}
+            {{ if not . }}
+            <p style="text-align: center;margin-top: 2em;">No buckets yet</p>
+            {{ end }}
 
+        </div>
     </div>
-  </div>
 </div>
 
 <div class="fixed-action-btn">
-  <a class="btn-floating btn-large red" href="#modal-create-bucket">
-    <i class="large material-icons">add</i>
-  </a>
+    <a class="btn-floating btn-large red" href="#modal-create-bucket">
+        <i class="large material-icons">add</i>
+    </a>
 </div>
 
 <div id="modal-create-bucket" class="modal">
-  <div class="modal-content">
-    <h4>Create Bucket</h4>
-    <br>
-    <div class="row">
-      <div class="col s6">
-        <form id="create-bucket-form">
-          <div class="input-field">
-              <input placeholder="My Bucket" id="name" type="text" name="name">
-              <label for="name">Name</label>
+    <form id="create-bucket-form">
+
+        <div class="modal-content">
+            <h4>Create Bucket</h4>
+            <br>
+            <div class="row">
+                <div class="col s6">
+                    <div class="input-field">
+                        <input placeholder="My Bucket" id="name" type="text" name="name">
+                        <label for="name">Name</label>
+                    </div>
+                </div>
             </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  <div class="modal-footer">
-    <button type="button" onclick="createBucket()" class="modal-action modal-close waves-effect waves-green btn-flat">Create</button>
-    <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
-  </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" onclick="createBucket()" class="modal-action modal-close waves-effect waves-green btn-flat">Create</button>
+            <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
+        </div>
+
+    </form>
 </div>
 
 <script>
-  function createBucket() {
+function createBucket() {
     var formData = {};
     $.each($('#create-bucket-form')
-      .serializeArray(), function(i, field) {
-      formData[field.name] = field.value;
-    });
+        .serializeArray(), function(i, field) {
+            formData[field.name] = field.value;
+        });
     $.ajax({
-      type: 'POST',
-      url: '/api/buckets',
-      data: JSON.stringify(formData),
-      dataType: 'json',
-      contentType: 'application/json',
-      success: function() { location.reload(); }
+        type: 'POST',
+        url: '/api/buckets',
+        data: JSON.stringify(formData),
+        dataType: 'json',
+        contentType: 'application/json',
+        success: function() { location.reload(); }
     });
-  }
+}
 </script>
 {{ end }}

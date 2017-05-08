@@ -1,3 +1,5 @@
-vendor
-s3-manager
-README.md
+*
+
+!/templates
+!/entrypoint-cf.sh
+!/s3manager
