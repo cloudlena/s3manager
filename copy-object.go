@@ -1,4 +1,4 @@
-package main
+package s3manager
 
 import (
 	"encoding/json"
@@ -8,18 +8,18 @@ import (
 	minio "github.com/minio/minio-go"
 )
 
-// CopyObjectInfo is the information about an object to copy
-type CopyObjectInfo struct {
+// copyObjectInfo is the information about an object to copy.
+type copyObjectInfo struct {
 	BucketName       string `json:"bucketName"`
 	ObjectName       string `json:"objectName"`
 	SourceBucketName string `json:"sourceBucketName"`
 	SourceObjectName string `json:"sourceObjectName"`
 }
 
-// CopyObjectHandler allows to copy an existing object
-func CopyObjectHandler(s3 S3Client) http.Handler {
+// CopyObjectHandler copies an existing object under a new name.
+func CopyObjectHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var copy CopyObjectInfo
+		var copy copyObjectInfo
 
 		err := json.NewDecoder(r.Body).Decode(&copy)
 		if err != nil {
@@ -35,7 +35,7 @@ func CopyObjectHandler(s3 S3Client) http.Handler {
 			return
 		}
 
-		w.Header().Set(headerContentType, contentTypeJSON)
+		w.Header().Set(HeaderContentType, ContentTypeJSON)
 		w.WriteHeader(http.StatusCreated)
 
 		err = json.NewEncoder(w).Encode(copy)

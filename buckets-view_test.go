@@ -1,4 +1,4 @@
-package main
+package s3manager_test
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/mastertinner/s3manager"
 	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,13 +14,13 @@ import (
 func TestBucketsViewHandler(t *testing.T) {
 	assert := assert.New(t)
 
-	tests := map[string]struct {
-		s3                   S3Client
+	cases := map[string]struct {
+		s3                   s3manager.S3
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"success": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
 				},
@@ -28,12 +29,12 @@ func TestBucketsViewHandler(t *testing.T) {
 			expectedBodyContains: "testBucket",
 		},
 		"success (bo buckets)": {
-			s3:                   &S3ClientMock{},
+			s3:                   &s3Mock{},
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "No buckets yet",
 		},
 		"s3 error": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Err: errors.New("mocked S3 error"),
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
@@ -41,12 +42,12 @@ func TestBucketsViewHandler(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range tests {
+	for tcID, tc := range cases {
 		req, err := http.NewRequest(http.MethodGet, "/buckets", nil)
 		assert.NoError(err, tcID)
 
 		rr := httptest.NewRecorder()
-		handler := BucketsViewHandler(tc.s3)
+		handler := s3manager.BucketsViewHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
 

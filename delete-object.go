@@ -1,4 +1,4 @@
-package main
+package s3manager
 
 import (
 	"net/http"
@@ -6,8 +6,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// DeleteObjectHandler deletes an object
-func DeleteObjectHandler(s3 S3Client) http.Handler {
+// DeleteObjectHandler deletes an object.
+func DeleteObjectHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		bucketName := vars["bucketName"]

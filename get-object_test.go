@@ -1,4 +1,4 @@
-package main
+package s3manager_test
 
 import (
 	"errors"
@@ -9,21 +9,22 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
+	"github.com/mastertinner/s3manager"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetObjectHandler(t *testing.T) {
 	assert := assert.New(t)
 
-	tests := map[string]struct {
-		s3                   S3Client
+	cases := map[string]struct {
+		s3                   s3manager.S3
 		bucketName           string
 		objectName           string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"s3 error": {
-			s3: &S3ClientMock{
+			s3: &s3Mock{
 				Err: errors.New("mocked S3 error"),
 			},
 			bucketName:           "testBucket",
@@ -33,12 +34,12 @@ func TestGetObjectHandler(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range tests {
+	for tcID, tc := range cases {
 		r := mux.NewRouter()
 		r.
 			Methods(http.MethodGet).
 			Path("/buckets/{bucketName}/objects/{objectName}").
-			Handler(GetObjectHandler(tc.s3))
+			Handler(s3manager.GetObjectHandler(tc.s3))
 
 		ts := httptest.NewServer(r)
 		defer ts.Close()

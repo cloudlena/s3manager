@@ -1,4 +1,4 @@
-package main
+package s3manager
 
 import (
 	"log"
@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// CreateObjectHandler allows to upload a new object
-func CreateObjectHandler(s3 S3Client) http.Handler {
+// CreateObjectHandler uploads a new object.
+func CreateObjectHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
