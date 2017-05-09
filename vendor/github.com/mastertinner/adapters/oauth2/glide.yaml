@@ -1,7 +1,0 @@
-package: github.com/mastertinner/adapters/oauth2
-import:
-- package: golang.org/x/oauth2
-- package: gopkg.in/redis.v5
-  version: ^5.2.9
-- package: github.com/satori/go.uuid
-  version: ^1.1.0
