@@ -25,6 +25,6 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 
 ## Run on Cloud Foundry
 
-1. Change the service in `manifest.yml` to be the name of your S3 service (if you are using an external S3 provider, you'll have to switch the service type in `run-cf.sh` from `dynstrg` to `user-provided` and create the respective user-provided service with `cf create-user-provided-service`)
+1. Change the service in `manifest.yml` to represent your S3 service (if you are using an external S3 provider, you'll have to switch the service type in `entrypoint-cf.sh` from `dynstrg` to `user-provided` and create the respective user-provided service with `cf create-user-provided-service`)
 1. Change `host` in `manifest.yml` to something that isn't taken yet
 1. Run `make deploy-cf`
