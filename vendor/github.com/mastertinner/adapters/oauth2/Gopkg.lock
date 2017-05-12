@@ -10,7 +10,7 @@ memo = "3f23568a8640e61d2e21220dfffbc576be6b4e6b60ad494b31a30c6372e7cd91"
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = ["."]
-  revision = "3bfe6170b9beca289d89e4c703c7f9db68e7c158"
+  revision = "4c901f564b5e3975464696a1cb78d44509133f43"
 
 [[projects]]
   name = "github.com/satori/go.uuid"
