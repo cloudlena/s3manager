@@ -50,8 +50,9 @@ func TestBucketsViewHandler(t *testing.T) {
 		handler := s3manager.BucketsViewHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
+		resp := rr.Result()
 
-		assert.Equal(tc.expectedStatusCode, rr.Code, tcID)
+		assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
 		assert.Contains(rr.Body.String(), tc.expectedBodyContains, tcID)
 	}
 }
