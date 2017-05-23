@@ -15,14 +15,14 @@ memo = "2564b0b342a1586a24a3ff5356636c822f6351da32f8ee9497ab8694855e80b1"
 [[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "392c28fe23e1c45ddba891b0320b3b5df220beea"
-  version = "v1.3.0"
+  revision = "bcd8bc72b08df0f70df986b97f95590779502d31"
+  version = "v1.4.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = [".","logging"]
-  revision = "f21141d8e266767764fc1ee8261d654f124a62c4"
+  revision = "b7852c480132eb2565591fdb1b6738aa0bdcc9c9"
 
 [[projects]]
   name = "github.com/minio/minio-go"

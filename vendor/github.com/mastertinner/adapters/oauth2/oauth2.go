@@ -66,7 +66,7 @@ func Handler(cache *redis.Client, config *oauth2.Config, stateString string, tok
 }
 
 // CallbackHandler creates a token and saves it to the cache.
-func CallbackHandler(cache *redis.Client, config *oauth2.Config, stateString string) http.Handler {
+func CallbackHandler(cache *redis.Client, config *oauth2.Config, redirectURL string, stateString string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
@@ -126,7 +126,7 @@ func CallbackHandler(cache *redis.Client, config *oauth2.Config, stateString str
 			return
 		}
 
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 	})
 }
 
