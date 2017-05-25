@@ -4,6 +4,8 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+
+	"github.com/pkg/errors"
 )
 
 // BucketsViewHandler renders all buckets on an HTML page.
@@ -14,19 +16,19 @@ func BucketsViewHandler(s3 S3) http.Handler {
 
 		t, err := template.ParseFiles(l, p)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, errParsingTemplates))
 			return
 		}
 
 		buckets, err := s3.ListBuckets()
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, "error listing buckets"))
 			return
 		}
 
 		err = t.ExecuteTemplate(w, "layout", buckets)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, errExecutingTemplate))
 			return
 		}
 	})

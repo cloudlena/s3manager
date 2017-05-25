@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/mastertinner/s3manager"
+	. "github.com/mastertinner/s3manager"
 	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +18,7 @@ func TestBucketViewHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		s3                   S3
 		bucketName           string
 		expectedStatusCode   int
 		expectedBodyContains string
@@ -106,7 +106,7 @@ func TestBucketViewHandler(t *testing.T) {
 		r.
 			Methods(http.MethodGet).
 			Path("/buckets/{bucketName}").
-			Handler(s3manager.BucketViewHandler(tc.s3))
+			Handler(BucketViewHandler(tc.s3))
 
 		ts := httptest.NewServer(r)
 		defer ts.Close()

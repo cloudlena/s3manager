@@ -9,8 +9,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mastertinner/adapters"
 	"github.com/mastertinner/adapters/logging"
-	"github.com/mastertinner/s3manager"
+	. "github.com/mastertinner/s3manager"
 	minio "github.com/minio/minio-go"
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -37,7 +38,7 @@ func main() {
 		s3, err = minio.New(*endpoint, *accessKeyID, *secretAccessKey, true)
 	}
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln(errors.Wrap(err, "error creating s3 client"))
 	}
 
 	// Set up logger
@@ -56,58 +57,58 @@ func main() {
 		Methods(http.MethodGet).
 		Path("/buckets").
 		Handler(adapters.Adapt(
-			s3manager.BucketsViewHandler(s3),
+			BucketsViewHandler(s3),
 			logging.Handler(logger),
 		))
 	r.
 		Methods(http.MethodGet).
 		Path("/buckets/{bucketName}").
 		Handler(adapters.Adapt(
-			s3manager.BucketViewHandler(s3),
+			BucketViewHandler(s3),
 			logging.Handler(logger),
 		))
 	r.
 		Methods(http.MethodPost).
 		Path("/api/buckets").
 		Handler(adapters.Adapt(
-			s3manager.CreateBucketHandler(s3),
+			CreateBucketHandler(s3),
 			logging.Handler(logger),
 		))
 	r.
 		Methods(http.MethodDelete).
 		Path("/api/buckets/{bucketName}").
 		Handler(adapters.Adapt(
-			s3manager.DeleteBucketHandler(s3),
+			DeleteBucketHandler(s3),
 			logging.Handler(logger),
 		))
 	r.
 		Methods(http.MethodPost).
-		Headers(s3manager.HeaderContentType, s3manager.ContentTypeJSON).
+		Headers(HeaderContentType, ContentTypeJSON).
 		Path("/api/buckets/{bucketName}/objects").
 		Handler(adapters.Adapt(
-			s3manager.CopyObjectHandler(s3),
+			CopyObjectHandler(s3),
 			logging.Handler(logger),
 		))
 	r.
 		Methods(http.MethodPost).
-		HeadersRegexp(s3manager.HeaderContentType, s3manager.ContentTypeMultipartForm).
+		HeadersRegexp(HeaderContentType, ContentTypeMultipartForm).
 		Path("/api/buckets/{bucketName}/objects").
 		Handler(adapters.Adapt(
-			s3manager.CreateObjectHandler(s3),
+			CreateObjectHandler(s3),
 			logging.Handler(logger),
 		))
 	r.
 		Methods(http.MethodGet).
 		Path("/api/buckets/{bucketName}/objects/{objectName}").
 		Handler(adapters.Adapt(
-			s3manager.GetObjectHandler(s3),
+			GetObjectHandler(s3),
 			logging.Handler(logger),
 		))
 	r.
 		Methods(http.MethodDelete).
 		Path("/api/buckets/{bucketName}/objects/{objectName}").
 		Handler(adapters.Adapt(
-			s3manager.DeleteObjectHandler(s3),
+			DeleteObjectHandler(s3),
 			logging.Handler(logger),
 		))
 

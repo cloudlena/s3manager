@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pkg/errors"
+
 	minio "github.com/minio/minio-go"
 )
 
@@ -23,7 +25,7 @@ func CopyObjectHandler(s3 S3) http.Handler {
 
 		err := json.NewDecoder(r.Body).Decode(&copy)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, errDecodingBody))
 			return
 		}
 
@@ -31,7 +33,7 @@ func CopyObjectHandler(s3 S3) http.Handler {
 		objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
 		err = s3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, "error copying object"))
 			return
 		}
 
@@ -40,7 +42,7 @@ func CopyObjectHandler(s3 S3) http.Handler {
 
 		err = json.NewEncoder(w).Encode(copy)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, errEncodingJSON))
 			return
 		}
 	})

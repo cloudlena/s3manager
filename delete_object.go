@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 // DeleteObjectHandler deletes an object.
@@ -14,7 +15,7 @@ func DeleteObjectHandler(s3 S3) http.Handler {
 		objectName := vars["objectName"]
 		err := s3.RemoveObject(bucketName, objectName)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, "error removing object"))
 			return
 		}
 

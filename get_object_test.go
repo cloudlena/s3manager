@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/mastertinner/s3manager"
+	. "github.com/mastertinner/s3manager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func TestGetObjectHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		s3                   S3
 		bucketName           string
 		objectName           string
 		expectedStatusCode   int
@@ -39,7 +39,7 @@ func TestGetObjectHandler(t *testing.T) {
 		r.
 			Methods(http.MethodGet).
 			Path("/buckets/{bucketName}/objects/{objectName}").
-			Handler(s3manager.GetObjectHandler(tc.s3))
+			Handler(GetObjectHandler(tc.s3))
 
 		ts := httptest.NewServer(r)
 		defer ts.Close()

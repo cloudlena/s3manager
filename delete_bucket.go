@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 // DeleteBucketHandler deletes a bucket.
@@ -12,7 +13,7 @@ func DeleteBucketHandler(s3 S3) http.Handler {
 		bucketName := mux.Vars(r)["bucketName"]
 		err := s3.RemoveBucket(bucketName)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, "error removing bucket"))
 			return
 		}
 

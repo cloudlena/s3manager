@@ -6,7 +6,7 @@ const (
 	HeaderContentType        = "Content-Type"
 	ContentTypeJSON          = "application/json"
 	ContentTypeMultipartForm = "multipart/form-data"
-	tmplDirectory            = "templates"
 	headerContentDisposition = "Content-Disposition"
 	contentTypeOctetStream   = "application/octet-stream"
+	tmplDirectory            = "templates"
 )
