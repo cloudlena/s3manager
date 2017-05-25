@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 // GetObjectHandler downloads an object to the client.
@@ -17,7 +18,7 @@ func GetObjectHandler(s3 S3) http.Handler {
 
 		object, err := s3.GetObject(bucketName, objectName)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, "error getting object"))
 			return
 		}
 
@@ -26,11 +27,7 @@ func GetObjectHandler(s3 S3) http.Handler {
 
 		_, err = io.Copy(w, object)
 		if err != nil {
-			code := http.StatusInternalServerError
-			if err.Error() == ErrBucketDoesNotExist || err.Error() == ErrKeyDoesNotExist {
-				code = http.StatusNotFound
-			}
-			handleHTTPError(w, code, err)
+			handleHTTPError(w, errors.Wrap(err, "error copying object to response writer"))
 			return
 		}
 	})

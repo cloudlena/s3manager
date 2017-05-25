@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	minio "github.com/minio/minio-go"
+	"github.com/pkg/errors"
 )
 
 // CreateBucketHandler creates a new bucket.
@@ -14,13 +15,13 @@ func CreateBucketHandler(s3 S3) http.Handler {
 
 		err := json.NewDecoder(r.Body).Decode(&bucket)
 		if err != nil {
-			handleHTTPError(w, http.StatusUnprocessableEntity, err)
+			handleHTTPError(w, errors.Wrap(err, errDecodingBody))
 			return
 		}
 
 		err = s3.MakeBucket(bucket.Name, "")
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, "error making bucket"))
 			return
 		}
 
@@ -29,7 +30,7 @@ func CreateBucketHandler(s3 S3) http.Handler {
 
 		err = json.NewEncoder(w).Encode(bucket)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, errEncodingJSON))
 			return
 		}
 	})

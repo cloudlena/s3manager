@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/mastertinner/s3manager"
+	. "github.com/mastertinner/s3manager"
 	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ func TestBucketsViewHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		s3                   S3
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
@@ -47,7 +47,7 @@ func TestBucketsViewHandler(t *testing.T) {
 		assert.NoError(err, tcID)
 
 		rr := httptest.NewRecorder()
-		handler := s3manager.BucketsViewHandler(tc.s3)
+		handler := BucketsViewHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
 		resp := rr.Result()

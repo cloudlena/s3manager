@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/mastertinner/s3manager"
+	. "github.com/mastertinner/s3manager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +14,7 @@ func TestDeleteObjectHandler(t *testing.T) {
 	assert := assert.New(t)
 
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		s3                   S3
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
@@ -37,7 +37,7 @@ func TestDeleteObjectHandler(t *testing.T) {
 		assert.NoError(err, tcID)
 
 		rr := httptest.NewRecorder()
-		handler := s3manager.DeleteObjectHandler(tc.s3)
+		handler := DeleteObjectHandler(tc.s3)
 
 		handler.ServeHTTP(rr, req)
 

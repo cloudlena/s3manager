@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	minio "github.com/minio/minio-go"
+	"github.com/pkg/errors"
 )
 
 // objectWithIcon is a minio object with an added icon.
@@ -32,7 +33,7 @@ func BucketViewHandler(s3 S3) http.Handler {
 
 		t, err := template.ParseFiles(l, p)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, errParsingTemplates))
 			return
 		}
 
@@ -41,12 +42,7 @@ func BucketViewHandler(s3 S3) http.Handler {
 		objectCh := s3.ListObjectsV2(bucketName, "", true, doneCh)
 		for object := range objectCh {
 			if object.Err != nil {
-				code := http.StatusInternalServerError
-				if object.Err.Error() == ErrBucketDoesNotExist {
-					code = http.StatusNotFound
-				}
-
-				handleHTTPError(w, code, object.Err)
+				handleHTTPError(w, errors.Wrap(object.Err, "error listing objects"))
 				return
 			}
 			obj := objectWithIcon{object, icon(object.Key)}
@@ -60,7 +56,7 @@ func BucketViewHandler(s3 S3) http.Handler {
 
 		err = t.ExecuteTemplate(w, "layout", page)
 		if err != nil {
-			handleHTTPError(w, http.StatusInternalServerError, err)
+			handleHTTPError(w, errors.Wrap(err, errExecutingTemplate))
 			return
 		}
 	})
