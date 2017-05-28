@@ -60,4 +60,4 @@ memo = "3aa439f7fd3be3f2266640afdb7c86c6225490d5e1e14404bef5be1eaab6f640"
   branch = "master"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "4d4bfba8f1d1027c4fdbe371823030df51419987"
+  revision = "b8c9b4ef3dade3a13f662c95942dcda39e962cd4"
