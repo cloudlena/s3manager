@@ -30,7 +30,7 @@ memo = "3aa439f7fd3be3f2266640afdb7c86c6225490d5e1e14404bef5be1eaab6f640"
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = [".","logging"]
-  revision = "842cd783e24e05aaf08852d5f6279dbcfd51ae4b"
+  revision = "c9f5d039ae85e86c09980d986e1452be5cffa00e"
 
 [[projects]]
   branch = "master"
@@ -60,4 +60,4 @@ memo = "3aa439f7fd3be3f2266640afdb7c86c6225490d5e1e14404bef5be1eaab6f640"
   branch = "master"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "b8c9b4ef3dade3a13f662c95942dcda39e962cd4"
+  revision = "cc189738c010cb847790782fd5f87d4e0002da9d"
