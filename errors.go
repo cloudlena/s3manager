@@ -27,14 +27,14 @@ var (
 // handleHTTPError handles HTTP errors.
 func handleHTTPError(w http.ResponseWriter, err error) {
 	var code int
+
 	switch err := errors.Cause(err).(type) {
 	case *json.SyntaxError:
 		code = http.StatusUnprocessableEntity
 	default:
-		if err == io.EOF {
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			code = http.StatusUnprocessableEntity
-		} else if err == ErrBucketDoesNotExist ||
-			err == ErrKeyDoesNotExist {
+		} else if err == ErrBucketDoesNotExist || err == ErrKeyDoesNotExist {
 			code = http.StatusNotFound
 		} else {
 			code = http.StatusInternalServerError
