@@ -102,27 +102,26 @@ func TestBucketViewHandler(t *testing.T) {
 	}
 
 	for tcID, tc := range cases {
-		r := mux.NewRouter()
-		r.
-			Methods(http.MethodGet).
-			Path("/buckets/{bucketName}").
-			Handler(BucketViewHandler(tc.s3))
+		t.Run(tcID, func(t *testing.T) {
+			r := mux.NewRouter()
+			r.
+				Methods(http.MethodGet).
+				Path("/buckets/{bucketName}").
+				Handler(BucketViewHandler(tc.s3))
 
-		ts := httptest.NewServer(r)
-		defer ts.Close()
+			ts := httptest.NewServer(r)
+			defer ts.Close()
 
-		url := fmt.Sprintf("%s/buckets/%s", ts.URL, tc.bucketName)
-		resp, err := http.Get(url)
-		assert.NoError(err, tcID)
-		defer func() {
-			err = resp.Body.Close()
+			url := fmt.Sprintf("%s/buckets/%s", ts.URL, tc.bucketName)
+			resp, err := http.Get(url)
 			assert.NoError(err, tcID)
-		}()
+			defer resp.Body.Close()
 
-		body, err := ioutil.ReadAll(resp.Body)
-		assert.NoError(err, tcID)
+			body, err := ioutil.ReadAll(resp.Body)
+			assert.NoError(err, tcID)
 
-		assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
-		assert.Contains(string(body), tc.expectedBodyContains, tcID)
+			assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
+			assert.Contains(string(body), tc.expectedBodyContains, tcID)
+		})
 	}
 }

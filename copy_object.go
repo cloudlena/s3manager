@@ -2,7 +2,6 @@ package s3manager
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -29,9 +28,13 @@ func CopyObjectHandler(s3 S3) http.Handler {
 			return
 		}
 
-		copyConds := minio.NewCopyConditions()
-		objectSource := fmt.Sprintf("/%s/%s", copy.SourceBucketName, copy.SourceObjectName)
-		err = s3.CopyObject(copy.BucketName, copy.ObjectName, objectSource, copyConds)
+		src := minio.NewSourceInfo(copy.SourceBucketName, copy.SourceObjectName, nil)
+		dst, err := minio.NewDestinationInfo(copy.BucketName, copy.ObjectName, nil, nil)
+		if err != nil {
+			handleHTTPError(w, errors.Wrap(err, "error creating destination for copying"))
+			return
+		}
+		err = s3.CopyObject(dst, src)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error copying object"))
 			return

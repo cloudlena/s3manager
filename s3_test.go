@@ -15,7 +15,7 @@ type s3Mock struct {
 }
 
 // CopyObject mocks minio.Client.CopyObject.
-func (s *s3Mock) CopyObject(string, string, string, minio.CopyConditions) error {
+func (s *s3Mock) CopyObject(minio.DestinationInfo, minio.SourceInfo) error {
 	return s.Err
 }
 

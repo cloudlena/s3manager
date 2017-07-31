@@ -33,15 +33,17 @@ func TestDeleteObjectHandler(t *testing.T) {
 	}
 
 	for tcID, tc := range cases {
-		req, err := http.NewRequest(http.MethodDelete, "/api/buckets/bucketName/objects/objectName", nil)
-		assert.NoError(err, tcID)
+		t.Run(tcID, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodDelete, "/api/buckets/bucketName/objects/objectName", nil)
+			assert.NoError(err, tcID)
 
-		rr := httptest.NewRecorder()
-		handler := DeleteObjectHandler(tc.s3)
+			rr := httptest.NewRecorder()
+			handler := DeleteObjectHandler(tc.s3)
 
-		handler.ServeHTTP(rr, req)
+			handler.ServeHTTP(rr, req)
 
-		assert.Equal(tc.expectedStatusCode, rr.Code, tcID)
-		assert.Contains(rr.Body.String(), tc.expectedBodyContains, tcID)
+			assert.Equal(tc.expectedStatusCode, rr.Code, tcID)
+			assert.Contains(rr.Body.String(), tc.expectedBodyContains, tcID)
+		})
 	}
 }
