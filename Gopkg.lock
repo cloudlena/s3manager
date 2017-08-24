@@ -10,8 +10,8 @@
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "d3de07a94d22b4a0972deb4b96d790c2c0ce8333"
-  version = "v1.28.0"
+  revision = "20b96f641a5ea98f2f8619ff4f3e061cff4833bd"
+  version = "v1.28.2"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -40,8 +40,8 @@
 [[projects]]
   name = "github.com/minio/minio-go"
   packages = [".","pkg/credentials","pkg/encrypt","pkg/policy","pkg/s3signer","pkg/s3utils","pkg/set"]
-  revision = "5ca66c9a35ba1cd674484be99dc97aa0973afe12"
-  version = "v3.0.0"
+  revision = "1a09415eed6025360c2c3142f92d3bcf339f873d"
+  version = "v3.0.1"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -56,14 +56,32 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
+  version = "v1.0.3"
+
+[[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "eb71ad9bd329b5ac0fd0148dd99bd62e8be8e035"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix","windows"]
+  revision = "07c182904dbd53199946ba614a412c61d3c548f5"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1bb7aa8bcce0e1b203e72bf307aede524e72d9923c4f1337d69d299def88b278"
+  inputs-digest = "c27a572946b9c6006cfee8351d198140c4ecaed3925bdb9ce94088bb99b74e97"
   solver-name = "gps-cdcl"
   solver-version = 1

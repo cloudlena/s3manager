@@ -7,4 +7,4 @@ applications:
   command: ./entrypoint-cf.sh
 
   services:
-  - wp-storage
+  - my-storage
