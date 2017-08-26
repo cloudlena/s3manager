@@ -29,7 +29,7 @@
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = [".","logging"]
-  revision = "f611aa38429cfc0a8175b219389c906545957e3c"
+  revision = "a0072fd65d53989c3d177c36455252e03cb3d10d"
 
 [[projects]]
   branch = "master"
