@@ -42,75 +42,51 @@ func main() {
 	}
 
 	// Set up logger
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	l := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
 	// Set up router
 	r := mux.NewRouter().StrictSlash(true)
 	r.
 		Methods(http.MethodGet).
 		Path("/").
-		Handler(adapters.Adapt(
-			http.RedirectHandler("/buckets", http.StatusPermanentRedirect),
-			logging.Handler(logger),
-		))
+		Handler(http.RedirectHandler("/buckets", http.StatusPermanentRedirect))
 	r.
 		Methods(http.MethodGet).
 		Path("/buckets").
-		Handler(adapters.Adapt(
-			s3manager.BucketsViewHandler(s3),
-			logging.Handler(logger),
-		))
+		Handler(s3manager.BucketsViewHandler(s3))
 	r.
 		Methods(http.MethodGet).
 		Path("/buckets/{bucketName}").
-		Handler(adapters.Adapt(
-			s3manager.BucketViewHandler(s3),
-			logging.Handler(logger),
-		))
+		Handler(s3manager.BucketViewHandler(s3))
 	r.
 		Methods(http.MethodPost).
 		Path("/api/buckets").
-		Handler(adapters.Adapt(
-			s3manager.CreateBucketHandler(s3),
-			logging.Handler(logger),
-		))
+		Handler(s3manager.CreateBucketHandler(s3))
 	r.
 		Methods(http.MethodDelete).
 		Path("/api/buckets/{bucketName}").
-		Handler(adapters.Adapt(
-			s3manager.DeleteBucketHandler(s3),
-			logging.Handler(logger),
-		))
+		Handler(s3manager.DeleteBucketHandler(s3))
 	r.
 		Methods(http.MethodPost).
 		Headers(s3manager.HeaderContentType, s3manager.ContentTypeJSON).
 		Path("/api/buckets/{bucketName}/objects").
-		Handler(adapters.Adapt(
-			s3manager.CopyObjectHandler(s3),
-			logging.Handler(logger),
-		))
+		Handler(s3manager.CopyObjectHandler(s3))
 	r.
 		Methods(http.MethodPost).
 		HeadersRegexp(s3manager.HeaderContentType, s3manager.ContentTypeMultipartForm).
 		Path("/api/buckets/{bucketName}/objects").
-		Handler(adapters.Adapt(
-			s3manager.CreateObjectHandler(s3),
-			logging.Handler(logger),
-		))
+		Handler(s3manager.CreateObjectHandler(s3))
 	r.
 		Methods(http.MethodGet).
 		Path("/api/buckets/{bucketName}/objects/{objectName}").
-		Handler(adapters.Adapt(
-			s3manager.GetObjectHandler(s3),
-			logging.Handler(logger),
-		))
+		Handler(s3manager.GetObjectHandler(s3))
 	r.
 		Methods(http.MethodDelete).
 		Path("/api/buckets/{bucketName}/objects/{objectName}").
-		Handler(adapters.Adapt(
-			s3manager.DeleteObjectHandler(s3),
-			logging.Handler(logger),
-		))
+		Handler(s3manager.DeleteObjectHandler(s3))
 
-	log.Fatal(http.ListenAndServe(":"+*port, r))
+	log.Fatal(http.ListenAndServe(":"+*port, adapters.Adapt(
+		r,
+		logging.Handler(l),
+	)))
 }
