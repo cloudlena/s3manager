@@ -8,6 +8,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/dustin/go-humanize"
+  packages = ["."]
+  revision = "79e699ccd02f240a1f1fbbdcee7e64c1c12e41aa"
+
+[[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
   revision = "20b96f641a5ea98f2f8619ff4f3e061cff4833bd"
@@ -22,14 +28,14 @@
 [[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "bcd8bc72b08df0f70df986b97f95590779502d31"
-  version = "v1.4.0"
+  revision = "24fca303ac6da784b9e8269f724ddeb0b2eea5e7"
+  version = "v1.5.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = [".","logging"]
-  revision = "a0072fd65d53989c3d177c36455252e03cb3d10d"
+  revision = "beb02d908bae3a5473ed98e538480ff92b68517e"
 
 [[projects]]
   branch = "master"
@@ -40,8 +46,8 @@
 [[projects]]
   name = "github.com/minio/minio-go"
   packages = [".","pkg/credentials","pkg/encrypt","pkg/policy","pkg/s3signer","pkg/s3utils","pkg/set"]
-  revision = "1a09415eed6025360c2c3142f92d3bcf339f873d"
-  version = "v3.0.1"
+  revision = "4e0f567303d4cc90ceb055a451959fb9fc391fb9"
+  version = "3.0.3"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -71,17 +77,17 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "81e90905daefcd6fd217b62423c0908922eadb30"
+  revision = "7d9177d70076375b9a59c8fde23d52d9c4a7ecd5"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "2d6f6f883a06fc0d5f4b14a81e4c28705ea64c15"
+  revision = "b6e1ae21643682ce023deb8d152024597b0e9bb4"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c27a572946b9c6006cfee8351d198140c4ecaed3925bdb9ce94088bb99b74e97"
+  inputs-digest = "418c94e2d7594bbe1cca1b2014f3bcdf31271c8b6d3c757c25564619d3eccd0a"
   solver-name = "gps-cdcl"
   solver-version = 1
