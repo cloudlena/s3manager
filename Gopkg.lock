@@ -11,13 +11,13 @@
   branch = "master"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
-  revision = "79e699ccd02f240a1f1fbbdcee7e64c1c12e41aa"
+  revision = "77ed807830b4df581417e7f89eb81d4872832b72"
 
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "20b96f641a5ea98f2f8619ff4f3e061cff4833bd"
-  version = "v1.28.2"
+  revision = "5b3e00af70a9484542169a976dcab8d03e601a17"
+  version = "v1.30.0"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = [".","logging"]
-  revision = "beb02d908bae3a5473ed98e538480ff92b68517e"
+  revision = "5b03a2ea9f89295fba5ab18b2c4af55b843e3a2d"
 
 [[projects]]
   branch = "master"
@@ -77,13 +77,13 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "9419663f5a44be8b34ca85f08abc5fe1be11f8a3"
+  revision = "ed5229da99e3a6df35c756cd64b6982d19505d86"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "314a259e304ff91bd6985da2a7149bbf91237993"
+  revision = "8dbc5d05d6edcc104950cc299a1ce6641235bc86"
 
 [solve-meta]
   analyzer-name = "dep"
