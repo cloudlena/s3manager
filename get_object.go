@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
 )
 
@@ -16,7 +17,7 @@ func GetObjectHandler(s3 S3) http.Handler {
 		bucketName := vars["bucketName"]
 		objectName := vars["objectName"]
 
-		object, err := s3.GetObject(bucketName, objectName)
+		object, err := s3.GetObject(bucketName, objectName, minio.GetObjectOptions{})
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error getting object"))
 			return
