@@ -20,7 +20,7 @@ func (s *s3Mock) CopyObject(minio.DestinationInfo, minio.SourceInfo) error {
 }
 
 // GetObject mocks minio.Client.GetObject.
-func (s *s3Mock) GetObject(bucketName string, objectName string) (*minio.Object, error) {
+func (s *s3Mock) GetObject(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
 	if s.Err != nil {
 		return nil, s.Err
 	}
@@ -73,7 +73,7 @@ func (s *s3Mock) MakeBucket(string, string) error {
 }
 
 // PutObject mocks minio.Client.PutObject.
-func (s *s3Mock) PutObject(string, string, io.Reader, string) (int64, error) {
+func (s *s3Mock) PutObject(string, string, io.Reader, int64, minio.PutObjectOptions) (int64, error) {
 	return 0, s.Err
 }
 
