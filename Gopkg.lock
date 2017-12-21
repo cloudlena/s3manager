@@ -35,19 +35,19 @@
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = [".","logging"]
-  revision = "c180cf74ef5c8cc76f0e2cf957c55375675e007f"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/minio/go-homedir"
-  packages = ["."]
-  revision = "4d76aabb80b22bad8695d3904e943f1fb5e6199f"
+  revision = "f52f8e896fb9b6d7977f2feb502e18f0a061ba81"
 
 [[projects]]
   name = "github.com/minio/minio-go"
   packages = [".","pkg/credentials","pkg/encrypt","pkg/policy","pkg/s3signer","pkg/s3utils","pkg/set"]
-  revision = "57a8ae886b49af6eb0d2c27c2d007ed2f71e1da5"
-  version = "4.0.3"
+  revision = "06dcf064d9e3b1dfd21b9a01a822da7665a9c971"
+  version = "4.0.4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/go-homedir"
+  packages = ["."]
+  revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -77,13 +77,13 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
+  revision = "d585fd2cc9195196078f516b69daff6744ef5e84"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "8b4580aae2a0dd0c231a45d3ccb8434ff533b840"
+  revision = "d818ba11af4465e00c1998bd3f8a55603b422290"
 
 [solve-meta]
   analyzer-name = "dep"

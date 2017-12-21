@@ -12,33 +12,31 @@ import (
 )
 
 func TestCreateBucketHandler(t *testing.T) {
-	assert := assert.New(t)
-
 	cases := map[string]struct {
 		s3                   S3
 		body                 string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"success": {
+		"creates a new bucket": {
 			s3:                   &s3Mock{},
 			body:                 "{\"name\":\"myBucket\"}",
 			expectedStatusCode:   http.StatusCreated,
 			expectedBodyContains: "{\"name\":\"myBucket\",\"creationDate\":\"0001-01-01T00:00:00Z\"}\n",
 		},
-		"empty request": {
+		"returns error for empty request": {
 			s3:                   &s3Mock{},
 			body:                 "",
 			expectedStatusCode:   http.StatusUnprocessableEntity,
 			expectedBodyContains: http.StatusText(http.StatusUnprocessableEntity),
 		},
-		"malformed request": {
+		"returns error for malformed request": {
 			s3:                   &s3Mock{},
 			body:                 "}",
 			expectedStatusCode:   http.StatusUnprocessableEntity,
 			expectedBodyContains: http.StatusText(http.StatusUnprocessableEntity),
 		},
-		"s3 error": {
+		"returns error if there is an S3 error": {
 			s3: &s3Mock{
 				Err: errors.New("mocked S3 error"),
 			},
@@ -50,6 +48,8 @@ func TestCreateBucketHandler(t *testing.T) {
 
 	for tcID, tc := range cases {
 		t.Run(tcID, func(t *testing.T) {
+			assert := assert.New(t)
+
 			req, err := http.NewRequest(http.MethodPost, "/api/buckets", bytes.NewBufferString(tc.body))
 			assert.NoError(err, tcID)
 
