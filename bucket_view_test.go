@@ -15,25 +15,13 @@ import (
 )
 
 func TestBucketViewHandler(t *testing.T) {
-	assert := assert.New(t)
-
 	cases := map[string]struct {
 		s3                   S3
 		bucketName           string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"success (empty bucket)": {
-			s3: &s3Mock{
-				Buckets: []minio.BucketInfo{
-					{Name: "testBucket"},
-				},
-			},
-			bucketName:           "testBucket",
-			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "No objects in",
-		},
-		"success (with file)": {
+		"renders a bucket containing a file": {
 			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
@@ -46,7 +34,17 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "testBucket",
 		},
-		"success (archive)": {
+		"renders placeholder for an empty bucket": {
+			s3: &s3Mock{
+				Buckets: []minio.BucketInfo{
+					{Name: "testBucket"},
+				},
+			},
+			bucketName:           "testBucket",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "No objects in",
+		},
+		"renders a bucket containing an archive": {
 			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
@@ -59,7 +57,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "archive",
 		},
-		"success (image)": {
+		"renders a bucket containing an image": {
 			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
@@ -72,7 +70,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "photo",
 		},
-		"success (sound)": {
+		"renders a bucket containing a sound file": {
 			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
@@ -85,13 +83,13 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "music_note",
 		},
-		"bucket doesn't exist": {
+		"returns error if the bucket doesn't exist": {
 			s3:                   &s3Mock{},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusNotFound,
 			expectedBodyContains: http.StatusText(http.StatusNotFound),
 		},
-		"s3 error": {
+		"returns error if there is an S3 error": {
 			s3: &s3Mock{
 				Err: errors.New("mocked S3 error"),
 			},
@@ -103,6 +101,8 @@ func TestBucketViewHandler(t *testing.T) {
 
 	for tcID, tc := range cases {
 		t.Run(tcID, func(t *testing.T) {
+			assert := assert.New(t)
+
 			r := mux.NewRouter()
 			r.
 				Methods(http.MethodGet).

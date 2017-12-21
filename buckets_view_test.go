@@ -12,14 +12,12 @@ import (
 )
 
 func TestBucketsViewHandler(t *testing.T) {
-	assert := assert.New(t)
-
 	cases := map[string]struct {
 		s3                   S3
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"success": {
+		"renders a list of buckets": {
 			s3: &s3Mock{
 				Buckets: []minio.BucketInfo{
 					{Name: "testBucket"},
@@ -28,12 +26,12 @@ func TestBucketsViewHandler(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "testBucket",
 		},
-		"success (bo buckets)": {
+		"renders placeholder if no buckets": {
 			s3:                   &s3Mock{},
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "No buckets yet",
 		},
-		"s3 error": {
+		"returns error if there is an S3 error": {
 			s3: &s3Mock{
 				Err: errors.New("mocked S3 error"),
 			},
@@ -44,6 +42,8 @@ func TestBucketsViewHandler(t *testing.T) {
 
 	for tcID, tc := range cases {
 		t.Run(tcID, func(t *testing.T) {
+			assert := assert.New(t)
+
 			req, err := http.NewRequest(http.MethodGet, "/buckets", nil)
 			assert.NoError(err, tcID)
 
