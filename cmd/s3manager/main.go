@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/mastertinner/adapters"
-	"github.com/mastertinner/adapters/logging"
 	"github.com/mastertinner/s3manager"
 	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
@@ -40,9 +39,6 @@ func main() {
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "error creating s3 client"))
 	}
-
-	// Set up logger
-	l := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
 	// Set up router
 	r := mux.NewRouter().StrictSlash(true)
@@ -85,8 +81,5 @@ func main() {
 		Path("/api/buckets/{bucketName}/objects/{objectName}").
 		Handler(s3manager.DeleteObjectHandler(s3))
 
-	log.Fatal(http.ListenAndServe(":"+*port, adapters.Adapt(
-		r,
-		logging.Handler(l),
-	)))
+	log.Fatal(http.ListenAndServe(":"+*port, handlers.LoggingHandler(os.Stdout, r)))
 }
