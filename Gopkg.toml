@@ -22,12 +22,12 @@
 
 
 [[constraint]]
-  name = "github.com/gorilla/handlers"
-  version = "1.3.0"
-
-[[constraint]]
   name = "github.com/gorilla/mux"
   version = "1.6.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mastertinner/adapters"
 
 [[constraint]]
   name = "github.com/minio/minio-go"
