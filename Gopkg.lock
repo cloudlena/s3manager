@@ -26,16 +26,16 @@
   version = "v1.1"
 
 [[projects]]
-  name = "github.com/gorilla/handlers"
-  packages = ["."]
-  revision = "90663712d74cb411cbef281bc1e08c19d1a76145"
-  version = "v1.3.0"
-
-[[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
   revision = "7f08801859139f86dfafd1c296e2cba9a80d292e"
   version = "v1.6.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mastertinner/adapters"
+  packages = ["logging"]
+  revision = "599a2137b7d6f9d3c4e0fbc5cbd932fa78eec137"
 
 [[projects]]
   name = "github.com/minio/minio-go"
@@ -83,11 +83,11 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "83801418e1b59fb1880e363299581ee543af32ca"
+  revision = "dd9ec17814d5b1de388ebe438ec013d57d8b3779"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d05a3975fc1101d4255ad3e3388ceaeeff30f95bcc7dcf00f8e3a37fd1cbfb0d"
+  inputs-digest = "f576c4f470078c785c420a021bd30b9383c360ce7821ae39ff99ba7e75c75583"
   solver-name = "gps-cdcl"
   solver-version = 1

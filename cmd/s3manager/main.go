@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/mastertinner/adapters/logging"
 	"github.com/mastertinner/s3manager"
 	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
@@ -81,5 +81,5 @@ func main() {
 		Path("/api/buckets/{bucketName}/objects/{objectName}").
 		Handler(s3manager.DeleteObjectHandler(s3))
 
-	log.Fatal(http.ListenAndServe(":"+*port, handlers.LoggingHandler(os.Stdout, r)))
+	log.Fatal(http.ListenAndServe(":"+*port, logging.Handler(os.Stdout)(r)))
 }
