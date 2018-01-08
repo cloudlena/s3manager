@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = ["logging"]
-  revision = "599a2137b7d6f9d3c4e0fbc5cbd932fa78eec137"
+  revision = "13192f10bc2b687f23f1aef2d06a7a7c35dd81e9"
 
 [[projects]]
   name = "github.com/minio/minio-go"
@@ -83,7 +83,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "dd9ec17814d5b1de388ebe438ec013d57d8b3779"
+  revision = "b9cf5f96b68d9eaa53d5db5fef235718767f416a"
 
 [solve-meta]
   analyzer-name = "dep"
