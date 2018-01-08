@@ -20,9 +20,9 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 
 1. Run `make build-docker`
 
-    To cross-compile for windows, add the `-e "GOOS=windows" -e "GOARCH=amd64"` flags to the `Makefile` (depending on your system, you might have to adjust `GOARCH`)
+   To cross-compile for windows, add the `-e "GOOS=windows" -e "GOARCH=amd64"` flags to the `Makefile` (depending on your system, you might have to adjust `GOARCH`)
 
-    To cross-compile for macOS, add the `-e "GOOS=darwin" -e "GOARCH=amd64"` flags to the `Makefile` (depending on your system, you might have to adjust `GOARCH`)
+   To cross-compile for macOS, add the `-e "GOOS=darwin" -e "GOARCH=amd64"` flags to the `Makefile` (depending on your system, you might have to adjust `GOARCH`)
 
 ## Run on Cloud Foundry
 
