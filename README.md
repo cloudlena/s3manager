@@ -1,7 +1,8 @@
 # S3 Manager
 
-[![Build Status](https://travis-ci.org/mastertinner/s3manager.svg?branch=master)](https://travis-ci.org/mastertinner/s3manager)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mastertinner/s3manager)](https://goreportcard.com/report/github.com/mastertinner/s3manager)
+[![Build Status](https://travis-ci.org/mastertinner/s3manager.svg?branch=master)](https://travis-ci.org/mastertinner/s3manager)
+[![codecov](https://codecov.io/gh/mastertinner/s3manager/branch/master/graph/badge.svg)](https://codecov.io/gh/mastertinner/s3manager)
 
 A Web GUI written in Go to manage S3 buckets from any provider.
 
