@@ -40,8 +40,8 @@
 [[projects]]
   name = "github.com/minio/minio-go"
   packages = [".","pkg/credentials","pkg/encrypt","pkg/policy","pkg/s3signer","pkg/s3utils","pkg/set"]
-  revision = "e163d8055f79cf2a9b8af9d358b2814f21fd0472"
-  version = "4.0.5"
+  revision = "14f1d472d115bac5ca4804094aa87484a72ced61"
+  version = "4.0.6"
 
 [[projects]]
   branch = "master"
@@ -77,7 +77,13 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "b3c9a1d25cfbbbab0ff4780b71c4f54e6e92a0de"
+  revision = "13931e22f9e72ea58bb73048bc752b48c6d4d4ac"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = ["idna","lex/httplex"]
+  revision = "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec"
 
 [[projects]]
   branch = "master"
@@ -85,9 +91,15 @@
   packages = ["unix","windows"]
   revision = "810d7000345868fc619eb81f46307107118f4ae1"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/text"
+  packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
+  revision = "e19ae1496984b1c655b8044a65c0300a3c878dd3"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f576c4f470078c785c420a021bd30b9383c360ce7821ae39ff99ba7e75c75583"
+  inputs-digest = "58dc726a32f10ee180cde55065bde7c2bfad6cbb1d6c40e85085bbcce50da1ae"
   solver-name = "gps-cdcl"
   solver-version = 1
