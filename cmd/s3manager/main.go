@@ -42,6 +42,8 @@ func main() {
 
 	// Set up router
 	r := mux.NewRouter().StrictSlash(true)
+	r.Use(logging.Handler(os.Stdout))
+
 	r.
 		Methods(http.MethodGet).
 		Path("/").
@@ -81,5 +83,5 @@ func main() {
 		Path("/api/buckets/{bucketName}/objects/{objectName}").
 		Handler(s3manager.DeleteObjectHandler(s3))
 
-	log.Fatal(http.ListenAndServe(":"+*port, logging.Handler(os.Stdout)(r)))
+	log.Fatal(http.ListenAndServe(":"+*port, r))
 }
