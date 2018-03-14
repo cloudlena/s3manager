@@ -5,10 +5,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/mastertinner/adapters/logging"
-	"github.com/mastertinner/s3manager"
+	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
 )
@@ -40,6 +41,8 @@ func main() {
 		log.Fatalln(errors.Wrap(err, "error creating s3 client"))
 	}
 
+	tmplDir := filepath.Join("web", "template")
+
 	// Set up router
 	r := mux.NewRouter().StrictSlash(true)
 	r.Use(logging.Handler(os.Stdout))
@@ -51,11 +54,11 @@ func main() {
 	r.
 		Methods(http.MethodGet).
 		Path("/buckets").
-		Handler(s3manager.BucketsViewHandler(s3))
+		Handler(s3manager.BucketsViewHandler(s3, tmplDir))
 	r.
 		Methods(http.MethodGet).
 		Path("/buckets/{bucketName}").
-		Handler(s3manager.BucketViewHandler(s3))
+		Handler(s3manager.BucketViewHandler(s3, tmplDir))
 	r.
 		Methods(http.MethodPost).
 		Path("/api/buckets").

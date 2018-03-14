@@ -11,6 +11,7 @@ import (
 func DeleteBucketHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
+
 		err := s3.RemoveBucket(bucketName)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error removing bucket"))
