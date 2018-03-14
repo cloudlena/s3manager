@@ -25,7 +25,6 @@ func GetObjectHandler(s3 S3) http.Handler {
 
 		w.Header().Set(headerContentDisposition, fmt.Sprintf("attachment; filename=\"%s\"", objectName))
 		w.Header().Set(HeaderContentType, contentTypeOctetStream)
-
 		_, err = io.Copy(w, object)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error copying object to response writer"))

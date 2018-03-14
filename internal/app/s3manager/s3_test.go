@@ -3,7 +3,7 @@ package s3manager_test
 import (
 	"io"
 
-	. "github.com/mastertinner/s3manager"
+	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	minio "github.com/minio/minio-go"
 )
 
@@ -52,7 +52,7 @@ func (s *s3Mock) ListObjectsV2(name string, p string, r bool, d <-chan struct{})
 	}
 	if !found {
 		s.Objects = append(s.Objects, minio.ObjectInfo{
-			Err: ErrBucketDoesNotExist,
+			Err: s3manager.ErrBucketDoesNotExist,
 		})
 
 	}

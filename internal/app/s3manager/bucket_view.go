@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 	minio "github.com/minio/minio-go"
@@ -23,20 +24,11 @@ type bucketPage struct {
 }
 
 // BucketViewHandler shows the details page of a bucket.
-func BucketViewHandler(s3 S3) http.Handler {
+func BucketViewHandler(s3 S3, tmplDir string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
+
 		var objs []objectWithIcon
-
-		l := path.Join(tmplDirectory, "layout.html.tmpl")
-		p := path.Join(tmplDirectory, "bucket.html.tmpl")
-
-		t, err := template.ParseFiles(l, p)
-		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errParsingTemplates))
-			return
-		}
-
 		doneCh := make(chan struct{})
 		defer close(doneCh)
 		objectCh := s3.ListObjectsV2(bucketName, "", true, doneCh)
@@ -48,12 +40,18 @@ func BucketViewHandler(s3 S3) http.Handler {
 			obj := objectWithIcon{object, icon(object.Key)}
 			objs = append(objs, obj)
 		}
-
 		page := bucketPage{
 			BucketName: bucketName,
 			Objects:    objs,
 		}
 
+		l := filepath.Join(tmplDir, "layout.html.tmpl")
+		p := filepath.Join(tmplDir, "bucket.html.tmpl")
+		t, err := template.ParseFiles(l, p)
+		if err != nil {
+			handleHTTPError(w, errors.Wrap(err, errParsingTemplates))
+			return
+		}
 		err = t.ExecuteTemplate(w, "layout", page)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, errExecutingTemplate))

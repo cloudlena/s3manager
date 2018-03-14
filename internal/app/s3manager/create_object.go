@@ -12,12 +12,12 @@ import (
 // CreateObjectHandler uploads a new object.
 func CreateObjectHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bucketName := mux.Vars(r)["bucketName"]
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, errParsingForm))
 			return
 		}
-
 		file, handler, err := r.FormFile("file")
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error getting file from form"))
@@ -30,7 +30,6 @@ func CreateObjectHandler(s3 S3) http.Handler {
 			}
 		}()
 
-		bucketName := mux.Vars(r)["bucketName"]
 		_, err = s3.PutObject(bucketName, handler.Filename, file, 1, minio.PutObjectOptions{ContentType: contentTypeOctetStream})
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error putting object"))

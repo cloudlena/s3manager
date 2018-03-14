@@ -7,13 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	. "github.com/mastertinner/s3manager"
+	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateBucketHandler(t *testing.T) {
 	cases := map[string]struct {
-		s3                   S3
+		s3                   s3manager.S3
 		body                 string
 		expectedStatusCode   int
 		expectedBodyContains string
@@ -54,7 +54,7 @@ func TestCreateBucketHandler(t *testing.T) {
 			assert.NoError(err, tcID)
 
 			rr := httptest.NewRecorder()
-			handler := CreateBucketHandler(tc.s3)
+			handler := s3manager.CreateBucketHandler(tc.s3)
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()

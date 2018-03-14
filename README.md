@@ -1,32 +1,30 @@
 # S3 Manager
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/mastertinner/s3manager)](https://goreportcard.com/report/github.com/mastertinner/s3manager)
-[![Build Status](https://travis-ci.org/mastertinner/s3manager.svg?branch=master)](https://travis-ci.org/mastertinner/s3manager)
-[![codecov](https://codecov.io/gh/mastertinner/s3manager/branch/master/graph/badge.svg)](https://codecov.io/gh/mastertinner/s3manager)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mastertinner/s3manager?style=flat-square)](https://goreportcard.com/report/github.com/mastertinner/s3manager)
+[![Build Status](https://travis-ci.org/mastertinner/s3manager.svg?branch=master&style=flat-square)](https://travis-ci.org/mastertinner/s3manager)
+[![Release](https://img.shields.io/github/release/mastertinner/s3manager.svg?style=flat-square)](https://github.com/mastertinner/s3manager/releases/latest)
 
 A Web GUI written in Go to manage S3 buckets from any provider.
 
-## Run locally
+## Install Dependencies
 
-1. Run `make`
-1. Execute the created binary and visit <http://localhost:8080>
+1. Install [Dep](https://github.com/golang/dep)
+1. Run `dep ensure`
 
-## Run with Docker
+## Build and Run Locally
 
-1. Set environment variables in `docker-compose.yml`
-1. Run `docker-compose up`
-1. Visit <http://localhost:8080>
+1.  Run `make`
+1.  Execute the created binary and visit <http://localhost:8080>
 
-## Build with Docker and run anywhere
+## Run Tests
 
-1. Run `make build-docker`
+1.  Run `make test`
 
-   To cross-compile for windows, add the `-e "GOOS=windows" -e "GOARCH=amd64"` flags to the `Makefile` (depending on your system, you might have to adjust `GOARCH`)
+## Build Docker Image
 
-   To cross-compile for macOS, add the `-e "GOOS=darwin" -e "GOARCH=amd64"` flags to the `Makefile` (depending on your system, you might have to adjust `GOARCH`)
+1.  Run `make build-docker`
 
 ## Run on Cloud Foundry
 
-1. Change the service in `manifest.yml` to represent your S3 service (if you are using an external S3 provider, you'll have to switch the service type in `entrypoint-cf.sh` from `dynstrg` to `user-provided` and create the respective user-provided service with `cf create-user-provided-service`)
-1. Add a route in `manifest.yml` that isn't taken yet
-1. Run `make deploy-cf`
+1.  Modify `deployments/cf/*` to your liking
+1.  Run `make deploy-cf`

@@ -21,7 +21,6 @@ type copyObjectInfo struct {
 func CopyObjectHandler(s3 S3) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var copy copyObjectInfo
-
 		err := json.NewDecoder(r.Body).Decode(&copy)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, errDecodingBody))
@@ -42,7 +41,6 @@ func CopyObjectHandler(s3 S3) http.Handler {
 
 		w.Header().Set(HeaderContentType, ContentTypeJSON)
 		w.WriteHeader(http.StatusCreated)
-
 		err = json.NewEncoder(w).Encode(copy)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, errEncodingJSON))

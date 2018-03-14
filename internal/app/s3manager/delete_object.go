@@ -13,6 +13,7 @@ func DeleteObjectHandler(s3 S3) http.Handler {
 		vars := mux.Vars(r)
 		bucketName := vars["bucketName"]
 		objectName := vars["objectName"]
+
 		err := s3.RemoveObject(bucketName, objectName)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error removing object"))
