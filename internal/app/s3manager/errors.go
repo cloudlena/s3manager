@@ -14,7 +14,6 @@ const (
 	errDecodingBody      = "error decoding body JSON"
 	errEncodingJSON      = "error encoding JSON"
 	errExecutingTemplate = "error executing template"
-	errGettingWD         = "error getting working directory"
 	errParsingForm       = "error parsing form"
 	errParsingTemplates  = "error parsing template files"
 )

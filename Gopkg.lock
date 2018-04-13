@@ -16,8 +16,8 @@
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "ace140f73450505f33e8b8418216792275ae82a7"
-  version = "v1.35.0"
+  revision = "6529cf7c58879c08d927016dde4477f18a0634cb"
+  version = "v1.36.0"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -43,13 +43,12 @@
     ".",
     "pkg/credentials",
     "pkg/encrypt",
-    "pkg/policy",
     "pkg/s3signer",
     "pkg/s3utils",
     "pkg/set"
   ]
-  revision = "66252c2a3c15f7b90cc8493d497a04ac3b6e3606"
-  version = "5.0.0"
+  revision = "3d2d02921f0510e9d1f66ef77a265b8dddd36992"
+  version = "6.0.0"
 
 [[projects]]
   branch = "master"
@@ -89,7 +88,7 @@
     "blake2b",
     "ssh/terminal"
   ]
-  revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
+  revision = "e73bf333ef8920dbb52ad18d4bd38ad9d9bc76d7"
 
 [[projects]]
   branch = "master"
@@ -98,7 +97,7 @@
     "idna",
     "lex/httplex"
   ]
-  revision = "61147c48b25b599e5b561d2e9c4f3e1ef489ca41"
+  revision = "5f9ae10d9af5b1c89ae6904293b14b064d4ada23"
 
 [[projects]]
   branch = "master"
@@ -107,7 +106,7 @@
     "unix",
     "windows"
   ]
-  revision = "f6f352972f061230a99fbf49d1eb8073ebdb36cb"
+  revision = "79b0c6888797020a994db17c8510466c72fe75d9"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -133,6 +132,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2eb6d0e6d0142a6a38557c70a42069775e66ccbe7aea1620c03752808dcacb1a"
+  inputs-digest = "4c4a5f2d2bc9b8772e808cad8a6ba572ade767284ff64d92f8b44b4a18b6d64f"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,10 +1,11 @@
 language: go
 
 before_install:
-- curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 install:
-- dep ensure
+  - dep ensure
 
 script:
-- go test ./... -race
+  - make test
+  - make
