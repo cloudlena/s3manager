@@ -117,7 +117,12 @@ func TestBucketViewHandler(t *testing.T) {
 			url := fmt.Sprintf("%s/buckets/%s", ts.URL, tc.bucketName)
 			resp, err := http.Get(url)
 			assert.NoError(err, tcID)
-			defer resp.Body.Close()
+			defer func() {
+				err = resp.Body.Close()
+				if err != nil {
+					t.FailNow()
+				}
+			}()
 
 			body, err := ioutil.ReadAll(resp.Body)
 			assert.NoError(err, tcID)
