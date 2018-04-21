@@ -20,8 +20,8 @@ const (
 
 // Errors that may be returned from an S3 client.
 var (
-	ErrBucketDoesNotExist = errors.New("The specified bucket does not exist.")
-	ErrKeyDoesNotExist    = errors.New("The specified key does not exist.")
+	ErrBucketDoesNotExist = errors.New("The specified bucket does not exist.") // nolint: golint
+	ErrKeyDoesNotExist    = errors.New("The specified key does not exist.")    // nolint: golint
 )
 
 // handleHTTPError handles HTTP errors.

@@ -1,11 +1,17 @@
 language: go
 
+go:
+  - stable
+
 before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - go get -u github.com/alecthomas/gometalinter
+  - gometalinter --install
 
 install:
   - dep ensure
 
 script:
+  - make lint
   - make test
   - make
