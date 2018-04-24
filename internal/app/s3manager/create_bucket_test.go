@@ -13,32 +13,38 @@ import (
 
 func TestCreateBucketHandler(t *testing.T) {
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		makeBucketFunc       func(string, string) error
 		body                 string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"creates a new bucket": {
-			s3:                   &s3Mock{},
+			makeBucketFunc: func(bucketName string, location string) error {
+				return nil
+			},
 			body:                 "{\"name\":\"myBucket\"}",
 			expectedStatusCode:   http.StatusCreated,
 			expectedBodyContains: "{\"name\":\"myBucket\",\"creationDate\":\"0001-01-01T00:00:00Z\"}\n",
 		},
 		"returns error for empty request": {
-			s3:                   &s3Mock{},
+			makeBucketFunc: func(bucketName string, location string) error {
+				return nil
+			},
 			body:                 "",
 			expectedStatusCode:   http.StatusUnprocessableEntity,
 			expectedBodyContains: http.StatusText(http.StatusUnprocessableEntity),
 		},
 		"returns error for malformed request": {
-			s3:                   &s3Mock{},
+			makeBucketFunc: func(bucketName string, location string) error {
+				return nil
+			},
 			body:                 "}",
 			expectedStatusCode:   http.StatusUnprocessableEntity,
 			expectedBodyContains: http.StatusText(http.StatusUnprocessableEntity),
 		},
 		"returns error if there is an S3 error": {
-			s3: &s3Mock{
-				Err: errors.New("mocked S3 error"),
+			makeBucketFunc: func(bucketName string, location string) error {
+				return errors.New("mocked S3 error")
 			},
 			body:                 "{\"name\":\"myBucket\"}",
 			expectedStatusCode:   http.StatusInternalServerError,
@@ -50,11 +56,15 @@ func TestCreateBucketHandler(t *testing.T) {
 		t.Run(tcID, func(t *testing.T) {
 			assert := assert.New(t)
 
+			s3 := &S3Mock{
+				MakeBucketFunc: tc.makeBucketFunc,
+			}
+
 			req, err := http.NewRequest(http.MethodPost, "/api/buckets", bytes.NewBufferString(tc.body))
 			assert.NoError(err, tcID)
 
 			rr := httptest.NewRecorder()
-			handler := s3manager.CreateBucketHandler(tc.s3)
+			handler := s3manager.CreateBucketHandler(s3)
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()

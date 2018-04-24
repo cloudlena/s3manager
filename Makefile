@@ -1,15 +1,17 @@
+.PHONY: all lint test build-docker deploy-cf
+
 all:
-	go build ./cmd/s3manager
+	go build ./cmd/...
 
 lint:
-	gometalinter ./... --vendor --tests
+	gometalinter --vendor ./...
 
 test:
-	go test ./... -race -cover
+	go test -race -cover ./...
 
 build-docker:
-	docker build . -f build/docker/Dockerfile -t s3manager
+	docker build -f build/docker/Dockerfile -t s3manager .
 
 deploy-cf:
-	GOOS=linux GOARCH=amd64 go build ./cmd/s3manager
+	GOOS=linux go build -ldflags="-s -w" ./cmd/s3manager
 	cf push -f deployments/cf/manifest.yml

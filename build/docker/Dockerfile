@@ -5,7 +5,7 @@ COPY . .
 
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 RUN dep ensure
-RUN go build ./cmd/s3manager
+RUN go build -ldflags="-s -w" ./cmd/s3manager
 
 EXPOSE 8080
 

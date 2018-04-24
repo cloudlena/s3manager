@@ -17,82 +17,82 @@ import (
 
 func TestBucketViewHandler(t *testing.T) {
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		listObjectsV2Func    func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo
 		bucketName           string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"renders a bucket containing a file": {
-			s3: &s3Mock{
-				Buckets: []minio.BucketInfo{
-					{Name: "testBucket"},
-				},
-				Objects: []minio.ObjectInfo{
-					{Key: "testFile"},
-				},
+			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo, 1)
+				defer close(objCh)
+				objCh <- minio.ObjectInfo{Key: "testFile"}
+				return objCh
 			},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "testBucket",
+			expectedBodyContains: "testFile",
 		},
 		"renders placeholder for an empty bucket": {
-			s3: &s3Mock{
-				Buckets: []minio.BucketInfo{
-					{Name: "testBucket"},
-				},
+			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo)
+				defer close(objCh)
+				return objCh
 			},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "No objects in",
 		},
 		"renders a bucket containing an archive": {
-			s3: &s3Mock{
-				Buckets: []minio.BucketInfo{
-					{Name: "testBucket"},
-				},
-				Objects: []minio.ObjectInfo{
-					{Key: "archive.tar.gz"},
-				},
+			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo, 1)
+				defer close(objCh)
+				objCh <- minio.ObjectInfo{Key: "archive.tar.gz"}
+				return objCh
 			},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "archive",
 		},
 		"renders a bucket containing an image": {
-			s3: &s3Mock{
-				Buckets: []minio.BucketInfo{
-					{Name: "testBucket"},
-				},
-				Objects: []minio.ObjectInfo{
-					{Key: "testImage.png"},
-				},
+			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo, 1)
+				defer close(objCh)
+				objCh <- minio.ObjectInfo{Key: "testImage.png"}
+				return objCh
 			},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "photo",
 		},
 		"renders a bucket containing a sound file": {
-			s3: &s3Mock{
-				Buckets: []minio.BucketInfo{
-					{Name: "testBucket"},
-				},
-				Objects: []minio.ObjectInfo{
-					{Key: "testSound.mp3"},
-				},
+			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo, 1)
+				defer close(objCh)
+				objCh <- minio.ObjectInfo{Key: "testSound.mp3"}
+				return objCh
 			},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "music_note",
 		},
 		"returns error if the bucket doesn't exist": {
-			s3:                   &s3Mock{},
+			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo, 1)
+				defer close(objCh)
+				objCh <- minio.ObjectInfo{Err: s3manager.ErrBucketDoesNotExist}
+				return objCh
+			},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusNotFound,
 			expectedBodyContains: http.StatusText(http.StatusNotFound),
 		},
 		"returns error if there is an S3 error": {
-			s3: &s3Mock{
-				Err: errors.New("mocked S3 error"),
+			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo, 1)
+				defer close(objCh)
+				objCh <- minio.ObjectInfo{Err: errors.New("mocked S3 error")}
+				return objCh
 			},
 			bucketName:           "testBucket",
 			expectedStatusCode:   http.StatusInternalServerError,
@@ -104,12 +104,16 @@ func TestBucketViewHandler(t *testing.T) {
 		t.Run(tcID, func(t *testing.T) {
 			assert := assert.New(t)
 
+			s3 := &S3Mock{
+				ListObjectsV2Func: tc.listObjectsV2Func,
+			}
+
 			tmplDir := filepath.Join("..", "..", "..", "web", "template")
 			r := mux.NewRouter()
 			r.
 				Methods(http.MethodGet).
 				Path("/buckets/{bucketName}").
-				Handler(s3manager.BucketViewHandler(tc.s3, tmplDir))
+				Handler(s3manager.BucketViewHandler(s3, tmplDir))
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

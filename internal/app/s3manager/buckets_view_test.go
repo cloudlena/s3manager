@@ -15,27 +15,27 @@ import (
 
 func TestBucketsViewHandler(t *testing.T) {
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		listBucketsFunc      func() ([]minio.BucketInfo, error)
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"renders a list of buckets": {
-			s3: &s3Mock{
-				Buckets: []minio.BucketInfo{
-					{Name: "testBucket"},
-				},
+			listBucketsFunc: func() ([]minio.BucketInfo, error) {
+				return []minio.BucketInfo{{Name: "testBucket"}}, nil
 			},
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "testBucket",
 		},
 		"renders placeholder if no buckets": {
-			s3:                   &s3Mock{},
+			listBucketsFunc: func() ([]minio.BucketInfo, error) {
+				return []minio.BucketInfo{}, nil
+			},
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "No buckets yet",
 		},
 		"returns error if there is an S3 error": {
-			s3: &s3Mock{
-				Err: errors.New("mocked S3 error"),
+			listBucketsFunc: func() ([]minio.BucketInfo, error) {
+				return []minio.BucketInfo{}, errors.New("mocked S3 error")
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
@@ -46,18 +46,22 @@ func TestBucketsViewHandler(t *testing.T) {
 		t.Run(tcID, func(t *testing.T) {
 			assert := assert.New(t)
 
+			s3 := &S3Mock{
+				ListBucketsFunc: tc.listBucketsFunc,
+			}
+
 			tmplDir := filepath.Join("..", "..", "..", "web", "template")
 			r := mux.NewRouter()
 			r.
 				Methods(http.MethodGet).
 				Path("/buckets/{bucketName}").
-				Handler(s3manager.BucketViewHandler(tc.s3, tmplDir))
+				Handler(s3manager.BucketViewHandler(s3, tmplDir))
 
 			req, err := http.NewRequest(http.MethodGet, "/buckets", nil)
 			assert.NoError(err, tcID)
 
 			rr := httptest.NewRecorder()
-			handler := s3manager.BucketsViewHandler(tc.s3, tmplDir)
+			handler := s3manager.BucketsViewHandler(s3, tmplDir)
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
