@@ -6,6 +6,8 @@ import (
 	minio "github.com/minio/minio-go"
 )
 
+//go:generate moq -out s3_test.go -pkg s3manager_test . S3
+
 // S3 is a client to interact with S3 storage.
 type S3 interface {
 	CopyObject(minio.DestinationInfo, minio.SourceInfo) error

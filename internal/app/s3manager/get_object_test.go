@@ -10,20 +10,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetObjectHandler(t *testing.T) {
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		getObjectFunc        func(string, string, minio.GetObjectOptions) (*minio.Object, error)
 		bucketName           string
 		objectName           string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"returns error if there is an S3 error": {
-			s3: &s3Mock{
-				Err: errors.New("mocked S3 error"),
+			getObjectFunc: func(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
+				return nil, errors.New("mocked S3 error")
 			},
 			bucketName:           "testBucket",
 			objectName:           "testObject",
@@ -36,11 +37,15 @@ func TestGetObjectHandler(t *testing.T) {
 		t.Run(tcID, func(t *testing.T) {
 			assert := assert.New(t)
 
+			s3 := &S3Mock{
+				GetObjectFunc: tc.getObjectFunc,
+			}
+
 			r := mux.NewRouter()
 			r.
 				Methods(http.MethodGet).
 				Path("/buckets/{bucketName}/objects/{objectName}").
-				Handler(s3manager.GetObjectHandler(tc.s3))
+				Handler(s3manager.GetObjectHandler(s3))
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

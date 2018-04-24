@@ -12,18 +12,20 @@ import (
 
 func TestDeleteBucketHandler(t *testing.T) {
 	cases := map[string]struct {
-		s3                   s3manager.S3
+		removeBucketFunc     func(string) error
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		"deletes an existing bucket": {
-			s3:                   &s3Mock{},
+			removeBucketFunc: func(bucketName string) error {
+				return nil
+			},
 			expectedStatusCode:   http.StatusNoContent,
 			expectedBodyContains: "",
 		},
 		"returns error if there is an S3 error": {
-			s3: &s3Mock{
-				Err: errors.New("mocked S3 error"),
+			removeBucketFunc: func(bucketName string) error {
+				return errors.New("mocked S3 error")
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
@@ -34,11 +36,15 @@ func TestDeleteBucketHandler(t *testing.T) {
 		t.Run(tcID, func(t *testing.T) {
 			assert := assert.New(t)
 
+			s3 := &S3Mock{
+				RemoveBucketFunc: tc.removeBucketFunc,
+			}
+
 			req, err := http.NewRequest(http.MethodDelete, "/api/buckets/bucketName", nil)
 			assert.NoError(err, tcID)
 
 			rr := httptest.NewRecorder()
-			handler := s3manager.DeleteBucketHandler(tc.s3)
+			handler := s3manager.DeleteBucketHandler(s3)
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
