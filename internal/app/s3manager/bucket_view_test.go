@@ -24,9 +24,11 @@ func TestBucketViewHandler(t *testing.T) {
 	}{
 		"renders a bucket containing a file": {
 			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo, 1)
-				defer close(objCh)
-				objCh <- minio.ObjectInfo{Key: "testFile"}
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Key: "testFile"}
+					close(objCh)
+				}()
 				return objCh
 			},
 			bucketName:           "testBucket",
@@ -36,7 +38,7 @@ func TestBucketViewHandler(t *testing.T) {
 		"renders placeholder for an empty bucket": {
 			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
-				defer close(objCh)
+				close(objCh)
 				return objCh
 			},
 			bucketName:           "testBucket",
@@ -45,9 +47,11 @@ func TestBucketViewHandler(t *testing.T) {
 		},
 		"renders a bucket containing an archive": {
 			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo, 1)
-				defer close(objCh)
-				objCh <- minio.ObjectInfo{Key: "archive.tar.gz"}
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Key: "archive.tar.gz"}
+					close(objCh)
+				}()
 				return objCh
 			},
 			bucketName:           "testBucket",
@@ -56,9 +60,11 @@ func TestBucketViewHandler(t *testing.T) {
 		},
 		"renders a bucket containing an image": {
 			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo, 1)
-				defer close(objCh)
-				objCh <- minio.ObjectInfo{Key: "testImage.png"}
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Key: "testImage.png"}
+					close(objCh)
+				}()
 				return objCh
 			},
 			bucketName:           "testBucket",
@@ -67,9 +73,11 @@ func TestBucketViewHandler(t *testing.T) {
 		},
 		"renders a bucket containing a sound file": {
 			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo, 1)
-				defer close(objCh)
-				objCh <- minio.ObjectInfo{Key: "testSound.mp3"}
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Key: "testSound.mp3"}
+					close(objCh)
+				}()
 				return objCh
 			},
 			bucketName:           "testBucket",
@@ -78,9 +86,11 @@ func TestBucketViewHandler(t *testing.T) {
 		},
 		"returns error if the bucket doesn't exist": {
 			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo, 1)
-				defer close(objCh)
-				objCh <- minio.ObjectInfo{Err: s3manager.ErrBucketDoesNotExist}
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Err: s3manager.ErrBucketDoesNotExist}
+					close(objCh)
+				}()
 				return objCh
 			},
 			bucketName:           "testBucket",
@@ -89,9 +99,11 @@ func TestBucketViewHandler(t *testing.T) {
 		},
 		"returns error if there is an S3 error": {
 			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo, 1)
-				defer close(objCh)
-				objCh <- minio.ObjectInfo{Err: errors.New("mocked S3 error")}
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Err: errors.New("mocked S3 error")}
+					close(objCh)
+				}()
 				return objCh
 			},
 			bucketName:           "testBucket",
