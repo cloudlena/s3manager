@@ -22,20 +22,20 @@
 [[projects]]
   name = "github.com/gorilla/context"
   packages = ["."]
-  revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
-  version = "v1.1"
+  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "53c1911da2b537f792e7cafcb446b05ffe33b996"
-  version = "v1.6.1"
+  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
+  version = "v1.6.2"
 
 [[projects]]
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = ["logging"]
-  revision = "9dd1b86beda61f4746be3a5ee267f1566ab032ce"
+  revision = "368acae73d1569f0495b00991aaa85ec27d6ee8e"
 
 [[projects]]
   name = "github.com/minio/minio-go"
@@ -88,7 +88,7 @@
     "blake2b",
     "ssh/terminal"
   ]
-  revision = "2d027ae1dddd4694d54f7a8b6cbe78dca8720226"
+  revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
 
 [[projects]]
   branch = "release-branch.go1.10"
@@ -107,7 +107,7 @@
     "unix",
     "windows"
   ]
-  revision = "7dfd1290c7917b7ba22824b9d24954ab3002fe24"
+  revision = "7f59abf37be6a6007f075af1bc7f16f137bc176b"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -133,6 +133,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d5c70cc73f9098484ed21d304f6281eb9c2dfe392eefb0eed611a2e14be1165a"
+  inputs-digest = "945ffc84ccd6e34b10386a5ec3db999a5211510aa4086572711df7c1b3d52842"
   solver-name = "gps-cdcl"
   solver-version = 1
