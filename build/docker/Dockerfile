@@ -1,4 +1,4 @@
-FROM golang:latest
+FROM golang:1
 
 WORKDIR /go/src/github.com/mastertinner/s3manager
 COPY . .

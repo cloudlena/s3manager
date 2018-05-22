@@ -23,7 +23,7 @@ func TestBucketViewHandler(t *testing.T) {
 		expectedBodyContains string
 	}{
 		"renders a bucket containing a file": {
-			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Key: "testFile"}
@@ -36,7 +36,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "testFile",
 		},
 		"renders placeholder for an empty bucket": {
-			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				close(objCh)
 				return objCh
@@ -46,7 +46,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "No objects in",
 		},
 		"renders a bucket containing an archive": {
-			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Key: "archive.tar.gz"}
@@ -59,7 +59,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "archive",
 		},
 		"renders a bucket containing an image": {
-			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Key: "testImage.png"}
@@ -72,7 +72,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "photo",
 		},
 		"renders a bucket containing a sound file": {
-			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Key: "testSound.mp3"}
@@ -85,7 +85,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: "music_note",
 		},
 		"returns error if the bucket doesn't exist": {
-			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Err: s3manager.ErrBucketDoesNotExist}
@@ -98,7 +98,7 @@ func TestBucketViewHandler(t *testing.T) {
 			expectedBodyContains: http.StatusText(http.StatusNotFound),
 		},
 		"returns error if there is an S3 error": {
-			listObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Err: errors.New("mocked S3 error")}
@@ -132,7 +132,7 @@ func TestBucketViewHandler(t *testing.T) {
 
 			url := fmt.Sprintf("%s/buckets/%s", ts.URL, tc.bucketName)
 			resp, err := http.Get(url)
-			assert.NoError(err, tcID)
+			assert.NoError(err)
 			defer func() {
 				err = resp.Body.Close()
 				if err != nil {
@@ -141,10 +141,10 @@ func TestBucketViewHandler(t *testing.T) {
 			}()
 
 			body, err := ioutil.ReadAll(resp.Body)
-			assert.NoError(err, tcID)
+			assert.NoError(err)
 
-			assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
-			assert.Contains(string(body), tc.expectedBodyContains, tcID)
+			assert.Equal(tc.expectedStatusCode, resp.StatusCode)
+			assert.Contains(string(body), tc.expectedBodyContains)
 		})
 	}
 }

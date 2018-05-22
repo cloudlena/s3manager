@@ -9,26 +9,26 @@ import (
 	minio "github.com/minio/minio-go"
 )
 
-// copyObjectInfo is the information about an object to copy.
-type copyObjectInfo struct {
-	BucketName       string `json:"bucketName"`
-	ObjectName       string `json:"objectName"`
-	SourceBucketName string `json:"sourceBucketName"`
-	SourceObjectName string `json:"sourceObjectName"`
-}
-
 // CopyObjectHandler copies an existing object under a new name.
 func CopyObjectHandler(s3 S3) http.Handler {
+	// request is the information about an object to copy.
+	type request struct {
+		BucketName       string `json:"bucketName"`
+		ObjectName       string `json:"objectName"`
+		SourceBucketName string `json:"sourceBucketName"`
+		SourceObjectName string `json:"sourceObjectName"`
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var copy copyObjectInfo
-		err := json.NewDecoder(r.Body).Decode(&copy)
+		var req request
+		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errDecodingBody))
+			handleHTTPError(w, errors.Wrap(err, "error decoding body JSON"))
 			return
 		}
 
-		src := minio.NewSourceInfo(copy.SourceBucketName, copy.SourceObjectName, nil)
-		dst, err := minio.NewDestinationInfo(copy.BucketName, copy.ObjectName, nil, nil)
+		src := minio.NewSourceInfo(req.SourceBucketName, req.SourceObjectName, nil)
+		dst, err := minio.NewDestinationInfo(req.BucketName, req.ObjectName, nil, nil)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error creating destination for copying"))
 			return
@@ -39,11 +39,11 @@ func CopyObjectHandler(s3 S3) http.Handler {
 			return
 		}
 
-		w.Header().Set(HeaderContentType, ContentTypeJSON)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusCreated)
-		err = json.NewEncoder(w).Encode(copy)
+		err = json.NewEncoder(w).Encode(req)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errEncodingJSON))
+			handleHTTPError(w, errors.Wrap(err, "error encoding JSON"))
 			return
 		}
 	})

@@ -21,12 +21,12 @@ func BucketsViewHandler(s3 S3, tmplDir string) http.Handler {
 		p := filepath.Join(tmplDir, "buckets.html.tmpl")
 		t, err := template.ParseFiles(l, p)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errParsingTemplates))
+			handleHTTPError(w, errors.Wrap(err, "error parsing template files"))
 			return
 		}
 		err = t.ExecuteTemplate(w, "layout", buckets)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errExecutingTemplate))
+			handleHTTPError(w, errors.Wrap(err, "error executing template"))
 			return
 		}
 	})

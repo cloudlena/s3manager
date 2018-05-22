@@ -1,7 +1,7 @@
 .PHONY: all lint test build-docker deploy-cf
 
 all:
-	go build ./cmd/...
+	go build ./cmd/s3manager
 
 lint:
 	gometalinter --vendor ./...

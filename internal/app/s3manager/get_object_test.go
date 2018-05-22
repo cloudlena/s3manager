@@ -23,7 +23,7 @@ func TestGetObjectHandler(t *testing.T) {
 		expectedBodyContains string
 	}{
 		"returns error if there is an S3 error": {
-			getObjectFunc: func(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
+			getObjectFunc: func(string, string, minio.GetObjectOptions) (*minio.Object, error) {
 				return nil, errors.New("mocked S3 error")
 			},
 			bucketName:           "testBucket",
@@ -52,7 +52,7 @@ func TestGetObjectHandler(t *testing.T) {
 
 			url := fmt.Sprintf("%s/buckets/%s/objects/%s", ts.URL, tc.bucketName, tc.objectName)
 			resp, err := http.Get(url)
-			assert.NoError(err, tcID)
+			assert.NoError(err)
 			defer func() {
 				err = resp.Body.Close()
 				if err != nil {
@@ -61,10 +61,10 @@ func TestGetObjectHandler(t *testing.T) {
 			}()
 
 			body, err := ioutil.ReadAll(resp.Body)
-			assert.NoError(err, tcID)
+			assert.NoError(err)
 
-			assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
-			assert.Contains(string(body), tc.expectedBodyContains, tcID)
+			assert.Equal(tc.expectedStatusCode, resp.StatusCode)
+			assert.Contains(string(body), tc.expectedBodyContains)
 		})
 	}
 }

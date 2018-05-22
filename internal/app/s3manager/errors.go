@@ -9,15 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Error codes commonly used throughout the application
-const (
-	errDecodingBody      = "error decoding body JSON"
-	errEncodingJSON      = "error encoding JSON"
-	errExecutingTemplate = "error executing template"
-	errParsingForm       = "error parsing form"
-	errParsingTemplates  = "error parsing template files"
-)
-
 // Errors that may be returned from an S3 client.
 var (
 	ErrBucketDoesNotExist = errors.New("The specified bucket does not exist.") // nolint: golint

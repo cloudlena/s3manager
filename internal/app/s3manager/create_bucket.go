@@ -14,7 +14,7 @@ func CreateBucketHandler(s3 S3) http.Handler {
 		var bucket minio.BucketInfo
 		err := json.NewDecoder(r.Body).Decode(&bucket)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errDecodingBody))
+			handleHTTPError(w, errors.Wrap(err, "error decoding body JSON"))
 			return
 		}
 
@@ -24,11 +24,11 @@ func CreateBucketHandler(s3 S3) http.Handler {
 			return
 		}
 
-		w.Header().Set(HeaderContentType, ContentTypeJSON)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusCreated)
 		err = json.NewEncoder(w).Encode(bucket)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errEncodingJSON))
+			handleHTTPError(w, errors.Wrap(err, "error encoding JSON"))
 			return
 		}
 	})
