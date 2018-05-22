@@ -11,20 +11,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-// objectWithIcon is a minio object with an added icon.
-type objectWithIcon struct {
-	minio.ObjectInfo
-	Icon string
-}
-
-// bucketPage defines the details page of a bucket.
-type bucketPage struct {
-	BucketName string
-	Objects    []objectWithIcon
-}
-
 // BucketViewHandler shows the details page of a bucket.
 func BucketViewHandler(s3 S3, tmplDir string) http.Handler {
+	type objectWithIcon struct {
+		minio.ObjectInfo
+		Icon string
+	}
+
+	type pageData struct {
+		BucketName string
+		Objects    []objectWithIcon
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 
@@ -40,7 +38,7 @@ func BucketViewHandler(s3 S3, tmplDir string) http.Handler {
 			obj := objectWithIcon{object, icon(object.Key)}
 			objs = append(objs, obj)
 		}
-		page := bucketPage{
+		data := pageData{
 			BucketName: bucketName,
 			Objects:    objs,
 		}
@@ -49,12 +47,12 @@ func BucketViewHandler(s3 S3, tmplDir string) http.Handler {
 		p := filepath.Join(tmplDir, "bucket.html.tmpl")
 		t, err := template.ParseFiles(l, p)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errParsingTemplates))
+			handleHTTPError(w, errors.Wrap(err, "error parsing template files"))
 			return
 		}
-		err = t.ExecuteTemplate(w, "layout", page)
+		err = t.ExecuteTemplate(w, "layout", data)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errExecutingTemplate))
+			handleHTTPError(w, errors.Wrap(err, "error executing template"))
 			return
 		}
 	})
@@ -63,7 +61,6 @@ func BucketViewHandler(s3 S3, tmplDir string) http.Handler {
 // icon returns an icon for a file type.
 func icon(fileName string) string {
 	e := path.Ext(fileName)
-
 	switch e {
 	case ".tgz", ".gz":
 		return "archive"
@@ -72,6 +69,5 @@ func icon(fileName string) string {
 	case ".mp3", ".wav":
 		return "music_note"
 	}
-
 	return "insert_drive_file"
 }

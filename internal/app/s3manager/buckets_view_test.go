@@ -58,7 +58,7 @@ func TestBucketsViewHandler(t *testing.T) {
 				Handler(s3manager.BucketViewHandler(s3, tmplDir))
 
 			req, err := http.NewRequest(http.MethodGet, "/buckets", nil)
-			assert.NoError(err, tcID)
+			assert.NoError(err)
 
 			rr := httptest.NewRecorder()
 			handler := s3manager.BucketsViewHandler(s3, tmplDir)
@@ -66,8 +66,8 @@ func TestBucketsViewHandler(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
 
-			assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
-			assert.Contains(rr.Body.String(), tc.expectedBodyContains, tcID)
+			assert.Equal(tc.expectedStatusCode, resp.StatusCode)
+			assert.Contains(rr.Body.String(), tc.expectedBodyContains)
 		})
 	}
 }

@@ -15,7 +15,7 @@ func CreateObjectHandler(s3 S3) http.Handler {
 		bucketName := mux.Vars(r)["bucketName"]
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, errParsingForm))
+			handleHTTPError(w, errors.Wrap(err, "error parsing multipart form"))
 			return
 		}
 		file, handler, err := r.FormFile("file")
@@ -30,7 +30,7 @@ func CreateObjectHandler(s3 S3) http.Handler {
 			}
 		}()
 
-		_, err = s3.PutObject(bucketName, handler.Filename, file, 1, minio.PutObjectOptions{ContentType: contentTypeOctetStream})
+		_, err = s3.PutObject(bucketName, handler.Filename, file, 1, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error putting object"))
 			return

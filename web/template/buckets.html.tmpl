@@ -83,7 +83,7 @@ function createBucket() {
         url: '/api/buckets',
         data: JSON.stringify(formData),
         dataType: 'json',
-        contentType: 'application/json',
+        contentType: 'application/json; charset=utf-8',
         success: function() { location.reload(); }
     });
 }

@@ -19,15 +19,15 @@ func TestCreateBucketHandler(t *testing.T) {
 		expectedBodyContains string
 	}{
 		"creates a new bucket": {
-			makeBucketFunc: func(bucketName string, location string) error {
+			makeBucketFunc: func(string, string) error {
 				return nil
 			},
-			body:                 "{\"name\":\"myBucket\"}",
+			body:                 `{"name":"myBucket"}`,
 			expectedStatusCode:   http.StatusCreated,
-			expectedBodyContains: "{\"name\":\"myBucket\",\"creationDate\":\"0001-01-01T00:00:00Z\"}\n",
+			expectedBodyContains: `{"name":"myBucket","creationDate":"0001-01-01T00:00:00Z"}`,
 		},
 		"returns error for empty request": {
-			makeBucketFunc: func(bucketName string, location string) error {
+			makeBucketFunc: func(string, string) error {
 				return nil
 			},
 			body:                 "",
@@ -35,7 +35,7 @@ func TestCreateBucketHandler(t *testing.T) {
 			expectedBodyContains: http.StatusText(http.StatusUnprocessableEntity),
 		},
 		"returns error for malformed request": {
-			makeBucketFunc: func(bucketName string, location string) error {
+			makeBucketFunc: func(string, string) error {
 				return nil
 			},
 			body:                 "}",
@@ -43,10 +43,10 @@ func TestCreateBucketHandler(t *testing.T) {
 			expectedBodyContains: http.StatusText(http.StatusUnprocessableEntity),
 		},
 		"returns error if there is an S3 error": {
-			makeBucketFunc: func(bucketName string, location string) error {
+			makeBucketFunc: func(string, string) error {
 				return errors.New("mocked S3 error")
 			},
-			body:                 "{\"name\":\"myBucket\"}",
+			body:                 `{"name":"myBucket"}`,
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},
@@ -61,7 +61,7 @@ func TestCreateBucketHandler(t *testing.T) {
 			}
 
 			req, err := http.NewRequest(http.MethodPost, "/api/buckets", bytes.NewBufferString(tc.body))
-			assert.NoError(err, tcID)
+			assert.NoError(err)
 
 			rr := httptest.NewRecorder()
 			handler := s3manager.CreateBucketHandler(s3)
@@ -69,8 +69,8 @@ func TestCreateBucketHandler(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
 
-			assert.Equal(tc.expectedStatusCode, resp.StatusCode, tcID)
-			assert.Contains(rr.Body.String(), tc.expectedBodyContains, tcID)
+			assert.Equal(tc.expectedStatusCode, resp.StatusCode)
+			assert.Contains(rr.Body.String(), tc.expectedBodyContains)
 		})
 	}
 }

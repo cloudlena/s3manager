@@ -69,12 +69,12 @@ func main() {
 		Handler(s3manager.DeleteBucketHandler(s3))
 	r.
 		Methods(http.MethodPost).
-		Headers(s3manager.HeaderContentType, s3manager.ContentTypeJSON).
+		Headers("Content-Type", "application/json; charset=utf-8").
 		Path("/api/buckets/{bucketName}/objects").
 		Handler(s3manager.CopyObjectHandler(s3))
 	r.
 		Methods(http.MethodPost).
-		HeadersRegexp(s3manager.HeaderContentType, s3manager.ContentTypeMultipartForm).
+		HeadersRegexp("Content-Type", "multipart/form-data").
 		Path("/api/buckets/{bucketName}/objects").
 		Handler(s3manager.CreateObjectHandler(s3))
 	r.
