@@ -4,7 +4,7 @@ all:
 	go build ./cmd/s3manager
 
 lint:
-	gometalinter --vendor ./...
+	golangci-lint run --tests
 
 test:
 	go test -race -cover ./...
