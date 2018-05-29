@@ -16,8 +16,8 @@
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "6529cf7c58879c08d927016dde4477f18a0634cb"
-  version = "v1.36.0"
+  revision = "06f5f3d67269ccec1fe5fe4134ba6e982984f7f5"
+  version = "v1.37.0"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -47,8 +47,8 @@
     "pkg/s3utils",
     "pkg/set"
   ]
-  revision = "c6108c47ba5d86548404ebf9e51c5ca18769fe79"
-  version = "6.0.1"
+  revision = "034ea465b079a920e0720e3e1e0cbf5ccfeb6373"
+  version = "v6.0.2"
 
 [[projects]]
   branch = "master"
@@ -88,16 +88,16 @@
     "blake2b",
     "ssh/terminal"
   ]
-  revision = "a3beeb748656e13e54256fd2cde19e058f41f60f"
+  revision = "ab813273cd59e1333f7ae7bff5d027d4aadf528c"
 
 [[projects]]
-  branch = "release-branch.go1.10"
+  branch = "master"
   name = "golang.org/x/net"
   packages = [
-    "idna",
-    "lex/httplex"
+    "http/httpguts",
+    "idna"
   ]
-  revision = "0ed95abb35c445290478a5348a7b38bb154135fd"
+  revision = "75944861c7512f64725d687546cfbc757626151f"
 
 [[projects]]
   branch = "master"
@@ -133,6 +133,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "945ffc84ccd6e34b10386a5ec3db999a5211510aa4086572711df7c1b3d52842"
+  inputs-digest = "6db25b97d13bf45e956ff0f573b637705d594109858fb3424eeadf7233fdf517"
   solver-name = "gps-cdcl"
   solver-version = 1
