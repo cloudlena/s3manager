@@ -1,7 +1,6 @@
 package s3manager
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/matryer/way"
@@ -24,12 +23,7 @@ func HandleCreateObject(s3 S3) http.HandlerFunc {
 			handleHTTPError(w, errors.Wrap(err, "error getting file from form"))
 			return
 		}
-		defer func() {
-			err = file.Close()
-			if err != nil {
-				log.Fatalln(errors.Wrap(err, "error closing file"))
-			}
-		}()
+		defer file.Close()
 
 		_, err = s3.PutObject(bucketName, handler.Filename, file, 1, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 		if err != nil {

@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	"github.com/matryer/is"
 	minio "github.com/minio/minio-go"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleBucketsView(t *testing.T) {
@@ -43,7 +44,7 @@ func TestHandleBucketsView(t *testing.T) {
 
 	for tcID, tc := range cases {
 		t.Run(tcID, func(t *testing.T) {
-			assert := assert.New(t)
+			is := is.New(t)
 
 			s3 := &S3Mock{
 				ListBucketsFunc: tc.listBucketsFunc,
@@ -52,7 +53,7 @@ func TestHandleBucketsView(t *testing.T) {
 			tmplDir := filepath.Join("..", "..", "..", "web", "template")
 
 			req, err := http.NewRequest(http.MethodGet, "/buckets", nil)
-			assert.NoError(err)
+			is.NoErr(err)
 
 			rr := httptest.NewRecorder()
 			handler := s3manager.HandleBucketsView(s3, tmplDir)
@@ -60,8 +61,8 @@ func TestHandleBucketsView(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
 
-			assert.Equal(tc.expectedStatusCode, resp.StatusCode)
-			assert.Contains(rr.Body.String(), tc.expectedBodyContains)
+			is.Equal(tc.expectedStatusCode, resp.StatusCode)                     // status code
+			is.True(strings.Contains(rr.Body.String(), tc.expectedBodyContains)) // body
 		})
 	}
 }

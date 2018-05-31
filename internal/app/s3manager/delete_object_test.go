@@ -4,10 +4,11 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
-	"github.com/stretchr/testify/assert"
+	"github.com/matryer/is"
 )
 
 func TestHandleDeleteObject(t *testing.T) {
@@ -34,22 +35,22 @@ func TestHandleDeleteObject(t *testing.T) {
 
 	for tcID, tc := range cases {
 		t.Run(tcID, func(t *testing.T) {
-			assert := assert.New(t)
+			is := is.New(t)
 
 			s3 := &S3Mock{
 				RemoveObjectFunc: tc.removeObjectFunc,
 			}
 
 			req, err := http.NewRequest(http.MethodDelete, "/api/buckets/bucketName/objects/objectName", nil)
-			assert.NoError(err)
+			is.NoErr(err)
 
 			rr := httptest.NewRecorder()
 			handler := s3manager.HandleDeleteObject(s3)
 
 			handler.ServeHTTP(rr, req)
 
-			assert.Equal(tc.expectedStatusCode, rr.Code)
-			assert.Contains(rr.Body.String(), tc.expectedBodyContains)
+			is.Equal(tc.expectedStatusCode, rr.Code)                             // status code
+			is.True(strings.Contains(rr.Body.String(), tc.expectedBodyContains)) // body
 		})
 	}
 }

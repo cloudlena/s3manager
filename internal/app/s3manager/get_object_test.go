@@ -6,12 +6,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	"github.com/matryer/is"
 	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleGetObject(t *testing.T) {
@@ -35,7 +36,7 @@ func TestHandleGetObject(t *testing.T) {
 
 	for tcID, tc := range cases {
 		t.Run(tcID, func(t *testing.T) {
-			assert := assert.New(t)
+			is := is.New(t)
 
 			s3 := &S3Mock{
 				GetObjectFunc: tc.getObjectFunc,
@@ -49,19 +50,14 @@ func TestHandleGetObject(t *testing.T) {
 
 			url := fmt.Sprintf("%s/buckets/%s/objects/%s", ts.URL, tc.bucketName, tc.objectName)
 			resp, err := http.Get(url)
-			assert.NoError(err)
-			defer func() {
-				err = resp.Body.Close()
-				if err != nil {
-					t.FailNow()
-				}
-			}()
+			is.NoErr(err)
+			defer resp.Body.Close()
 
 			body, err := ioutil.ReadAll(resp.Body)
-			assert.NoError(err)
+			is.NoErr(err)
 
-			assert.Equal(tc.expectedStatusCode, resp.StatusCode)
-			assert.Contains(string(body), tc.expectedBodyContains)
+			is.Equal(tc.expectedStatusCode, resp.StatusCode)                 // status code
+			is.True(strings.Contains(string(body), tc.expectedBodyContains)) // body
 		})
 	}
 }

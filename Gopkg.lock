@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/davecgh/go-spew"
-  packages = ["spew"]
-  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
-  version = "v1.1.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
@@ -24,6 +18,12 @@
   name = "github.com/mastertinner/adapters"
   packages = ["logging"]
   revision = "368acae73d1569f0495b00991aaa85ec27d6ee8e"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/matryer/is"
+  packages = ["."]
+  revision = "be846f6cea707577c0d3a1e055d6cb719b68d533"
 
 [[projects]]
   branch = "master"
@@ -57,22 +57,10 @@
   version = "v0.8.0"
 
 [[projects]]
-  name = "github.com/pmezard/go-difflib"
-  packages = ["difflib"]
-  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
-  version = "v1.0.0"
-
-[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
   version = "v1.0.5"
-
-[[projects]]
-  name = "github.com/stretchr/testify"
-  packages = ["assert"]
-  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
-  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
@@ -82,7 +70,7 @@
     "blake2b",
     "ssh/terminal"
   ]
-  revision = "ab813273cd59e1333f7ae7bff5d027d4aadf528c"
+  revision = "5ba7f63082460102a45837dbd1827e10f9479ac0"
 
 [[projects]]
   branch = "master"
@@ -127,6 +115,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9f288d84be4931be1d2e9529f7e3350bbfaa9f6cb0968db278c6efddb54e9f64"
+  inputs-digest = "23fa3d7da0ea4b2f0e7ce3ea8744e41e550b3d7be5f0f0783e6ac0bb5b821508"
   solver-name = "gps-cdcl"
   solver-version = 1
