@@ -8,13 +8,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gorilla/mux"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetObjectHandler(t *testing.T) {
+func TestHandleGetObject(t *testing.T) {
 	cases := map[string]struct {
 		getObjectFunc        func(string, string, minio.GetObjectOptions) (*minio.Object, error)
 		bucketName           string
@@ -41,11 +41,8 @@ func TestGetObjectHandler(t *testing.T) {
 				GetObjectFunc: tc.getObjectFunc,
 			}
 
-			r := mux.NewRouter()
-			r.
-				Methods(http.MethodGet).
-				Path("/buckets/{bucketName}/objects/{objectName}").
-				Handler(s3manager.GetObjectHandler(s3))
+			r := way.NewRouter()
+			r.Handle(http.MethodGet, "/buckets/:bucketName/objects/:objectName", s3manager.HandleGetObject(s3))
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

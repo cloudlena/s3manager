@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CreateBucketHandler creates a new bucket.
-func CreateBucketHandler(s3 S3) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// HandleCreateBucket creates a new bucket.
+func HandleCreateBucket(s3 S3) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		var bucket minio.BucketInfo
 		err := json.NewDecoder(r.Body).Decode(&bucket)
 		if err != nil {
@@ -31,5 +31,5 @@ func CreateBucketHandler(s3 S3) http.Handler {
 			handleHTTPError(w, errors.Wrap(err, "error encoding JSON"))
 			return
 		}
-	})
+	}
 }

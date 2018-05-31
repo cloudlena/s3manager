@@ -26,12 +26,12 @@
 
 
 [[constraint]]
-  name = "github.com/gorilla/mux"
-  version = "1.6.2"
+  branch = "master"
+  name = "github.com/mastertinner/adapters"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/mastertinner/adapters"
+  name = "github.com/matryer/way"
 
 [[constraint]]
   name = "github.com/minio/minio-go"

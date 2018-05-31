@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gorilla/mux"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBucketViewHandler(t *testing.T) {
+func TestHandleBucketView(t *testing.T) {
 	cases := map[string]struct {
 		listObjectsV2Func    func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo
 		bucketName           string
@@ -121,11 +121,8 @@ func TestBucketViewHandler(t *testing.T) {
 			}
 
 			tmplDir := filepath.Join("..", "..", "..", "web", "template")
-			r := mux.NewRouter()
-			r.
-				Methods(http.MethodGet).
-				Path("/buckets/{bucketName}").
-				Handler(s3manager.BucketViewHandler(s3, tmplDir))
+			r := way.NewRouter()
+			r.Handle(http.MethodGet, "/buckets/:bucketName", s3manager.HandleBucketView(s3, tmplDir))
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

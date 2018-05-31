@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// BucketsViewHandler renders all buckets on an HTML page.
-func BucketsViewHandler(s3 S3, tmplDir string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// HandleBucketsView renders all buckets on an HTML page.
+func HandleBucketsView(s3 S3, tmplDir string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		buckets, err := s3.ListBuckets()
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error listing buckets"))
@@ -29,5 +29,5 @@ func BucketsViewHandler(s3 S3, tmplDir string) http.Handler {
 			handleHTTPError(w, errors.Wrap(err, "error executing template"))
 			return
 		}
-	})
+	}
 }

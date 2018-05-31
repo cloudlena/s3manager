@@ -4,15 +4,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
 )
 
-// CreateObjectHandler uploads a new object.
-func CreateObjectHandler(s3 S3) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bucketName := mux.Vars(r)["bucketName"]
+// HandleCreateObject uploads a new object.
+func HandleCreateObject(s3 S3) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bucketName := way.Param(r.Context(), "bucketName")
+
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error parsing multipart form"))
@@ -37,5 +38,5 @@ func CreateObjectHandler(s3 S3) http.Handler {
 		}
 
 		w.WriteHeader(http.StatusCreated)
-	})
+	}
 }

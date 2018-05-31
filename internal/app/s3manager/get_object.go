@@ -5,17 +5,16 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
 )
 
-// GetObjectHandler downloads an object to the client.
-func GetObjectHandler(s3 S3) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		bucketName := vars["bucketName"]
-		objectName := vars["objectName"]
+// HandleGetObject downloads an object to the client.
+func HandleGetObject(s3 S3) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bucketName := way.Param(r.Context(), "bucketName")
+		objectName := way.Param(r.Context(), "objectName")
 
 		object, err := s3.GetObject(bucketName, objectName, minio.GetObjectOptions{})
 		if err != nil {
@@ -30,5 +29,5 @@ func GetObjectHandler(s3 S3) http.Handler {
 			handleHTTPError(w, errors.Wrap(err, "error copying object to response writer"))
 			return
 		}
-	})
+	}
 }
