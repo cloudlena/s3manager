@@ -6,13 +6,13 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/gorilla/mux"
+	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
 )
 
-// BucketViewHandler shows the details page of a bucket.
-func BucketViewHandler(s3 S3, tmplDir string) http.Handler {
+// HandleBucketView shows the details page of a bucket.
+func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
 	type objectWithIcon struct {
 		minio.ObjectInfo
 		Icon string
@@ -22,9 +22,8 @@ func BucketViewHandler(s3 S3, tmplDir string) http.Handler {
 		BucketName string
 		Objects    []objectWithIcon
 	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bucketName := mux.Vars(r)["bucketName"]
+	return func(w http.ResponseWriter, r *http.Request) {
+		bucketName := way.Param(r.Context(), "bucketName")
 
 		var objs []objectWithIcon
 		doneCh := make(chan struct{})
@@ -55,7 +54,7 @@ func BucketViewHandler(s3 S3, tmplDir string) http.Handler {
 			handleHTTPError(w, errors.Wrap(err, "error executing template"))
 			return
 		}
-	})
+	}
 }
 
 // icon returns an icon for a file type.

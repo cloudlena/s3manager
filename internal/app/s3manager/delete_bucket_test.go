@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDeleteBucketHandler(t *testing.T) {
+func TestHandleDeleteBucket(t *testing.T) {
 	cases := map[string]struct {
 		removeBucketFunc     func(string) error
 		expectedStatusCode   int
@@ -44,7 +44,7 @@ func TestDeleteBucketHandler(t *testing.T) {
 			assert.NoError(err)
 
 			rr := httptest.NewRecorder()
-			handler := s3manager.DeleteBucketHandler(s3)
+			handler := s3manager.HandleDeleteBucket(s3)
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()

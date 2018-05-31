@@ -20,22 +20,16 @@
   version = "v1.37.0"
 
 [[projects]]
-  name = "github.com/gorilla/context"
-  packages = ["."]
-  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
-  version = "v1.1.1"
-
-[[projects]]
-  name = "github.com/gorilla/mux"
-  packages = ["."]
-  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
-  version = "v1.6.2"
-
-[[projects]]
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = ["logging"]
   revision = "368acae73d1569f0495b00991aaa85ec27d6ee8e"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/matryer/way"
+  packages = ["."]
+  revision = "9632d0c407b008073d19d0c4da1e0fc3e9477508"
 
 [[projects]]
   name = "github.com/minio/minio-go"
@@ -97,7 +91,7 @@
     "http/httpguts",
     "idna"
   ]
-  revision = "75944861c7512f64725d687546cfbc757626151f"
+  revision = "1e491301e022f8f977054da4c2d852decd59571f"
 
 [[projects]]
   branch = "master"
@@ -133,6 +127,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6db25b97d13bf45e956ff0f573b637705d594109858fb3424eeadf7233fdf517"
+  inputs-digest = "9f288d84be4931be1d2e9529f7e3350bbfaa9f6cb0968db278c6efddb54e9f64"
   solver-name = "gps-cdcl"
   solver-version = 1

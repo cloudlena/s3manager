@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateBucketHandler(t *testing.T) {
+func TestHandleCreateBucket(t *testing.T) {
 	cases := map[string]struct {
 		makeBucketFunc       func(string, string) error
 		body                 string
@@ -64,7 +64,7 @@ func TestCreateBucketHandler(t *testing.T) {
 			assert.NoError(err)
 
 			rr := httptest.NewRecorder()
-			handler := s3manager.CreateBucketHandler(s3)
+			handler := s3manager.HandleCreateBucket(s3)
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()

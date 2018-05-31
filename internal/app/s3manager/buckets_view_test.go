@@ -7,13 +7,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gorilla/mux"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBucketsViewHandler(t *testing.T) {
+func TestHandleBucketsView(t *testing.T) {
 	cases := map[string]struct {
 		listBucketsFunc      func() ([]minio.BucketInfo, error)
 		expectedStatusCode   int
@@ -51,17 +50,12 @@ func TestBucketsViewHandler(t *testing.T) {
 			}
 
 			tmplDir := filepath.Join("..", "..", "..", "web", "template")
-			r := mux.NewRouter()
-			r.
-				Methods(http.MethodGet).
-				Path("/buckets/{bucketName}").
-				Handler(s3manager.BucketViewHandler(s3, tmplDir))
 
 			req, err := http.NewRequest(http.MethodGet, "/buckets", nil)
 			assert.NoError(err)
 
 			rr := httptest.NewRecorder()
-			handler := s3manager.BucketsViewHandler(s3, tmplDir)
+			handler := s3manager.HandleBucketsView(s3, tmplDir)
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()

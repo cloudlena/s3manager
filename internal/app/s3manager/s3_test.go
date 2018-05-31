@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	lockS3MockCopyObject    sync.RWMutex
 	lockS3MockGetObject     sync.RWMutex
 	lockS3MockListBuckets   sync.RWMutex
 	lockS3MockListObjectsV2 sync.RWMutex
@@ -26,9 +25,6 @@ var (
 //
 //         // make and configure a mocked S3
 //         mockedS3 := &S3Mock{
-//             CopyObjectFunc: func(in1 minio.DestinationInfo, in2 minio.SourceInfo) error {
-// 	               panic("TODO: mock out the CopyObject method")
-//             },
 //             GetObjectFunc: func(in1 string, in2 string, in3 minio.GetObjectOptions) (*minio.Object, error) {
 // 	               panic("TODO: mock out the GetObject method")
 //             },
@@ -57,9 +53,6 @@ var (
 //
 //     }
 type S3Mock struct {
-	// CopyObjectFunc mocks the CopyObject method.
-	CopyObjectFunc func(in1 minio.DestinationInfo, in2 minio.SourceInfo) error
-
 	// GetObjectFunc mocks the GetObject method.
 	GetObjectFunc func(in1 string, in2 string, in3 minio.GetObjectOptions) (*minio.Object, error)
 
@@ -83,13 +76,6 @@ type S3Mock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// CopyObject holds details about calls to the CopyObject method.
-		CopyObject []struct {
-			// In1 is the in1 argument value.
-			In1 minio.DestinationInfo
-			// In2 is the in2 argument value.
-			In2 minio.SourceInfo
-		}
 		// GetObject holds details about calls to the GetObject method.
 		GetObject []struct {
 			// In1 is the in1 argument value.
@@ -146,41 +132,6 @@ type S3Mock struct {
 			In2 string
 		}
 	}
-}
-
-// CopyObject calls CopyObjectFunc.
-func (mock *S3Mock) CopyObject(in1 minio.DestinationInfo, in2 minio.SourceInfo) error {
-	if mock.CopyObjectFunc == nil {
-		panic("moq: S3Mock.CopyObjectFunc is nil but S3.CopyObject was just called")
-	}
-	callInfo := struct {
-		In1 minio.DestinationInfo
-		In2 minio.SourceInfo
-	}{
-		In1: in1,
-		In2: in2,
-	}
-	lockS3MockCopyObject.Lock()
-	mock.calls.CopyObject = append(mock.calls.CopyObject, callInfo)
-	lockS3MockCopyObject.Unlock()
-	return mock.CopyObjectFunc(in1, in2)
-}
-
-// CopyObjectCalls gets all the calls that were made to CopyObject.
-// Check the length with:
-//     len(mockedS3.CopyObjectCalls())
-func (mock *S3Mock) CopyObjectCalls() []struct {
-	In1 minio.DestinationInfo
-	In2 minio.SourceInfo
-} {
-	var calls []struct {
-		In1 minio.DestinationInfo
-		In2 minio.SourceInfo
-	}
-	lockS3MockCopyObject.RLock()
-	calls = mock.calls.CopyObject
-	lockS3MockCopyObject.RUnlock()
-	return calls
 }
 
 // GetObject calls GetObjectFunc.

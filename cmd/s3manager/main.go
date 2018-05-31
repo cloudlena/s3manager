@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gorilla/mux"
 	"github.com/mastertinner/adapters/logging"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
 )
@@ -29,6 +29,8 @@ func main() {
 		os.Exit(2)
 	}
 
+	tmplDir := filepath.Join("web", "template")
+
 	// Set up S3 client
 	var s3 *minio.Client
 	var err error
@@ -41,50 +43,17 @@ func main() {
 		log.Fatalln(errors.Wrap(err, "error creating s3 client"))
 	}
 
-	tmplDir := filepath.Join("web", "template")
-
 	// Set up router
-	r := mux.NewRouter().StrictSlash(true)
-	r.Use(logging.Handler(os.Stdout))
+	r := way.NewRouter()
+	r.Handle(http.MethodGet, "/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect))
+	r.Handle(http.MethodGet, "/buckets", s3manager.HandleBucketsView(s3, tmplDir))
+	r.Handle(http.MethodGet, "/buckets/:bucketName", s3manager.HandleBucketView(s3, tmplDir))
+	r.Handle(http.MethodPost, "/api/buckets", s3manager.HandleCreateBucket(s3))
+	r.Handle(http.MethodDelete, "/api/buckets/:bucketName", s3manager.HandleDeleteBucket(s3))
+	r.Handle(http.MethodPost, "/api/buckets/:bucketName/objects", s3manager.HandleCreateObject(s3))
+	r.Handle(http.MethodGet, "/api/buckets/:bucketName/objects/:objectName", s3manager.HandleGetObject(s3))
+	r.Handle(http.MethodDelete, "/api/buckets/:bucketName/objects/:objectName", s3manager.HandleDeleteObject(s3))
 
-	r.
-		Methods(http.MethodGet).
-		Path("/").
-		Handler(http.RedirectHandler("/buckets", http.StatusPermanentRedirect))
-	r.
-		Methods(http.MethodGet).
-		Path("/buckets").
-		Handler(s3manager.BucketsViewHandler(s3, tmplDir))
-	r.
-		Methods(http.MethodGet).
-		Path("/buckets/{bucketName}").
-		Handler(s3manager.BucketViewHandler(s3, tmplDir))
-	r.
-		Methods(http.MethodPost).
-		Path("/api/buckets").
-		Handler(s3manager.CreateBucketHandler(s3))
-	r.
-		Methods(http.MethodDelete).
-		Path("/api/buckets/{bucketName}").
-		Handler(s3manager.DeleteBucketHandler(s3))
-	r.
-		Methods(http.MethodPost).
-		Headers("Content-Type", "application/json; charset=utf-8").
-		Path("/api/buckets/{bucketName}/objects").
-		Handler(s3manager.CopyObjectHandler(s3))
-	r.
-		Methods(http.MethodPost).
-		HeadersRegexp("Content-Type", "multipart/form-data").
-		Path("/api/buckets/{bucketName}/objects").
-		Handler(s3manager.CreateObjectHandler(s3))
-	r.
-		Methods(http.MethodGet).
-		Path("/api/buckets/{bucketName}/objects/{objectName}").
-		Handler(s3manager.GetObjectHandler(s3))
-	r.
-		Methods(http.MethodDelete).
-		Path("/api/buckets/{bucketName}/objects/{objectName}").
-		Handler(s3manager.DeleteObjectHandler(s3))
-
-	log.Fatal(http.ListenAndServe(":"+*port, r))
+	lr := logging.Handler(os.Stdout)(r)
+	log.Fatal(http.ListenAndServe(":"+*port, lr))
 }

@@ -3,16 +3,15 @@ package s3manager
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/matryer/way"
 	"github.com/pkg/errors"
 )
 
-// DeleteObjectHandler deletes an object.
-func DeleteObjectHandler(s3 S3) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		bucketName := vars["bucketName"]
-		objectName := vars["objectName"]
+// HandleDeleteObject deletes an object.
+func HandleDeleteObject(s3 S3) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bucketName := way.Param(r.Context(), "bucketName")
+		objectName := way.Param(r.Context(), "objectName")
 
 		err := s3.RemoveObject(bucketName, objectName)
 		if err != nil {
@@ -21,5 +20,5 @@ func DeleteObjectHandler(s3 S3) http.Handler {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
-	})
+	}
 }
