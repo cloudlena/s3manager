@@ -30,8 +30,8 @@
   name = "github.com/mastertinner/adapters"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/matryer/is"
+  version = "1.0.0"
 
 [[constraint]]
   branch = "master"
