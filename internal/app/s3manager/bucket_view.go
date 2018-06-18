@@ -14,7 +14,7 @@ import (
 // HandleBucketView shows the details page of a bucket.
 func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
 	type objectWithIcon struct {
-		minio.ObjectInfo
+		Info minio.ObjectInfo
 		Icon string
 	}
 
@@ -34,7 +34,7 @@ func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
 				handleHTTPError(w, errors.Wrap(object.Err, "error listing objects"))
 				return
 			}
-			obj := objectWithIcon{object, icon(object.Key)}
+			obj := objectWithIcon{Info: object, Icon: icon(object.Key)}
 			objs = append(objs, obj)
 		}
 		data := pageData{
