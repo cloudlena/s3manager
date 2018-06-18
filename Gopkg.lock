@@ -17,13 +17,13 @@
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = ["logging"]
-  revision = "368acae73d1569f0495b00991aaa85ec27d6ee8e"
+  revision = "9704a6fb93c903ec6e38a8420cc82d3a95668966"
 
 [[projects]]
   name = "github.com/matryer/is"
   packages = ["."]
-  revision = "9c9f59466947e14647c98703d408d5d6d985648d"
-  version = "v1.0.0"
+  revision = "5f0030ca4decdf2e702be47575d88eabf610593e"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -70,7 +70,7 @@
     "blake2b",
     "ssh/terminal"
   ]
-  revision = "027cca12c2d63e3d62b670d901e8a2c95854feec"
+  revision = "7f39a6fea4fe9364fb61e1def6a268a51b4f3a06"
 
 [[projects]]
   branch = "master"
@@ -89,7 +89,7 @@
     "unix",
     "windows"
   ]
-  revision = "6c888cc515d3ed83fc103cf1d84468aad274b0a7"
+  revision = "ad87a3a340fa7f3bed189293fbfa7a9b7e021ae1"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -115,6 +115,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "23bebd60feeb7a8199093dfad639c43cea63091672e649b80203796f7117997c"
+  inputs-digest = "f26310f695dd83254e86dc025480d98772b0a1055f11a1b2728bead0e869c8f0"
   solver-name = "gps-cdcl"
   solver-version = 1
