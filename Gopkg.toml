@@ -39,7 +39,7 @@
 
 [[constraint]]
   name = "github.com/minio/minio-go"
-  version = "6.0.2"
+  version = "6.0.4"
 
 [[constraint]]
   name = "github.com/pkg/errors"
