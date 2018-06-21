@@ -41,8 +41,8 @@
     "pkg/s3utils",
     "pkg/set"
   ]
-  revision = "034ea465b079a920e0720e3e1e0cbf5ccfeb6373"
-  version = "v6.0.2"
+  revision = "3adf3e30ef96aea8469c7aff8ef19ed38901817b"
+  version = "v6.0.4"
 
 [[projects]]
   branch = "master"
@@ -70,7 +70,7 @@
     "blake2b",
     "ssh/terminal"
   ]
-  revision = "7f39a6fea4fe9364fb61e1def6a268a51b4f3a06"
+  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
 [[projects]]
   branch = "master"
@@ -79,7 +79,7 @@
     "http/httpguts",
     "idna"
   ]
-  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
+  revision = "afe8f62b1d6bbd81f31868121a50b06d8188e1f9"
 
 [[projects]]
   branch = "master"
@@ -89,7 +89,7 @@
     "unix",
     "windows"
   ]
-  revision = "ad87a3a340fa7f3bed189293fbfa7a9b7e021ae1"
+  revision = "63fc586f45fe72d95d5240a5d5eb95e6503907d3"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -115,6 +115,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f26310f695dd83254e86dc025480d98772b0a1055f11a1b2728bead0e869c8f0"
+  inputs-digest = "f3d6f693907c972aed6e0bca37e46ec1714fb631b4de4cf5dab7ba20ddf06e19"
   solver-name = "gps-cdcl"
   solver-version = 1
