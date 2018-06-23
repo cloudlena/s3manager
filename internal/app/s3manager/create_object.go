@@ -25,7 +25,8 @@ func HandleCreateObject(s3 S3) http.HandlerFunc {
 		}
 		defer file.Close()
 
-		_, err = s3.PutObject(bucketName, handler.Filename, file, 1, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		opts := minio.PutObjectOptions{ContentType: "application/octet-stream"}
+		_, err = s3.PutObject(bucketName, handler.Filename, file, 1, opts)
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error putting object"))
 			return

@@ -22,6 +22,7 @@ func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
 		BucketName string
 		Objects    []objectWithIcon
 	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := way.Param(r.Context(), "bucketName")
 

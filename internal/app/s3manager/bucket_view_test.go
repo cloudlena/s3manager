@@ -89,7 +89,7 @@ func TestHandleBucketView(t *testing.T) {
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
-					objCh <- minio.ObjectInfo{Err: s3manager.ErrBucketDoesNotExist}
+					objCh <- minio.ObjectInfo{Err: errors.New("The specified bucket does not exist")}
 					close(objCh)
 				}()
 				return objCh
