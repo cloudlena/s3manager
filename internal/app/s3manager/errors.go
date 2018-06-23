@@ -9,27 +9,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Errors that may be returned from an S3 client.
-var (
-	ErrBucketDoesNotExist = errors.New("The specified bucket does not exist.") // nolint: golint
-	ErrKeyDoesNotExist    = errors.New("The specified key does not exist.")    // nolint: golint
+// Error codes that may be returned from an S3 client.
+const (
+	ErrBucketDoesNotExist = "The specified bucket does not exist"
+	ErrKeyDoesNotExist    = "The specified key does not exist"
 )
 
 // handleHTTPError handles HTTP errors.
 func handleHTTPError(w http.ResponseWriter, err error) {
-	var code int
+	cause := errors.Cause(err)
+	code := http.StatusInternalServerError
 
-	switch err := errors.Cause(err).(type) {
-	case *json.SyntaxError:
+	_, ok := cause.(*json.SyntaxError)
+	if ok {
 		code = http.StatusUnprocessableEntity
-	default:
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			code = http.StatusUnprocessableEntity
-		} else if err == ErrBucketDoesNotExist || err == ErrKeyDoesNotExist {
-			code = http.StatusNotFound
-		} else {
-			code = http.StatusInternalServerError
-		}
+	}
+	switch {
+	case cause == io.EOF || cause == io.ErrUnexpectedEOF:
+		code = http.StatusUnprocessableEntity
+	case cause.Error() == ErrBucketDoesNotExist || cause.Error() == ErrKeyDoesNotExist:
+		code = http.StatusNotFound
 	}
 
 	http.Error(w, http.StatusText(code), code)

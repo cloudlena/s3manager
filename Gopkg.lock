@@ -5,19 +5,19 @@
   branch = "master"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
-  revision = "02af3965c54e8cacf948b97fef38925c4120652c"
+  revision = "9f541cc9db5d55bce703bd99987c9d5cb8eea45e"
 
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "06f5f3d67269ccec1fe5fe4134ba6e982984f7f5"
-  version = "v1.37.0"
+  revision = "358ee7663966325963d4e8b2e1fbd570c5195153"
+  version = "v1.38.1"
 
 [[projects]]
   branch = "master"
   name = "github.com/mastertinner/adapters"
   packages = ["logging"]
-  revision = "9704a6fb93c903ec6e38a8420cc82d3a95668966"
+  revision = "13d009731b3accb5b099171fb329a6d6b4e82a87"
 
 [[projects]]
   name = "github.com/matryer/is"
@@ -41,8 +41,8 @@
     "pkg/s3utils",
     "pkg/set"
   ]
-  revision = "3adf3e30ef96aea8469c7aff8ef19ed38901817b"
-  version = "v6.0.4"
+  revision = "70799fe8dae6ecfb6c7d7e9e048fce27f23a1992"
+  version = "v6.0.5"
 
 [[projects]]
   branch = "master"
@@ -59,8 +59,8 @@
 [[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
-  version = "v1.0.5"
+  revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
+  version = "v1.0.6"
 
 [[projects]]
   branch = "master"
@@ -70,7 +70,7 @@
     "blake2b",
     "ssh/terminal"
   ]
-  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
+  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
 
 [[projects]]
   branch = "master"
@@ -79,7 +79,7 @@
     "http/httpguts",
     "idna"
   ]
-  revision = "afe8f62b1d6bbd81f31868121a50b06d8188e1f9"
+  revision = "a680a1efc54dd51c040b3b5ce4939ea3cf2ea0d1"
 
 [[projects]]
   branch = "master"
@@ -89,7 +89,7 @@
     "unix",
     "windows"
   ]
-  revision = "63fc586f45fe72d95d5240a5d5eb95e6503907d3"
+  revision = "ac767d655b305d4e9612f5f6e33120b9176c4ad4"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -115,6 +115,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f3d6f693907c972aed6e0bca37e46ec1714fb631b4de4cf5dab7ba20ddf06e19"
+  inputs-digest = "36142ff417913b235566aeb04f404c879ab02b36fbeffc45235cc058ee223141"
   solver-name = "gps-cdcl"
   solver-version = 1
