@@ -3,35 +3,46 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:6f9339c912bbdda81302633ad7e99a28dfa5a639c864061f1929510a9a64aa74"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
+  pruneopts = "UT"
   revision = "9f541cc9db5d55bce703bd99987c9d5cb8eea45e"
 
 [[projects]]
+  digest = "1:fe8a03a8222d5b913f256972933d26d24ad7c8286692a42943bc01633cc8fce3"
   name = "github.com/go-ini/ini"
   packages = ["."]
+  pruneopts = "UT"
   revision = "358ee7663966325963d4e8b2e1fbd570c5195153"
   version = "v1.38.1"
 
 [[projects]]
   branch = "master"
+  digest = "1:338a532cafdd3440c03ee560c9318920118685b5626c1c9d5121d69578927362"
   name = "github.com/mastertinner/adapters"
   packages = ["logging"]
+  pruneopts = "UT"
   revision = "13d009731b3accb5b099171fb329a6d6b4e82a87"
 
 [[projects]]
+  digest = "1:67105594fba7ad3f5abea71688338e6c7c48f8dc7e3b5a5b467dca94a24dad3e"
   name = "github.com/matryer/is"
   packages = ["."]
+  pruneopts = "UT"
   revision = "5f0030ca4decdf2e702be47575d88eabf610593e"
   version = "v1.1.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:c86f7ade80bbf53dfd95d388a1f24f562613775af71a8b75daad4f2968b144e3"
   name = "github.com/matryer/way"
   packages = ["."]
+  pruneopts = "UT"
   revision = "9632d0c407b008073d19d0c4da1e0fc3e9477508"
 
 [[projects]]
+  digest = "1:95c73c666919be2843b955eafc83f58c136312b74f79c703152f4c4a95fd64dc"
   name = "github.com/minio/minio-go"
   packages = [
     ".",
@@ -39,59 +50,73 @@
     "pkg/encrypt",
     "pkg/s3signer",
     "pkg/s3utils",
-    "pkg/set"
+    "pkg/set",
   ]
+  pruneopts = "UT"
   revision = "70799fe8dae6ecfb6c7d7e9e048fce27f23a1992"
   version = "v6.0.5"
 
 [[projects]]
   branch = "master"
+  digest = "1:8eb17c2ec4df79193ae65b621cd1c0c4697db3bc317fe6afdc76d7f2746abd05"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
+  pruneopts = "UT"
   revision = "3864e76763d94a6df2f9960b16a20a33da9f9a66"
 
 [[projects]]
+  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
+  pruneopts = "UT"
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:d867dfa6751c8d7a435821ad3b736310c2ed68945d05b50fb9d23aee0540c8cc"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
+  pruneopts = "UT"
   revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
   version = "v1.0.6"
 
 [[projects]]
   branch = "master"
+  digest = "1:57fc8065a25e45bda6925e55b69a8ea2eb2e449d0bb69643346e70afd2f7d2ed"
   name = "golang.org/x/crypto"
   packages = [
     "argon2",
     "blake2b",
-    "ssh/terminal"
+    "ssh/terminal",
   ]
+  pruneopts = "UT"
   revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
 
 [[projects]]
   branch = "master"
+  digest = "1:d85c27d6ba6e4025225eed536f3ff7c5455d0857a0585c80d7510f7eee6fc68e"
   name = "golang.org/x/net"
   packages = [
     "http/httpguts",
-    "idna"
+    "idna",
   ]
-  revision = "a680a1efc54dd51c040b3b5ce4939ea3cf2ea0d1"
+  pruneopts = "UT"
+  revision = "3673e40ba22529d22c3fd7c93e97b0ce50fa7bdd"
 
 [[projects]]
   branch = "master"
+  digest = "1:a220a85c72a6cb7339c412cb2b117019a7fd94007cdfffb3b5b1d058227a2bf8"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
     "unix",
-    "windows"
+    "windows",
   ]
-  revision = "ac767d655b305d4e9612f5f6e33120b9176c4ad4"
+  pruneopts = "UT"
+  revision = "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e"
 
 [[projects]]
+  digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -107,14 +132,21 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable"
+    "unicode/rangetable",
   ]
+  pruneopts = "UT"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "36142ff417913b235566aeb04f404c879ab02b36fbeffc45235cc058ee223141"
+  input-imports = [
+    "github.com/mastertinner/adapters/logging",
+    "github.com/matryer/is",
+    "github.com/matryer/way",
+    "github.com/minio/minio-go",
+    "github.com/pkg/errors",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
