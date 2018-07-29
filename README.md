@@ -8,8 +8,8 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 
 ## Install Dependencies
 
-1.  Install [Dep](https://github.com/golang/dep)
-1.  Run `dep ensure`
+1.  Install [vgo](https://github.com/golang/vgo)
+1.  Run `vgo mod -vendor`
 
 ## Build and Run Locally
 

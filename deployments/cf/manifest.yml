@@ -1,9 +1,8 @@
----
 applications:
-- name: s3-manager
-  memory: 64M
-  buildpack: https://github.com/cloudfoundry/binary-buildpack.git
-  command: ./deployments/cf/entrypoint-cf.sh
+  - name: s3-manager
+    memory: 64M
+    buildpack: https://github.com/cloudfoundry/binary-buildpack.git
+    command: ./deployments/cf/entrypoint-cf.sh
 
-  services:
-  - my-storage
+    services:
+      - my-storage

@@ -13,7 +13,7 @@ require (
 	github.com/smartystreets/assertions v0.0.0-20180725160413-e900ae048470 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	golang.org/x/crypto v0.0.0-20180723164146-c126467f60eb // indirect
-	golang.org/x/net v0.0.0-20180724234803-3673e40ba225 // indirect
+	golang.org/x/net v0.0.0-20180731172858-49c15d80dfbc // indirect
 	golang.org/x/sys v0.0.0-20180727230415-bd9dbc187b6e // indirect
 	golang.org/x/text v0.3.0 // indirect
 	gopkg.in/ini.v1 v1.38.1 // indirect

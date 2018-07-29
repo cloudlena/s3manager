@@ -4,11 +4,11 @@ go:
   - stable
 
 before_install:
-  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - go get -u golang.org/x/vgo
   - go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 install:
-  - dep ensure
+  - vgo mod -vendor
 
 script:
   - make lint
