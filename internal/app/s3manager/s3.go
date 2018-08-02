@@ -10,11 +10,11 @@ import (
 
 // S3 is a client to interact with S3 storage.
 type S3 interface {
-	GetObject(string, string, minio.GetObjectOptions) (*minio.Object, error)
+	GetObject(bucketName, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
 	ListBuckets() ([]minio.BucketInfo, error)
-	ListObjectsV2(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo
-	MakeBucket(string, string) error
-	PutObject(string, string, io.Reader, int64, minio.PutObjectOptions) (int64, error)
-	RemoveBucket(string) error
-	RemoveObject(string, string) error
+	ListObjectsV2(bucketName, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo
+	MakeBucket(bucketName, location string) error
+	PutObject(bucketName, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (int64, error)
+	RemoveBucket(bucketName string) error
+	RemoveObject(bucketName, objectName string) error
 }
