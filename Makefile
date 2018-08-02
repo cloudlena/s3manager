@@ -4,7 +4,7 @@ all:
 	go build ./cmd/s3manager
 
 lint:
-	golangci-lint run --enable-all
+	golangci-lint run --enable-all --disable lll
 
 test:
 	go test -race -cover ./...
