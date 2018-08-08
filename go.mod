@@ -8,8 +8,8 @@ require (
 	github.com/minio/minio-go v6.0.5+incompatible
 	github.com/mitchellh/go-homedir v0.0.0-20180801233206-58046073cbff // indirect
 	github.com/pkg/errors v0.8.0
-	golang.org/x/crypto v0.0.0-20180807104621-f027049dab0a // indirect
-	golang.org/x/net v0.0.0-20180808004115-f9ce57c11b24 // indirect
-	golang.org/x/sys v0.0.0-20180808154034-904bdc257025 // indirect
+	golang.org/x/crypto v0.0.0-20180808211826-de0752318171 // indirect
+	golang.org/x/net v0.0.0-20180811021610-c39426892332 // indirect
+	golang.org/x/sys v0.0.0-20180810173357-98c5dad5d1a0 // indirect
 	golang.org/x/text v0.3.0 // indirect
 )
