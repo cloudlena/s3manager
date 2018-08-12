@@ -6,7 +6,7 @@ import (
 	minio "github.com/minio/minio-go"
 )
 
-//go:generate moq -out s3_test.go -pkg s3manager_test . S3
+//go:generate moq -out mocks/s3.go -pkg mocks . S3
 
 // S3 is a client to interact with S3 storage.
 type S3 interface {

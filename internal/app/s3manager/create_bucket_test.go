@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	"github.com/mastertinner/s3manager/internal/app/s3manager/mocks"
 	"github.com/matryer/is"
 )
 
@@ -57,7 +58,7 @@ func TestHandleCreateBucket(t *testing.T) {
 		t.Run(tcID, func(t *testing.T) {
 			is := is.New(t)
 
-			s3 := &S3Mock{
+			s3 := &mocks.S3Mock{
 				MakeBucketFunc: tc.makeBucketFunc,
 			}
 

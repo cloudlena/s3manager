@@ -10,6 +10,6 @@ require (
 	github.com/pkg/errors v0.8.0
 	golang.org/x/crypto v0.0.0-20180808211826-de0752318171 // indirect
 	golang.org/x/net v0.0.0-20180811021610-c39426892332 // indirect
-	golang.org/x/sys v0.0.0-20180810173357-98c5dad5d1a0 // indirect
+	golang.org/x/sys v0.0.0-20180814072032-4e1fef560951 // indirect
 	golang.org/x/text v0.3.0 // indirect
 )
