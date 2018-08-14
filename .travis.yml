@@ -3,12 +3,15 @@ language: go
 go:
   - stable
 
+env:
+  - GO111MODULE=on
+
 before_install:
-  - go get -u golang.org/x/vgo
   - go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+  - go get -u github.com/go-critic/go-critic/...
 
 install:
-  - vgo mod vendor
+  - go mod download
 
 script:
   - make lint
