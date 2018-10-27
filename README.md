@@ -22,6 +22,8 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 
 ## Build Docker Image
 
+The image is available on [Docker Hub](https://hub.docker.com/r/mastertinner/s3manager/)
+
 1.  Run `make build-docker`
 
 ## Run on Cloud Foundry

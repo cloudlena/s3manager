@@ -1,5 +1,5 @@
 /*
 
-!/s3manager
+!/bin/s3manager
 !/web/
 !/deployments/cf/
