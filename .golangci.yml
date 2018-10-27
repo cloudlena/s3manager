@@ -1,0 +1,17 @@
+linters:
+  enable-all: true
+  disable:
+    - lll
+    - dupl
+    - scopelint
+
+linters-settings:
+  govet:
+    check-shadowing: true
+  maligned:
+    suggest-new: true
+  misspell:
+    locale: US
+  gocritic:
+    disabled-checks:
+      - unlambda # Until https://github.com/go-critic/go-critic/issues/716 is fixed

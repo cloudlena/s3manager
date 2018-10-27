@@ -1,5 +1,5 @@
 # Binaries for programs and plugins
-/s3manager
+bin/
 *.exe
 *.exe~
 *.dll
