@@ -133,7 +133,6 @@ func TestHandleBucketView(t *testing.T) {
 			resp, err := http.Get(url)
 			is.NoErr(err)
 			defer resp.Body.Close()
-
 			body, err := ioutil.ReadAll(resp.Body)
 			is.NoErr(err)
 

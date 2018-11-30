@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -15,30 +14,27 @@ import (
 )
 
 func main() {
-	var (
-		port            = flag.String("port", "8080", "the port the app should listen on")
-		endpoint        = flag.String("endpoint", "s3.amazonaws.com", "the s3 endpoint to use")
-		accessKeyID     = flag.String("access-key-id", "", "your s3 access key ID")
-		secretAccessKey = flag.String("secret-access-key", "", "your s3 secret access key")
-		v2Signing       = flag.Bool("v2-signing", false, "set this flag if your S3 provider still uses V2 signing")
-	)
-	flag.Parse()
-
-	if *accessKeyID == "" || *secretAccessKey == "" {
-		flag.Usage()
-		os.Exit(2)
+	accessKeyID, ok := os.LookupEnv("ACCESS_KEY_ID")
+	if !ok {
+		log.Fatal("please provide ACCESS_KEY_ID")
+	}
+	secretAccessKey, ok := os.LookupEnv("SECRET_ACCESS_KEY")
+	if !ok {
+		log.Fatal("please provide SECRET_ACCESS_KEY")
+	}
+	port, ok := os.LookupEnv("PORT")
+	if !ok {
+		port = "8080"
+	}
+	endpoint, ok := os.LookupEnv("ENDPOINT")
+	if !ok {
+		endpoint = "s3.amazonaws.com"
 	}
 
 	tmplDir := filepath.Join("web", "template")
 
 	// Set up S3 client
-	var s3 *minio.Client
-	var err error
-	if *v2Signing {
-		s3, err = minio.NewV2(*endpoint, *accessKeyID, *secretAccessKey, true)
-	} else {
-		s3, err = minio.New(*endpoint, *accessKeyID, *secretAccessKey, true)
-	}
+	s3, err := minio.New(endpoint, accessKeyID, secretAccessKey, true)
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "error creating s3 client"))
 	}
@@ -55,5 +51,5 @@ func main() {
 	r.Handle(http.MethodDelete, "/api/buckets/:bucketName/objects/:objectName", s3manager.HandleDeleteObject(s3))
 
 	lr := logging.Handler(os.Stdout)(r)
-	log.Fatal(http.ListenAndServe(":"+*port, lr))
+	log.Fatal(http.ListenAndServe(":"+port, lr))
 }
