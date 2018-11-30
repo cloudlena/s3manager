@@ -17,4 +17,4 @@ deploy-cf:
 	cf push -f deployments/cf/manifest.yml
 
 clean:
-	rm -rf bin/*
+	rm -rf bin

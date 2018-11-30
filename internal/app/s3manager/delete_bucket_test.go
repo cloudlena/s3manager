@@ -2,6 +2,7 @@ package s3manager_test
 
 import (
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -50,9 +51,12 @@ func TestHandleDeleteBucket(t *testing.T) {
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
+			defer resp.Body.Close()
+			body, err := ioutil.ReadAll(resp.Body)
+			is.NoErr(err)
 
-			is.Equal(tc.expectedStatusCode, resp.StatusCode)                     // status code
-			is.True(strings.Contains(rr.Body.String(), tc.expectedBodyContains)) // body
+			is.Equal(tc.expectedStatusCode, resp.StatusCode)                 // status code
+			is.True(strings.Contains(string(body), tc.expectedBodyContains)) // body
 		})
 	}
 }
