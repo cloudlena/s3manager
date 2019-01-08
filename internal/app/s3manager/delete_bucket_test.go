@@ -14,19 +14,22 @@ import (
 )
 
 func TestHandleDeleteBucket(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		it                   string
 		removeBucketFunc     func(string) error
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"deletes an existing bucket": {
+		{
+			it: "deletes an existing bucket",
 			removeBucketFunc: func(string) error {
 				return nil
 			},
 			expectedStatusCode:   http.StatusNoContent,
 			expectedBodyContains: "",
 		},
-		"returns error if there is an S3 error": {
+		{
+			it: "returns error if there is an S3 error",
 			removeBucketFunc: func(string) error {
 				return errors.New("mocked S3 error")
 			},
@@ -35,8 +38,8 @@ func TestHandleDeleteBucket(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range cases {
-		t.Run(tcID, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{

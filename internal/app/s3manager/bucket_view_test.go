@@ -18,13 +18,15 @@ import (
 )
 
 func TestHandleBucketView(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		it                   string
 		listObjectsV2Func    func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo
 		bucketName           string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"renders a bucket containing a file": {
+		{
+			it: "renders a bucket containing a file",
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
@@ -37,7 +39,8 @@ func TestHandleBucketView(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "testFile",
 		},
-		"renders placeholder for an empty bucket": {
+		{
+			it: "renders placeholder for an empty bucket",
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				close(objCh)
@@ -47,7 +50,8 @@ func TestHandleBucketView(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "No objects in",
 		},
-		"renders a bucket containing an archive": {
+		{
+			it: "renders a bucket containing an archive",
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
@@ -60,7 +64,8 @@ func TestHandleBucketView(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "archive",
 		},
-		"renders a bucket containing an image": {
+		{
+			it: "renders a bucket containing an image",
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
@@ -73,7 +78,8 @@ func TestHandleBucketView(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "photo",
 		},
-		"renders a bucket containing a sound file": {
+		{
+			it: "renders a bucket containing a sound file",
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
@@ -86,7 +92,8 @@ func TestHandleBucketView(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "music_note",
 		},
-		"returns error if the bucket doesn't exist": {
+		{
+			it: "returns error if the bucket doesn't exist",
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
@@ -99,7 +106,8 @@ func TestHandleBucketView(t *testing.T) {
 			expectedStatusCode:   http.StatusNotFound,
 			expectedBodyContains: http.StatusText(http.StatusNotFound),
 		},
-		"returns error if there is an S3 error": {
+		{
+			it: "returns error if there is an S3 error",
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
@@ -114,8 +122,8 @@ func TestHandleBucketView(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range cases {
-		t.Run(tcID, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{

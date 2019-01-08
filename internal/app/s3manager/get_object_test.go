@@ -17,14 +17,16 @@ import (
 )
 
 func TestHandleGetObject(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		it                   string
 		getObjectFunc        func(string, string, minio.GetObjectOptions) (*minio.Object, error)
 		bucketName           string
 		objectName           string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"returns error if there is an S3 error": {
+		{
+			it: "returns error if there is an S3 error",
 			getObjectFunc: func(string, string, minio.GetObjectOptions) (*minio.Object, error) {
 				return nil, errors.New("mocked S3 error")
 			},
@@ -35,8 +37,8 @@ func TestHandleGetObject(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range cases {
-		t.Run(tcID, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{
