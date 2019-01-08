@@ -16,26 +16,30 @@ import (
 )
 
 func TestHandleBucketsView(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		it                   string
 		listBucketsFunc      func() ([]minio.BucketInfo, error)
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"renders a list of buckets": {
+		{
+			it: "renders a list of buckets",
 			listBucketsFunc: func() ([]minio.BucketInfo, error) {
 				return []minio.BucketInfo{{Name: "testBucket"}}, nil
 			},
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "testBucket",
 		},
-		"renders placeholder if no buckets": {
+		{
+			it: "renders placeholder if no buckets",
 			listBucketsFunc: func() ([]minio.BucketInfo, error) {
 				return []minio.BucketInfo{}, nil
 			},
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "No buckets yet",
 		},
-		"returns error if there is an S3 error": {
+		{
+			it: "returns error if there is an S3 error",
 			listBucketsFunc: func() ([]minio.BucketInfo, error) {
 				return []minio.BucketInfo{}, errors.New("mocked S3 error")
 			},
@@ -44,8 +48,8 @@ func TestHandleBucketsView(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range cases {
-		t.Run(tcID, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{

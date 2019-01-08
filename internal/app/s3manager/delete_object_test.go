@@ -13,19 +13,22 @@ import (
 )
 
 func TestHandleDeleteObject(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		it                   string
 		removeObjectFunc     func(string, string) error
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"deletes an existing object": {
+		{
+			it: "deletes an existing object",
 			removeObjectFunc: func(string, string) error {
 				return nil
 			},
 			expectedStatusCode:   http.StatusNoContent,
 			expectedBodyContains: "",
 		},
-		"returns error if there is an S3 error": {
+		{
+			it: "returns error if there is an S3 error",
 			removeObjectFunc: func(string, string) error {
 				return errors.New("mocked S3 error")
 			},
@@ -34,8 +37,8 @@ func TestHandleDeleteObject(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range cases {
-		t.Run(tcID, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{

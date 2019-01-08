@@ -15,13 +15,15 @@ import (
 )
 
 func TestHandleCreateBucket(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		it                   string
 		makeBucketFunc       func(string, string) error
 		body                 string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
-		"creates a new bucket": {
+		{
+			it: "creates a new bucket",
 			makeBucketFunc: func(string, string) error {
 				return nil
 			},
@@ -29,7 +31,8 @@ func TestHandleCreateBucket(t *testing.T) {
 			expectedStatusCode:   http.StatusCreated,
 			expectedBodyContains: `{"name":"myBucket","creationDate":"0001-01-01T00:00:00Z"}`,
 		},
-		"returns error for empty request": {
+		{
+			it: "returns error for empty request",
 			makeBucketFunc: func(string, string) error {
 				return nil
 			},
@@ -37,7 +40,8 @@ func TestHandleCreateBucket(t *testing.T) {
 			expectedStatusCode:   http.StatusUnprocessableEntity,
 			expectedBodyContains: http.StatusText(http.StatusUnprocessableEntity),
 		},
-		"returns error for malformed request": {
+		{
+			it: "returns error for malformed request",
 			makeBucketFunc: func(string, string) error {
 				return nil
 			},
@@ -45,7 +49,8 @@ func TestHandleCreateBucket(t *testing.T) {
 			expectedStatusCode:   http.StatusUnprocessableEntity,
 			expectedBodyContains: http.StatusText(http.StatusUnprocessableEntity),
 		},
-		"returns error if there is an S3 error": {
+		{
+			it: "returns error if there is an S3 error",
 			makeBucketFunc: func(string, string) error {
 				return errors.New("mocked S3 error")
 			},
@@ -55,8 +60,8 @@ func TestHandleCreateBucket(t *testing.T) {
 		},
 	}
 
-	for tcID, tc := range cases {
-		t.Run(tcID, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{
