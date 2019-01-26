@@ -1,5 +1,8 @@
 .PHONY: all lint test build-docker deploy-cf clean
 
+.EXPORT_ALL_VARIABLES:
+GO111MODULE = on
+
 all:
 	go build -o bin/s3manager ./cmd/s3manager
 
