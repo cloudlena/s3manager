@@ -10,7 +10,7 @@ import (
 
 // HandleBucketsView renders all buckets on an HTML page.
 func HandleBucketsView(s3 S3, tmplDir string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		buckets, err := s3.ListBuckets()
 		if err != nil {
 			handleHTTPError(w, errors.Wrap(err, "error listing buckets"))

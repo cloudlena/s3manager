@@ -1,15 +1,10 @@
 # S3 Manager
 
-[![Release](https://img.shields.io/github/release/mastertinner/s3manager.svg)](https://github.com/mastertinner/s3manager/releases/latest)
-[![Build Status](https://travis-ci.org/mastertinner/s3manager.svg?branch=master)](https://travis-ci.org/mastertinner/s3manager)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mastertinner/s3manager)](https://goreportcard.com/report/github.com/mastertinner/s3manager)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mastertinner/s3manager?style=flat-square)](https://goreportcard.com/report/github.com/mastertinner/s3manager)
+[![Build Status](https://img.shields.io/travis/mastertinner/s3manager.svg?style=flat-square)](https://travis-ci.org/mastertinner/s3manager)
+[![Docker Build](https://img.shields.io/docker/build/mastertinner/s3manager.svg?style=flat-square)](https://hub.docker.com/r/mastertinner/s3manager)
 
 A Web GUI written in Go to manage S3 buckets from any provider.
-
-## Install Dependencies
-
-1.  Install [vgo](https://github.com/golang/vgo)
-1.  Run `vgo mod vendor`
 
 ## Build and Run Locally
 
