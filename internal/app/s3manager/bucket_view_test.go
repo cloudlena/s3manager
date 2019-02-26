@@ -137,8 +137,7 @@ func TestHandleBucketView(t *testing.T) {
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
-			url := fmt.Sprintf("%s/buckets/%s", ts.URL, tc.bucketName)
-			resp, err := http.Get(url)
+			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s", ts.URL, tc.bucketName))
 			is.NoErr(err)
 			defer resp.Body.Close()
 			body, err := ioutil.ReadAll(resp.Body)

@@ -51,8 +51,7 @@ func TestHandleGetObject(t *testing.T) {
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
-			url := fmt.Sprintf("%s/buckets/%s/objects/%s", ts.URL, tc.bucketName, tc.objectName)
-			resp, err := http.Get(url)
+			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s/objects/%s", ts.URL, tc.bucketName, tc.objectName))
 			is.NoErr(err)
 			defer resp.Body.Close()
 			body, err := ioutil.ReadAll(resp.Body)
