@@ -1,5 +1,5 @@
 {{ define "content" }}
-<nav class="purple" role="navigation">
+<nav>
     <div class="nav-wrapper container">
         <a href="/" class="brand-logo">S3 Manager</a>
     </div>
@@ -11,11 +11,11 @@
 
             {{ if . }}
             {{ range $bucket := . }}
-            <div class="col m12 l6">
-                <a href="/buckets/{{ $bucket.Name }}" style="color: black;">
+            <div class="col l6 m12">
+                <a href="/buckets/{{ $bucket.Name }}" style="color:black;">
                     <div class="card">
                         <div class="card-content">
-                            <div class="row" style="margin-bottom: 0;">
+                            <div class="row">
                                 <div class="col">
                                     <i class="material-icons large">folder_open</i>
                                 </div>
@@ -23,7 +23,7 @@
                                     <span class="card-title">
                                         {{ $bucket.Name }}
                                     </span>
-                                    <p style="color: gray;">Created on {{ $bucket.CreationDate }}</p>
+                                    <p style="color:gray;">Created on {{ $bucket.CreationDate }}</p>
                                 </div>
                             </div>
                         </div>
@@ -34,7 +34,7 @@
             {{ end }}
 
             {{ if not . }}
-            <p style="text-align: center;margin-top: 2em;">No buckets yet</p>
+            <p style="text-align:center;margin-top:2em;color:gray;">No buckets yet</p>
             {{ end }}
 
         </div>
@@ -42,50 +42,46 @@
 </div>
 
 <div class="fixed-action-btn">
-    <a class="btn-floating btn-large red modal-trigger" href="#modal-create-bucket">
-        <i class="large material-icons">add</i>
-    </a>
+    <button type="button" class="btn-floating btn-large red modal-trigger" data-target="modal-create-bucket">
+        <i class="material-icons large">add</i>
+    </button>
 </div>
 
 <div id="modal-create-bucket" class="modal">
     <form id="create-bucket-form">
-
         <div class="modal-content">
             <h4>Create Bucket</h4>
             <br>
             <div class="row">
-                <div class="col s6">
-                    <div class="input-field">
-                        <input placeholder="My Bucket" id="name" type="text" name="name">
-                        <label for="name">Name</label>
-                    </div>
+                <div class="input-field col m6">
+                    <input id="name" type="text" name="name" placeholder="My Bucket">
+                    <label for="name">Name</label>
                 </div>
             </div>
         </div>
 
         <div class="modal-footer">
-            <button type="button" onclick="createBucket()" class="modal-action modal-close waves-effect waves-green btn-flat">Create</button>
-            <button class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
+            <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
+            <button type="button" class="modal-close waves-effect waves-green btn" onclick="createBucket()">Create</button>
         </div>
-
     </form>
 </div>
 
 <script>
-function createBucket() {
-    var formData = {};
-    $.each($('#create-bucket-form')
-        .serializeArray(), function(i, field) {
-            formData[field.name] = field.value;
+    function createBucket() {
+        var formData = {};
+        $.each($('#create-bucket-form')
+            .serializeArray(), function(i, field) {
+                formData[field.name] = field.value;
+            });
+        $.ajax({
+            type: 'POST',
+            url: '/api/buckets',
+            data: JSON.stringify(formData),
+            dataType: 'json',
+            contentType: 'application/json; charset=utf-8',
+            success: function() { location.reload(); }
         });
-    $.ajax({
-        type: 'POST',
-        url: '/api/buckets',
-        data: JSON.stringify(formData),
-        dataType: 'json',
-        contentType: 'application/json; charset=utf-8',
-        success: function() { location.reload(); }
-    });
-}
+    }
 </script>
 {{ end }}
