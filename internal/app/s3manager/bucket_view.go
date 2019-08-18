@@ -62,7 +62,7 @@ func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
 func icon(fileName string) string {
 	e := path.Ext(fileName)
 	switch e {
-	case ".tgz", ".gz":
+	case ".tgz", ".gz", ".zip":
 		return "archive"
 	case ".png", ".jpg", ".gif", ".svg":
 		return "photo"
