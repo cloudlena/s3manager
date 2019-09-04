@@ -1,11 +1,10 @@
 package s3manager
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
-
-	"github.com/pkg/errors"
 )
 
 // HandleBucketsView renders all buckets on an HTML page.
@@ -13,7 +12,7 @@ func HandleBucketsView(s3 S3, tmplDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		buckets, err := s3.ListBuckets()
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, "error listing buckets"))
+			handleHTTPError(w, fmt.Errorf("error listing buckets: %w", err))
 			return
 		}
 
@@ -21,12 +20,12 @@ func HandleBucketsView(s3 S3, tmplDir string) http.HandlerFunc {
 		p := filepath.Join(tmplDir, "buckets.html.tmpl")
 		t, err := template.ParseFiles(l, p)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, "error parsing template files"))
+			handleHTTPError(w, fmt.Errorf("error parsing template files: %w", err))
 			return
 		}
 		err = t.ExecuteTemplate(w, "layout", buckets)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, "error executing template"))
+			handleHTTPError(w, fmt.Errorf("error executing template: %w", err))
 			return
 		}
 	}

@@ -2,11 +2,11 @@ package s3manager
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
-
-	"github.com/pkg/errors"
+	"strings"
 )
 
 // Error codes that may be returned from an S3 client.
@@ -17,24 +17,25 @@ const (
 
 // handleHTTPError handles HTTP errors.
 func handleHTTPError(w http.ResponseWriter, err error) {
-	cause := errors.Cause(err)
 	code := http.StatusInternalServerError
 
-	_, ok := cause.(*json.SyntaxError)
+	var se *json.SyntaxError
+	ok := errors.As(err, &se)
 	if ok {
 		code = http.StatusUnprocessableEntity
 	}
+
 	switch {
-	case cause == io.EOF || cause == io.ErrUnexpectedEOF:
+	case errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF):
 		code = http.StatusUnprocessableEntity
-	case cause.Error() == ErrBucketDoesNotExist || cause.Error() == ErrKeyDoesNotExist:
+	case strings.Contains(err.Error(), ErrBucketDoesNotExist) || strings.Contains(err.Error(), ErrKeyDoesNotExist):
 		code = http.StatusNotFound
 	}
 
 	http.Error(w, http.StatusText(code), code)
 
 	// Log if server error
-	if code >= 500 {
+	if code >= http.StatusInternalServerError {
 		log.Println(err)
 	}
 }
