@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
-	"github.com/pkg/errors"
 )
 
 func main() {
@@ -18,14 +18,17 @@ func main() {
 	if !ok {
 		log.Fatal("please provide ACCESS_KEY_ID")
 	}
+
 	secretAccessKey, ok := os.LookupEnv("SECRET_ACCESS_KEY")
 	if !ok {
 		log.Fatal("please provide SECRET_ACCESS_KEY")
 	}
+
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		port = "8080"
 	}
+
 	endpoint, ok := os.LookupEnv("ENDPOINT")
 	if !ok {
 		endpoint = "s3.amazonaws.com"
@@ -36,7 +39,7 @@ func main() {
 	// Set up S3 client
 	s3, err := minio.New(endpoint, accessKeyID, secretAccessKey, true)
 	if err != nil {
-		log.Fatalln(errors.Wrap(err, "error creating s3 client"))
+		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
 	}
 
 	// Set up router

@@ -2,10 +2,10 @@ package s3manager
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	minio "github.com/minio/minio-go"
-	"github.com/pkg/errors"
 )
 
 // HandleCreateBucket creates a new bucket.
@@ -14,13 +14,13 @@ func HandleCreateBucket(s3 S3) http.HandlerFunc {
 		var bucket minio.BucketInfo
 		err := json.NewDecoder(r.Body).Decode(&bucket)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, "error decoding body JSON"))
+			handleHTTPError(w, fmt.Errorf("error decoding body JSON: %w", err))
 			return
 		}
 
 		err = s3.MakeBucket(bucket.Name, "")
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, "error making bucket"))
+			handleHTTPError(w, fmt.Errorf("error making bucket: %w", err))
 			return
 		}
 
@@ -28,7 +28,7 @@ func HandleCreateBucket(s3 S3) http.HandlerFunc {
 		w.WriteHeader(http.StatusCreated)
 		err = json.NewEncoder(w).Encode(bucket)
 		if err != nil {
-			handleHTTPError(w, errors.Wrap(err, "error encoding JSON"))
+			handleHTTPError(w, fmt.Errorf("error encoding JSON: %w", err))
 			return
 		}
 	}
