@@ -18,7 +18,7 @@ func HandleCreateObject(s3 S3) http.HandlerFunc {
 			handleHTTPError(w, fmt.Errorf("error parsing multipart form: %w", err))
 			return
 		}
-		file, handler, err := r.FormFile("file")
+		file, header, err := r.FormFile("file")
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error getting file from form: %w", err))
 			return
@@ -26,7 +26,7 @@ func HandleCreateObject(s3 S3) http.HandlerFunc {
 		defer file.Close()
 
 		opts := minio.PutObjectOptions{ContentType: "application/octet-stream"}
-		_, err = s3.PutObject(bucketName, handler.Filename, file, 1, opts)
+		_, err = s3.PutObject(bucketName, header.Filename, file, 1, opts)
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error putting object: %w", err))
 			return
