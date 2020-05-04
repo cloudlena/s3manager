@@ -1,0 +1,19 @@
+version: "3"
+services:
+  s3:
+    image: minio/minio
+    command: server /data
+    environment:
+      - MINIO_ACCESS_KEY=s3manager
+      - MINIO_SECRET_KEY=s3manager
+  s3manager:
+    build: .
+    ports:
+      - 8080:8080
+    environment:
+      - ENDPOINT=s3:9000
+      - ACCESS_KEY_ID=s3manager
+      - SECRET_ACCESS_KEY=s3manager
+      - USE_SSL=false
+    depends_on:
+      - s3
