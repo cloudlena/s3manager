@@ -1,7 +1,6 @@
 package s3manager_test
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -97,7 +96,7 @@ func TestHandleBucketView(t *testing.T) {
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
-					objCh <- minio.ObjectInfo{Err: errors.New("The specified bucket does not exist")}
+					objCh <- minio.ObjectInfo{Err: errBucketDoesNotExist}
 					close(objCh)
 				}()
 				return objCh
@@ -111,7 +110,7 @@ func TestHandleBucketView(t *testing.T) {
 			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
-					objCh <- minio.ObjectInfo{Err: errors.New("mocked S3 error")}
+					objCh <- minio.ObjectInfo{Err: errS3}
 					close(objCh)
 				}()
 				return objCh

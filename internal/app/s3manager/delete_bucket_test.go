@@ -1,7 +1,6 @@
 package s3manager_test
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +30,7 @@ func TestHandleDeleteBucket(t *testing.T) {
 		{
 			it: "returns error if there is an S3 error",
 			removeBucketFunc: func(string) error {
-				return errors.New("mocked S3 error")
+				return errS3
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),

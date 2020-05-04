@@ -1,7 +1,6 @@
 package s3manager_test
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,7 +29,7 @@ func TestHandleDeleteObject(t *testing.T) {
 		{
 			it: "returns error if there is an S3 error",
 			removeObjectFunc: func(string, string) error {
-				return errors.New("mocked S3 error")
+				return errS3
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),

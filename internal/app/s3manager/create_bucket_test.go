@@ -2,7 +2,6 @@ package s3manager_test
 
 import (
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -52,7 +51,7 @@ func TestHandleCreateBucket(t *testing.T) {
 		{
 			it: "returns error if there is an S3 error",
 			makeBucketFunc: func(string, string) error {
-				return errors.New("mocked S3 error")
+				return errS3
 			},
 			body:                 `{"name":"myBucket"}`,
 			expectedStatusCode:   http.StatusInternalServerError,

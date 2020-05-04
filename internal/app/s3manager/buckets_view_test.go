@@ -1,7 +1,6 @@
 package s3manager_test
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -41,7 +40,7 @@ func TestHandleBucketsView(t *testing.T) {
 		{
 			it: "returns error if there is an S3 error",
 			listBucketsFunc: func() ([]minio.BucketInfo, error) {
-				return []minio.BucketInfo{}, errors.New("mocked S3 error")
+				return []minio.BucketInfo{}, errS3
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
