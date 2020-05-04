@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mastertinner/adapters/logging"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
@@ -26,6 +27,11 @@ func main() {
 	if !ok {
 		log.Fatal("please provide SECRET_ACCESS_KEY")
 	}
+	useSSLEnvVar, ok := os.LookupEnv("USE_SSL")
+	if !ok {
+		useSSLEnvVar = "true"
+	}
+	useSSL := strings.ToLower(useSSLEnvVar) == "true"
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		port = "8080"
@@ -34,7 +40,7 @@ func main() {
 	tmplDir := filepath.Join("web", "template")
 
 	// Set up S3 client
-	s3, err := minio.New(endpoint, accessKeyID, secretAccessKey, true)
+	s3, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
 	}
