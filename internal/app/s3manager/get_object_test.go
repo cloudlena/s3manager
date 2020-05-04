@@ -1,7 +1,6 @@
 package s3manager_test
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -28,7 +27,7 @@ func TestHandleGetObject(t *testing.T) {
 		{
 			it: "returns error if there is an S3 error",
 			getObjectFunc: func(string, string, minio.GetObjectOptions) (*minio.Object, error) {
-				return nil, errors.New("mocked S3 error")
+				return nil, errS3
 			},
 			bucketName:           "testBucket",
 			objectName:           "testObject",
