@@ -14,24 +14,21 @@ import (
 )
 
 func main() {
+	endpoint, ok := os.LookupEnv("ENDPOINT")
+	if !ok {
+		endpoint = "s3.amazonaws.com"
+	}
 	accessKeyID, ok := os.LookupEnv("ACCESS_KEY_ID")
 	if !ok {
 		log.Fatal("please provide ACCESS_KEY_ID")
 	}
-
 	secretAccessKey, ok := os.LookupEnv("SECRET_ACCESS_KEY")
 	if !ok {
 		log.Fatal("please provide SECRET_ACCESS_KEY")
 	}
-
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		port = "8080"
-	}
-
-	endpoint, ok := os.LookupEnv("ENDPOINT")
-	if !ok {
-		endpoint = "s3.amazonaws.com"
 	}
 
 	tmplDir := filepath.Join("web", "template")
