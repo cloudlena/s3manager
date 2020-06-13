@@ -1,0 +1,28 @@
+version: "3"
+services:
+  localstack:
+    image: localstack/localstack-light
+    ports:
+      - 4566:4566
+      - 8000:8080
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION:eu-central-1
+      - DEBUG=1
+      - HOST_TMP_FOLDER=/tmp/localstack/data
+    volumes:
+      - "./.localstack:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+  s3manager:
+    image: mastertinner/s3manager
+    ports:
+      - 8001:8080
+    links:
+      - localstack
+    environment:
+      - ACCESS_KEY_ID=abc
+      - SECRET_ACCESS_KEY=def
+      - REGION=eu-central-1
+      - ENDPOINT=localstack:4566
+      - PORT=8080
+      - USE_SSL=false

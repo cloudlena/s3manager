@@ -4,9 +4,10 @@
 package mocks
 
 import (
-	"github.com/minio/minio-go"
 	"io"
 	"sync"
+
+	"github.com/minio/minio-go"
 )
 
 var (
