@@ -1,11 +1,5 @@
 version: "3"
 services:
-  s3:
-    image: minio/minio
-    command: server /data
-    environment:
-      - MINIO_ACCESS_KEY=s3manager
-      - MINIO_SECRET_KEY=s3manager
   s3manager:
     build: .
     ports:
@@ -17,3 +11,9 @@ services:
       - USE_SSL=false
     depends_on:
       - s3
+  s3:
+    image: minio/minio
+    command: server /data
+    environment:
+      - MINIO_ACCESS_KEY=s3manager
+      - MINIO_SECRET_KEY=s3manager
