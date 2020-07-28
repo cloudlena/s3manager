@@ -1,9 +1,9 @@
 linters:
   enable-all: true
   disable:
-    - dupl
     - funlen
     - lll
+    - nlreturn
     - scopelint
     - wsl
 
