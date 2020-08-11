@@ -4,53 +4,47 @@
 package mocks
 
 import (
+	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	"github.com/minio/minio-go"
 	"io"
 	"sync"
-
-	"github.com/minio/minio-go"
 )
 
-var (
-	lockS3MockGetObject     sync.RWMutex
-	lockS3MockListBuckets   sync.RWMutex
-	lockS3MockListObjectsV2 sync.RWMutex
-	lockS3MockMakeBucket    sync.RWMutex
-	lockS3MockPutObject     sync.RWMutex
-	lockS3MockRemoveBucket  sync.RWMutex
-	lockS3MockRemoveObject  sync.RWMutex
-)
+// Ensure, that S3Mock does implement s3manager.S3.
+// If this is not the case, regenerate this file with moq.
+var _ s3manager.S3 = &S3Mock{}
 
-// S3Mock is a mock implementation of S3.
+// S3Mock is a mock implementation of s3manager.S3.
 //
 //     func TestSomethingThatUsesS3(t *testing.T) {
 //
-//         // make and configure a mocked S3
+//         // make and configure a mocked s3manager.S3
 //         mockedS3 := &S3Mock{
 //             GetObjectFunc: func(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
-// 	               panic("TODO: mock out the GetObject method")
+// 	               panic("mock out the GetObject method")
 //             },
 //             ListBucketsFunc: func() ([]minio.BucketInfo, error) {
-// 	               panic("TODO: mock out the ListBuckets method")
+// 	               panic("mock out the ListBuckets method")
 //             },
 //             ListObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-// 	               panic("TODO: mock out the ListObjectsV2 method")
+// 	               panic("mock out the ListObjectsV2 method")
 //             },
 //             MakeBucketFunc: func(bucketName string, location string) error {
-// 	               panic("TODO: mock out the MakeBucket method")
+// 	               panic("mock out the MakeBucket method")
 //             },
 //             PutObjectFunc: func(bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (int64, error) {
-// 	               panic("TODO: mock out the PutObject method")
+// 	               panic("mock out the PutObject method")
 //             },
 //             RemoveBucketFunc: func(bucketName string) error {
-// 	               panic("TODO: mock out the RemoveBucket method")
+// 	               panic("mock out the RemoveBucket method")
 //             },
 //             RemoveObjectFunc: func(bucketName string, objectName string) error {
-// 	               panic("TODO: mock out the RemoveObject method")
+// 	               panic("mock out the RemoveObject method")
 //             },
 //         }
 //
-//         // TODO: use mockedS3 in code that requires S3
-//         //       and then make assertions.
+//         // use mockedS3 in code that requires s3manager.S3
+//         // and then make assertions.
 //
 //     }
 type S3Mock struct {
@@ -133,6 +127,13 @@ type S3Mock struct {
 			ObjectName string
 		}
 	}
+	lockGetObject     sync.RWMutex
+	lockListBuckets   sync.RWMutex
+	lockListObjectsV2 sync.RWMutex
+	lockMakeBucket    sync.RWMutex
+	lockPutObject     sync.RWMutex
+	lockRemoveBucket  sync.RWMutex
+	lockRemoveObject  sync.RWMutex
 }
 
 // GetObject calls GetObjectFunc.
@@ -149,9 +150,9 @@ func (mock *S3Mock) GetObject(bucketName string, objectName string, opts minio.G
 		ObjectName: objectName,
 		Opts:       opts,
 	}
-	lockS3MockGetObject.Lock()
+	mock.lockGetObject.Lock()
 	mock.calls.GetObject = append(mock.calls.GetObject, callInfo)
-	lockS3MockGetObject.Unlock()
+	mock.lockGetObject.Unlock()
 	return mock.GetObjectFunc(bucketName, objectName, opts)
 }
 
@@ -168,9 +169,9 @@ func (mock *S3Mock) GetObjectCalls() []struct {
 		ObjectName string
 		Opts       minio.GetObjectOptions
 	}
-	lockS3MockGetObject.RLock()
+	mock.lockGetObject.RLock()
 	calls = mock.calls.GetObject
-	lockS3MockGetObject.RUnlock()
+	mock.lockGetObject.RUnlock()
 	return calls
 }
 
@@ -181,9 +182,9 @@ func (mock *S3Mock) ListBuckets() ([]minio.BucketInfo, error) {
 	}
 	callInfo := struct {
 	}{}
-	lockS3MockListBuckets.Lock()
+	mock.lockListBuckets.Lock()
 	mock.calls.ListBuckets = append(mock.calls.ListBuckets, callInfo)
-	lockS3MockListBuckets.Unlock()
+	mock.lockListBuckets.Unlock()
 	return mock.ListBucketsFunc()
 }
 
@@ -194,9 +195,9 @@ func (mock *S3Mock) ListBucketsCalls() []struct {
 } {
 	var calls []struct {
 	}
-	lockS3MockListBuckets.RLock()
+	mock.lockListBuckets.RLock()
 	calls = mock.calls.ListBuckets
-	lockS3MockListBuckets.RUnlock()
+	mock.lockListBuckets.RUnlock()
 	return calls
 }
 
@@ -216,9 +217,9 @@ func (mock *S3Mock) ListObjectsV2(bucketName string, objectPrefix string, recurs
 		Recursive:    recursive,
 		DoneCh:       doneCh,
 	}
-	lockS3MockListObjectsV2.Lock()
+	mock.lockListObjectsV2.Lock()
 	mock.calls.ListObjectsV2 = append(mock.calls.ListObjectsV2, callInfo)
-	lockS3MockListObjectsV2.Unlock()
+	mock.lockListObjectsV2.Unlock()
 	return mock.ListObjectsV2Func(bucketName, objectPrefix, recursive, doneCh)
 }
 
@@ -237,9 +238,9 @@ func (mock *S3Mock) ListObjectsV2Calls() []struct {
 		Recursive    bool
 		DoneCh       <-chan struct{}
 	}
-	lockS3MockListObjectsV2.RLock()
+	mock.lockListObjectsV2.RLock()
 	calls = mock.calls.ListObjectsV2
-	lockS3MockListObjectsV2.RUnlock()
+	mock.lockListObjectsV2.RUnlock()
 	return calls
 }
 
@@ -255,9 +256,9 @@ func (mock *S3Mock) MakeBucket(bucketName string, location string) error {
 		BucketName: bucketName,
 		Location:   location,
 	}
-	lockS3MockMakeBucket.Lock()
+	mock.lockMakeBucket.Lock()
 	mock.calls.MakeBucket = append(mock.calls.MakeBucket, callInfo)
-	lockS3MockMakeBucket.Unlock()
+	mock.lockMakeBucket.Unlock()
 	return mock.MakeBucketFunc(bucketName, location)
 }
 
@@ -272,9 +273,9 @@ func (mock *S3Mock) MakeBucketCalls() []struct {
 		BucketName string
 		Location   string
 	}
-	lockS3MockMakeBucket.RLock()
+	mock.lockMakeBucket.RLock()
 	calls = mock.calls.MakeBucket
-	lockS3MockMakeBucket.RUnlock()
+	mock.lockMakeBucket.RUnlock()
 	return calls
 }
 
@@ -296,9 +297,9 @@ func (mock *S3Mock) PutObject(bucketName string, objectName string, reader io.Re
 		ObjectSize: objectSize,
 		Opts:       opts,
 	}
-	lockS3MockPutObject.Lock()
+	mock.lockPutObject.Lock()
 	mock.calls.PutObject = append(mock.calls.PutObject, callInfo)
-	lockS3MockPutObject.Unlock()
+	mock.lockPutObject.Unlock()
 	return mock.PutObjectFunc(bucketName, objectName, reader, objectSize, opts)
 }
 
@@ -319,9 +320,9 @@ func (mock *S3Mock) PutObjectCalls() []struct {
 		ObjectSize int64
 		Opts       minio.PutObjectOptions
 	}
-	lockS3MockPutObject.RLock()
+	mock.lockPutObject.RLock()
 	calls = mock.calls.PutObject
-	lockS3MockPutObject.RUnlock()
+	mock.lockPutObject.RUnlock()
 	return calls
 }
 
@@ -335,9 +336,9 @@ func (mock *S3Mock) RemoveBucket(bucketName string) error {
 	}{
 		BucketName: bucketName,
 	}
-	lockS3MockRemoveBucket.Lock()
+	mock.lockRemoveBucket.Lock()
 	mock.calls.RemoveBucket = append(mock.calls.RemoveBucket, callInfo)
-	lockS3MockRemoveBucket.Unlock()
+	mock.lockRemoveBucket.Unlock()
 	return mock.RemoveBucketFunc(bucketName)
 }
 
@@ -350,9 +351,9 @@ func (mock *S3Mock) RemoveBucketCalls() []struct {
 	var calls []struct {
 		BucketName string
 	}
-	lockS3MockRemoveBucket.RLock()
+	mock.lockRemoveBucket.RLock()
 	calls = mock.calls.RemoveBucket
-	lockS3MockRemoveBucket.RUnlock()
+	mock.lockRemoveBucket.RUnlock()
 	return calls
 }
 
@@ -368,9 +369,9 @@ func (mock *S3Mock) RemoveObject(bucketName string, objectName string) error {
 		BucketName: bucketName,
 		ObjectName: objectName,
 	}
-	lockS3MockRemoveObject.Lock()
+	mock.lockRemoveObject.Lock()
 	mock.calls.RemoveObject = append(mock.calls.RemoveObject, callInfo)
-	lockS3MockRemoveObject.Unlock()
+	mock.lockRemoveObject.Unlock()
 	return mock.RemoveObjectFunc(bucketName, objectName)
 }
 
@@ -385,8 +386,8 @@ func (mock *S3Mock) RemoveObjectCalls() []struct {
 		BucketName string
 		ObjectName string
 	}
-	lockS3MockRemoveObject.RLock()
+	mock.lockRemoveObject.RLock()
 	calls = mock.calls.RemoveObject
-	lockS3MockRemoveObject.RUnlock()
+	mock.lockRemoveObject.RUnlock()
 	return calls
 }
