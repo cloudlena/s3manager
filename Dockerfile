@@ -6,7 +6,7 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -a -installsuffix cgo -o bin/s3manag
 
 FROM scratch
 WORKDIR /app
-COPY --from=builder /app/bin/s3manager /app/web ./
+COPY --from=builder /app/bin/s3manager ./
 COPY --from=builder /app/web ./web/
 COPY --from=builder /etc/passwd /etc/passwd
 USER app
