@@ -9,6 +9,7 @@ services:
       - ACCESS_KEY_ID=s3manager
       - SECRET_ACCESS_KEY=s3manager
       - USE_SSL=false
+      - BASE_PATH=myPath
     depends_on:
       - s3
   s3:

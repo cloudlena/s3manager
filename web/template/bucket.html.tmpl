@@ -15,7 +15,7 @@
 </nav>
 
 <div class="section">
-    <a href="/buckets" style="padding-left:25px;vertical-align:middle;">
+    <a href="{{basepath}}/buckets" style="padding-left:25px;vertical-align:middle;">
         <i class="material-icons" style="vertical-align: middle;">arrow_back</i> Buckets
     </a>
 
@@ -46,7 +46,7 @@
                     </button>
                     <!-- Dropdown Structure -->
                     <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
-                        <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Info.Key }}">Download</a></li>
+                        <li><a href="{{basepath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Info.Key }}">Download</a></li>
                         <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Info.Key }})">Delete</a></li>
                     </ul>
                 </td>
@@ -69,7 +69,7 @@
 </div>
 
 <div id="modal-create-object" class="modal">
-    <form action="/api/buckets/{{ .BucketName }}/objects" method="POST" id="create-object-form" enctype="multipart/form-data">
+    <form action="{{basepath}}/api/buckets/{{ .BucketName }}/objects" method="POST" id="create-object-form" enctype="multipart/form-data">
 
         <div class="modal-content">
             <h4>Create Object</h4>
@@ -101,14 +101,14 @@
 function deleteObject(bucketName, objectName) {
     $.ajax({
         type: 'DELETE',
-        url: '/api/buckets/' + bucketName + '/objects/' + objectName,
+        url: '{{basepath}}/api/buckets/' + bucketName + '/objects/' + objectName,
         success: function () { location.reload(); }
     })
 }
 function deleteBucket(bucketName) {
     $.ajax({
         type: 'DELETE',
-        url: '/api/buckets/' + bucketName,
+        url: '{{basepath}}/api/buckets/' + bucketName,
         success: function () { window.location.replace('/buckets'); }
     })
 }

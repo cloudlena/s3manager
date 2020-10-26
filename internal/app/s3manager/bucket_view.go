@@ -12,7 +12,7 @@ import (
 )
 
 // HandleBucketView shows the details page of a bucket.
-func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
+func HandleBucketView(s3 S3, tmplDir string, basepath string) http.HandlerFunc {
 	type objectWithIcon struct {
 		Info minio.ObjectInfo
 		Icon string
@@ -45,7 +45,11 @@ func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
 
 		l := filepath.Join(tmplDir, "layout.html.tmpl")
 		p := filepath.Join(tmplDir, "bucket.html.tmpl")
-		t, err := template.ParseFiles(l, p)
+		t, err := template.New("").Funcs(template.FuncMap{
+			"basepath": func() string {
+			  return basepath
+			},
+		  }).ParseFiles(l, p)
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error parsing template files: %w", err))
 			return
