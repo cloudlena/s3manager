@@ -76,7 +76,7 @@
             });
         $.ajax({
             type: 'POST',
-            url: '/api/buckets',
+            url: '{{basepath}}/api/buckets',
             data: JSON.stringify(formData),
             dataType: 'json',
             contentType: 'application/json; charset=utf-8',
