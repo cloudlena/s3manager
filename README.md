@@ -25,6 +25,10 @@ The application can be configured with the following environment variables:
 1.  Run `make build`
 1.  Execute the created binary and visit <http://localhost:8080>
 
+### Run Docker image
+
+1. Run `docker run -p 8080:8080 -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' mastertinner/s3manager`
+
 ### Deploy to Cloud Foundry
 
 1.  Modify `deployments/cf/*` to your liking
