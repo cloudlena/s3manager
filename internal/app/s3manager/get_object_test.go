@@ -16,6 +16,8 @@ import (
 )
 
 func TestHandleGetObject(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		it                   string
 		getObjectFunc        func(string, string, minio.GetObjectOptions) (*minio.Object, error)
@@ -37,7 +39,9 @@ func TestHandleGetObject(t *testing.T) {
 	}
 
 	for _, tc := range cases {
+		tc := tc
 		t.Run(tc.it, func(t *testing.T) {
+			t.Parallel()
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{
