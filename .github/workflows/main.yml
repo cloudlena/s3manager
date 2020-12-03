@@ -1,20 +1,31 @@
 name: Lint and Test
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [$default-branch]
+  pull_request:
+    branches: [$default-branch]
+
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Install Go
+      - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: "1.15"
+          go-version: ^1.15
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Lint
         uses: golangci/golangci-lint-action@v2
         with:
           version: latest
+
       - name: Test
         run: make test
+
       - name: Build
         run: make build

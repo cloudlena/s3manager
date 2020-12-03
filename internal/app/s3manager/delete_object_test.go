@@ -12,6 +12,8 @@ import (
 )
 
 func TestHandleDeleteObject(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		it                   string
 		removeObjectFunc     func(string, string) error
@@ -37,7 +39,9 @@ func TestHandleDeleteObject(t *testing.T) {
 	}
 
 	for _, tc := range cases {
+		tc := tc
 		t.Run(tc.it, func(t *testing.T) {
+			t.Parallel()
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{
