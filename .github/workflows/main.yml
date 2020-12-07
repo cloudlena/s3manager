@@ -1,14 +1,10 @@
 name: Lint and Test
 
-on:
-  push:
-    branches: [$default-branch]
-  pull_request:
-    branches: [$default-branch]
+on: [push, pull_request]
 
 jobs:
-  test:
-    name: Test
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -19,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Lint
+      - name: Lint code
         uses: golangci/golangci-lint-action@v2
         with:
           version: latest
