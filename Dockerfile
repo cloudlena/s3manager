@@ -1,15 +1,17 @@
-FROM golang:1 AS builder
-RUN groupadd -r app && useradd --no-log-init -r -g app app
-WORKDIR /app
+FROM docker.io/library/golang:1 AS builder
+WORKDIR /usr/src/app
 COPY . ./
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -a -installsuffix cgo -o bin/s3manager ./cmd/s3manager
 
-FROM alpine
-WORKDIR /app
-COPY --from=builder /app/bin/s3manager ./
-COPY --from=builder /app/web ./web/
-COPY --from=builder /etc/passwd /etc/passwd
-RUN apk update && apk add --no-cache ca-certificates
-USER app
+FROM docker.io/library/alpine:latest
+WORKDIR /usr/src/app
+RUN addgroup -S s3manager && adduser -S s3manager -G s3manager
+RUN apk add --no-cache \
+  ca-certificates \
+  dumb-init
+COPY --from=builder --chown=s3manager:s3manager /usr/src/app/bin/s3manager ./
+COPY --from=builder --chown=s3manager:s3manager /usr/src/app/web ./web/
+USER s3manager
 EXPOSE 8080
-ENTRYPOINT ["./s3manager"]
+ENTRYPOINT [ "/usr/bin/dumb-init", "--" ]
+CMD [ "/usr/src/app/s3manager" ]

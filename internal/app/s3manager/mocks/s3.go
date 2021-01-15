@@ -5,7 +5,7 @@ package mocks
 
 import (
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
-	"github.com/minio/minio-go"
+	minio "github.com/minio/minio-go"
 	"io"
 	"sync"
 )
@@ -16,37 +16,37 @@ var _ s3manager.S3 = &S3Mock{}
 
 // S3Mock is a mock implementation of s3manager.S3.
 //
-//     func TestSomethingThatUsesS3(t *testing.T) {
+// 	func TestSomethingThatUsesS3(t *testing.T) {
 //
-//         // make and configure a mocked s3manager.S3
-//         mockedS3 := &S3Mock{
-//             GetObjectFunc: func(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
-// 	               panic("mock out the GetObject method")
-//             },
-//             ListBucketsFunc: func() ([]minio.BucketInfo, error) {
-// 	               panic("mock out the ListBuckets method")
-//             },
-//             ListObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-// 	               panic("mock out the ListObjectsV2 method")
-//             },
-//             MakeBucketFunc: func(bucketName string, location string) error {
-// 	               panic("mock out the MakeBucket method")
-//             },
-//             PutObjectFunc: func(bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (int64, error) {
-// 	               panic("mock out the PutObject method")
-//             },
-//             RemoveBucketFunc: func(bucketName string) error {
-// 	               panic("mock out the RemoveBucket method")
-//             },
-//             RemoveObjectFunc: func(bucketName string, objectName string) error {
-// 	               panic("mock out the RemoveObject method")
-//             },
-//         }
+// 		// make and configure a mocked s3manager.S3
+// 		mockedS3 := &S3Mock{
+// 			GetObjectFunc: func(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
+// 				panic("mock out the GetObject method")
+// 			},
+// 			ListBucketsFunc: func() ([]minio.BucketInfo, error) {
+// 				panic("mock out the ListBuckets method")
+// 			},
+// 			ListObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
+// 				panic("mock out the ListObjectsV2 method")
+// 			},
+// 			MakeBucketFunc: func(bucketName string, location string) error {
+// 				panic("mock out the MakeBucket method")
+// 			},
+// 			PutObjectFunc: func(bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (int64, error) {
+// 				panic("mock out the PutObject method")
+// 			},
+// 			RemoveBucketFunc: func(bucketName string) error {
+// 				panic("mock out the RemoveBucket method")
+// 			},
+// 			RemoveObjectFunc: func(bucketName string, objectName string) error {
+// 				panic("mock out the RemoveObject method")
+// 			},
+// 		}
 //
-//         // use mockedS3 in code that requires s3manager.S3
-//         // and then make assertions.
+// 		// use mockedS3 in code that requires s3manager.S3
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type S3Mock struct {
 	// GetObjectFunc mocks the GetObject method.
 	GetObjectFunc func(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
