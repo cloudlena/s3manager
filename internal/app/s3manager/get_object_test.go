@@ -2,7 +2,7 @@ package s3manager_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -57,7 +57,7 @@ func TestHandleGetObject(t *testing.T) {
 			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s/objects/%s", ts.URL, tc.bucketName, tc.objectName))
 			is.NoErr(err)
 			defer resp.Body.Close()
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 
 			is.Equal(tc.expectedStatusCode, resp.StatusCode)                 // status code

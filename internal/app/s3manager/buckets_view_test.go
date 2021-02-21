@@ -1,7 +1,7 @@
 package s3manager_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -70,7 +70,7 @@ func TestHandleBucketsView(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
 			defer resp.Body.Close()
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 
 			is.Equal(tc.expectedStatusCode, resp.StatusCode)                 // status code
