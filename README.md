@@ -18,6 +18,7 @@ The application can be configured with the following environment variables:
 - `ACCESS_KEY_ID`: Your S3 access key ID (required)
 - `SECRET_ACCESS_KEY`: Your S3 secret access key (required)
 - `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
+- `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
 - `PORT`: The port the s3manager app should listen on (defaults to `8080`)
 
 ### Build and Run Locally
