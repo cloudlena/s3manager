@@ -1,12 +1,13 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
+	"strconv"
 
 	"github.com/mastertinner/adapters/logging"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
@@ -27,11 +28,8 @@ func main() {
 	if !ok {
 		log.Fatal("please provide SECRET_ACCESS_KEY")
 	}
-	useSSLEnvVar, ok := os.LookupEnv("USE_SSL")
-	if !ok {
-		useSSLEnvVar = "true"
-	}
-	useSSL := strings.ToLower(useSSLEnvVar) == "true"
+	useSSL := getBoolEnvWithDefault("USE_SSL", true)
+	skipSSLVerification := getBoolEnvWithDefault("SKIP_SSL_VERIFICATION", false)
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		port = "8080"
@@ -43,6 +41,9 @@ func main() {
 	s3, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
+	}
+	if useSSL && skipSSLVerification {
+		s3.SetCustomTransport(&http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}) //nolint:gosec
 	}
 
 	// Set up router
@@ -58,4 +59,16 @@ func main() {
 
 	lr := logging.Handler(os.Stdout)(r)
 	log.Fatal(http.ListenAndServe(":"+port, lr))
+}
+
+func getBoolEnvWithDefault(name string, defaultValue bool) bool {
+	envValue, ok := os.LookupEnv(name)
+	if !ok {
+		return defaultValue
+	}
+	value, err := strconv.ParseBool(envValue)
+	if err != nil {
+		log.Fatalf("invalid value for %s", name)
+	}
+	return value
 }
