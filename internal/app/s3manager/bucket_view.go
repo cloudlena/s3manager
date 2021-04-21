@@ -3,16 +3,16 @@ package s3manager
 import (
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"path"
-	"path/filepath"
 
 	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
 )
 
 // HandleBucketView shows the details page of a bucket.
-func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
+func HandleBucketView(s3 S3, templates fs.FS) http.HandlerFunc {
 	type objectWithIcon struct {
 		Info minio.ObjectInfo
 		Icon string
@@ -43,9 +43,7 @@ func HandleBucketView(s3 S3, tmplDir string) http.HandlerFunc {
 			Objects:    objs,
 		}
 
-		l := filepath.Join(tmplDir, "layout.html.tmpl")
-		p := filepath.Join(tmplDir, "bucket.html.tmpl")
-		t, err := template.ParseFiles(l, p)
+		t, err := template.ParseFS(templates, "layout.html.tmpl", "bucket.html.tmpl")
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error parsing template files: %w", err))
 			return

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -133,9 +134,9 @@ func TestHandleBucketView(t *testing.T) {
 				ListObjectsV2Func: tc.listObjectsV2Func,
 			}
 
-			tmplDir := filepath.Join("..", "..", "..", "web", "template")
+			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 			r := way.NewRouter()
-			r.Handle(http.MethodGet, "/buckets/:bucketName", s3manager.HandleBucketView(s3, tmplDir))
+			r.Handle(http.MethodGet, "/buckets/:bucketName", s3manager.HandleBucketView(s3, templates))
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
