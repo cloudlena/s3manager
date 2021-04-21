@@ -1,10 +1,10 @@
 .PHONY: build
 build:
-	go build -o bin/s3manager ./cmd/s3manager
+	go build -o bin/s3manager
 
 .PHONY: run
 run:
-	go run cmd/s3manager/main.go
+	go run
 
 .PHONY: lint
 lint:
@@ -20,7 +20,7 @@ build-docker:
 
 .PHONY: deploy-cf
 deploy-cf:
-	GOOS=linux go build -ldflags="-s -w" -o bin/s3manager ./cmd/s3manager
+	GOOS=linux go build -ldflags="-s -w" -o bin/s3manager
 	cf push -f deployments/cf/manifest.yml
 
 .PHONY: clean
