@@ -3,6 +3,7 @@ linters:
   disable:
     - exhaustivestruct
     - funlen
+    - gochecknoglobals
     - ifshort
     - lll
     - nlreturn

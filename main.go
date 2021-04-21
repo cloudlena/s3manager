@@ -2,11 +2,12 @@ package main
 
 import (
 	"crypto/tls"
+	"embed"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/mastertinner/adapters/logging"
@@ -14,6 +15,9 @@ import (
 	"github.com/matryer/way"
 	minio "github.com/minio/minio-go"
 )
+
+//go:embed web/template
+var templateFS embed.FS
 
 func main() {
 	endpoint, ok := os.LookupEnv("ENDPOINT")
@@ -35,7 +39,11 @@ func main() {
 		port = "8080"
 	}
 
-	tmplDir := filepath.Join("web", "template")
+	// Set up templates
+	templates, err := fs.Sub(templateFS, "web/template")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Set up S3 client
 	s3, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
@@ -49,8 +57,8 @@ func main() {
 	// Set up router
 	r := way.NewRouter()
 	r.Handle(http.MethodGet, "/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect))
-	r.Handle(http.MethodGet, "/buckets", s3manager.HandleBucketsView(s3, tmplDir))
-	r.Handle(http.MethodGet, "/buckets/:bucketName", s3manager.HandleBucketView(s3, tmplDir))
+	r.Handle(http.MethodGet, "/buckets", s3manager.HandleBucketsView(s3, templates))
+	r.Handle(http.MethodGet, "/buckets/:bucketName", s3manager.HandleBucketView(s3, templates))
 	r.Handle(http.MethodPost, "/api/buckets", s3manager.HandleCreateBucket(s3))
 	r.Handle(http.MethodDelete, "/api/buckets/:bucketName", s3manager.HandleDeleteBucket(s3))
 	r.Handle(http.MethodPost, "/api/buckets/:bucketName/objects", s3manager.HandleCreateObject(s3))
