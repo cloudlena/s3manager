@@ -7,21 +7,8 @@ jobs:
     name: Verify
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ^1.16
-
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Lint code
-        uses: golangci/golangci-lint-action@v2
-        with:
-          version: latest
-
-      - name: Test
-        run: make test
-
-      - name: Build
-        run: make build
+      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - uses: golangci/golangci-lint-action@v2
+      - run: make test
+      - run: make build
