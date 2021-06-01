@@ -10,7 +10,6 @@ RUN apk add --no-cache \
   ca-certificates \
   dumb-init
 COPY --from=builder --chown=s3manager:s3manager /usr/src/app/bin/s3manager ./
-COPY --from=builder --chown=s3manager:s3manager /usr/src/app/web ./web/
 USER s3manager
 EXPOSE 8080
 ENTRYPOINT [ "/usr/bin/dumb-init", "--" ]
