@@ -1,6 +1,7 @@
 package s3manager_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 	"github.com/mastertinner/s3manager/internal/app/s3manager/mocks"
 	"github.com/matryer/is"
 	"github.com/matryer/way"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 )
 
 func TestHandleGetObject(t *testing.T) {
@@ -20,7 +21,7 @@ func TestHandleGetObject(t *testing.T) {
 
 	cases := []struct {
 		it                   string
-		getObjectFunc        func(string, string, minio.GetObjectOptions) (*minio.Object, error)
+		getObjectFunc        func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error)
 		bucketName           string
 		objectName           string
 		expectedStatusCode   int
@@ -28,7 +29,7 @@ func TestHandleGetObject(t *testing.T) {
 	}{
 		{
 			it: "returns error if there is an S3 error",
-			getObjectFunc: func(string, string, minio.GetObjectOptions) (*minio.Object, error) {
+			getObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
 				return nil, errS3
 			},
 			bucketName:           "testBucket",

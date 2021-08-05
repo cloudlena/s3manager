@@ -14,14 +14,9 @@ lint:
 test:
 	go test -race -cover ./...
 
-.PHONY: build-docker
-build-docker:
+.PHONY: build-image
+build-image:
 	docker build -t s3manager .
-
-.PHONY: deploy-cf
-deploy-cf:
-	GOOS=linux go build -ldflags="-s -w" -o bin/s3manager
-	cf push -f deployments/cf/manifest.yml
 
 .PHONY: clean
 clean:

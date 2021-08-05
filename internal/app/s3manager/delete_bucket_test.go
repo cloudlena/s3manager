@@ -1,6 +1,7 @@
 package s3manager_test
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,13 +18,13 @@ func TestHandleDeleteBucket(t *testing.T) {
 
 	cases := []struct {
 		it                   string
-		removeBucketFunc     func(string) error
+		removeBucketFunc     func(context.Context, string) error
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		{
 			it: "deletes an existing bucket",
-			removeBucketFunc: func(string) error {
+			removeBucketFunc: func(context.Context, string) error {
 				return nil
 			},
 			expectedStatusCode:   http.StatusNoContent,
@@ -31,7 +32,7 @@ func TestHandleDeleteBucket(t *testing.T) {
 		},
 		{
 			it: "returns error if there is an S3 error",
-			removeBucketFunc: func(string) error {
+			removeBucketFunc: func(context.Context, string) error {
 				return errS3
 			},
 			expectedStatusCode:   http.StatusInternalServerError,

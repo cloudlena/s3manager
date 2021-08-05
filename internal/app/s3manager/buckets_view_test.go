@@ -1,6 +1,7 @@
 package s3manager_test
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,7 @@ import (
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	"github.com/mastertinner/s3manager/internal/app/s3manager/mocks"
 	"github.com/matryer/is"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 )
 
 func TestHandleBucketsView(t *testing.T) {
@@ -20,13 +21,13 @@ func TestHandleBucketsView(t *testing.T) {
 
 	cases := []struct {
 		it                   string
-		listBucketsFunc      func() ([]minio.BucketInfo, error)
+		listBucketsFunc      func(context.Context) ([]minio.BucketInfo, error)
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		{
 			it: "renders a list of buckets",
-			listBucketsFunc: func() ([]minio.BucketInfo, error) {
+			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
 				return []minio.BucketInfo{{Name: "testBucket"}}, nil
 			},
 			expectedStatusCode:   http.StatusOK,
@@ -34,7 +35,7 @@ func TestHandleBucketsView(t *testing.T) {
 		},
 		{
 			it: "renders placeholder if no buckets",
-			listBucketsFunc: func() ([]minio.BucketInfo, error) {
+			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
 				return []minio.BucketInfo{}, nil
 			},
 			expectedStatusCode:   http.StatusOK,
@@ -42,7 +43,7 @@ func TestHandleBucketsView(t *testing.T) {
 		},
 		{
 			it: "returns error if there is an S3 error",
-			listBucketsFunc: func() ([]minio.BucketInfo, error) {
+			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
 				return []minio.BucketInfo{}, errS3
 			},
 			expectedStatusCode:   http.StatusInternalServerError,

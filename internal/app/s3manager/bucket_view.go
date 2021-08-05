@@ -8,7 +8,7 @@ import (
 	"path"
 
 	"github.com/matryer/way"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 )
 
 // HandleBucketView shows the details page of a bucket.
@@ -29,7 +29,7 @@ func HandleBucketView(s3 S3, templates fs.FS) http.HandlerFunc {
 		var objs []objectWithIcon
 		doneCh := make(chan struct{})
 		defer close(doneCh)
-		objectCh := s3.ListObjectsV2(bucketName, "", true, doneCh)
+		objectCh := s3.ListObjects(r.Context(), bucketName, minio.ListObjectsOptions{})
 		for object := range objectCh {
 			if object.Err != nil {
 				handleHTTPError(w, fmt.Errorf("error listing objects: %w", object.Err))

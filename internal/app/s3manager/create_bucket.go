@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 )
 
 // HandleCreateBucket creates a new bucket.
@@ -18,7 +18,7 @@ func HandleCreateBucket(s3 S3) http.HandlerFunc {
 			return
 		}
 
-		err = s3.MakeBucket(bucket.Name, "")
+		err = s3.MakeBucket(r.Context(), bucket.Name, minio.MakeBucketOptions{})
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error making bucket: %w", err))
 			return

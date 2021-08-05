@@ -1,6 +1,7 @@
 package s3manager_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 	"github.com/mastertinner/s3manager/internal/app/s3manager/mocks"
 	"github.com/matryer/is"
 	"github.com/matryer/way"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 )
 
 func TestHandleBucketView(t *testing.T) {
@@ -22,14 +23,14 @@ func TestHandleBucketView(t *testing.T) {
 
 	cases := []struct {
 		it                   string
-		listObjectsV2Func    func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo
+		listObjectsFunc      func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo
 		bucketName           string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		{
 			it: "renders a bucket containing a file",
-			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Key: "testFile"}
@@ -43,7 +44,7 @@ func TestHandleBucketView(t *testing.T) {
 		},
 		{
 			it: "renders placeholder for an empty bucket",
-			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				close(objCh)
 				return objCh
@@ -54,7 +55,7 @@ func TestHandleBucketView(t *testing.T) {
 		},
 		{
 			it: "renders a bucket containing an archive",
-			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Key: "archive.tar.gz"}
@@ -68,7 +69,7 @@ func TestHandleBucketView(t *testing.T) {
 		},
 		{
 			it: "renders a bucket containing an image",
-			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Key: "testImage.png"}
@@ -82,7 +83,7 @@ func TestHandleBucketView(t *testing.T) {
 		},
 		{
 			it: "renders a bucket containing a sound file",
-			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Key: "testSound.mp3"}
@@ -96,7 +97,7 @@ func TestHandleBucketView(t *testing.T) {
 		},
 		{
 			it: "returns error if the bucket doesn't exist",
-			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Err: errBucketDoesNotExist}
@@ -110,7 +111,7 @@ func TestHandleBucketView(t *testing.T) {
 		},
 		{
 			it: "returns error if there is an S3 error",
-			listObjectsV2Func: func(string, string, bool, <-chan struct{}) <-chan minio.ObjectInfo {
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
 					objCh <- minio.ObjectInfo{Err: errS3}
@@ -131,7 +132,7 @@ func TestHandleBucketView(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{
-				ListObjectsV2Func: tc.listObjectsV2Func,
+				ListObjectsFunc: tc.listObjectsFunc,
 			}
 
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))

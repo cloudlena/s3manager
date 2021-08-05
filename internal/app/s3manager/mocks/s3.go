@@ -4,8 +4,9 @@
 package mocks
 
 import (
+	"context"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 	"io"
 	"sync"
 )
@@ -20,25 +21,25 @@ var _ s3manager.S3 = &S3Mock{}
 //
 // 		// make and configure a mocked s3manager.S3
 // 		mockedS3 := &S3Mock{
-// 			GetObjectFunc: func(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
+// 			GetObjectFunc: func(ctx context.Context, bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
 // 				panic("mock out the GetObject method")
 // 			},
-// 			ListBucketsFunc: func() ([]minio.BucketInfo, error) {
+// 			ListBucketsFunc: func(ctx context.Context) ([]minio.BucketInfo, error) {
 // 				panic("mock out the ListBuckets method")
 // 			},
-// 			ListObjectsV2Func: func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-// 				panic("mock out the ListObjectsV2 method")
+// 			ListObjectsFunc: func(ctx context.Context, bucketName string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+// 				panic("mock out the ListObjects method")
 // 			},
-// 			MakeBucketFunc: func(bucketName string, location string) error {
+// 			MakeBucketFunc: func(ctx context.Context, bucketName string, opts minio.MakeBucketOptions) error {
 // 				panic("mock out the MakeBucket method")
 // 			},
-// 			PutObjectFunc: func(bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (int64, error) {
+// 			PutObjectFunc: func(ctx context.Context, bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (minio.UploadInfo, error) {
 // 				panic("mock out the PutObject method")
 // 			},
-// 			RemoveBucketFunc: func(bucketName string) error {
+// 			RemoveBucketFunc: func(ctx context.Context, bucketName string) error {
 // 				panic("mock out the RemoveBucket method")
 // 			},
-// 			RemoveObjectFunc: func(bucketName string, objectName string) error {
+// 			RemoveObjectFunc: func(ctx context.Context, bucketName string, objectName string, opts minio.RemoveObjectOptions) error {
 // 				panic("mock out the RemoveObject method")
 // 			},
 // 		}
@@ -49,30 +50,32 @@ var _ s3manager.S3 = &S3Mock{}
 // 	}
 type S3Mock struct {
 	// GetObjectFunc mocks the GetObject method.
-	GetObjectFunc func(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
+	GetObjectFunc func(ctx context.Context, bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
 
 	// ListBucketsFunc mocks the ListBuckets method.
-	ListBucketsFunc func() ([]minio.BucketInfo, error)
+	ListBucketsFunc func(ctx context.Context) ([]minio.BucketInfo, error)
 
-	// ListObjectsV2Func mocks the ListObjectsV2 method.
-	ListObjectsV2Func func(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo
+	// ListObjectsFunc mocks the ListObjects method.
+	ListObjectsFunc func(ctx context.Context, bucketName string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo
 
 	// MakeBucketFunc mocks the MakeBucket method.
-	MakeBucketFunc func(bucketName string, location string) error
+	MakeBucketFunc func(ctx context.Context, bucketName string, opts minio.MakeBucketOptions) error
 
 	// PutObjectFunc mocks the PutObject method.
-	PutObjectFunc func(bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (int64, error)
+	PutObjectFunc func(ctx context.Context, bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (minio.UploadInfo, error)
 
 	// RemoveBucketFunc mocks the RemoveBucket method.
-	RemoveBucketFunc func(bucketName string) error
+	RemoveBucketFunc func(ctx context.Context, bucketName string) error
 
 	// RemoveObjectFunc mocks the RemoveObject method.
-	RemoveObjectFunc func(bucketName string, objectName string) error
+	RemoveObjectFunc func(ctx context.Context, bucketName string, objectName string, opts minio.RemoveObjectOptions) error
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// GetObject holds details about calls to the GetObject method.
 		GetObject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// BucketName is the bucketName argument value.
 			BucketName string
 			// ObjectName is the objectName argument value.
@@ -82,27 +85,31 @@ type S3Mock struct {
 		}
 		// ListBuckets holds details about calls to the ListBuckets method.
 		ListBuckets []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 		}
-		// ListObjectsV2 holds details about calls to the ListObjectsV2 method.
-		ListObjectsV2 []struct {
+		// ListObjects holds details about calls to the ListObjects method.
+		ListObjects []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// BucketName is the bucketName argument value.
 			BucketName string
-			// ObjectPrefix is the objectPrefix argument value.
-			ObjectPrefix string
-			// Recursive is the recursive argument value.
-			Recursive bool
-			// DoneCh is the doneCh argument value.
-			DoneCh <-chan struct{}
+			// Opts is the opts argument value.
+			Opts minio.ListObjectsOptions
 		}
 		// MakeBucket holds details about calls to the MakeBucket method.
 		MakeBucket []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// BucketName is the bucketName argument value.
 			BucketName string
-			// Location is the location argument value.
-			Location string
+			// Opts is the opts argument value.
+			Opts minio.MakeBucketOptions
 		}
 		// PutObject holds details about calls to the PutObject method.
 		PutObject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// BucketName is the bucketName argument value.
 			BucketName string
 			// ObjectName is the objectName argument value.
@@ -116,36 +123,44 @@ type S3Mock struct {
 		}
 		// RemoveBucket holds details about calls to the RemoveBucket method.
 		RemoveBucket []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// BucketName is the bucketName argument value.
 			BucketName string
 		}
 		// RemoveObject holds details about calls to the RemoveObject method.
 		RemoveObject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// BucketName is the bucketName argument value.
 			BucketName string
 			// ObjectName is the objectName argument value.
 			ObjectName string
+			// Opts is the opts argument value.
+			Opts minio.RemoveObjectOptions
 		}
 	}
-	lockGetObject     sync.RWMutex
-	lockListBuckets   sync.RWMutex
-	lockListObjectsV2 sync.RWMutex
-	lockMakeBucket    sync.RWMutex
-	lockPutObject     sync.RWMutex
-	lockRemoveBucket  sync.RWMutex
-	lockRemoveObject  sync.RWMutex
+	lockGetObject    sync.RWMutex
+	lockListBuckets  sync.RWMutex
+	lockListObjects  sync.RWMutex
+	lockMakeBucket   sync.RWMutex
+	lockPutObject    sync.RWMutex
+	lockRemoveBucket sync.RWMutex
+	lockRemoveObject sync.RWMutex
 }
 
 // GetObject calls GetObjectFunc.
-func (mock *S3Mock) GetObject(bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
+func (mock *S3Mock) GetObject(ctx context.Context, bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
 	if mock.GetObjectFunc == nil {
 		panic("S3Mock.GetObjectFunc: method is nil but S3.GetObject was just called")
 	}
 	callInfo := struct {
+		Ctx        context.Context
 		BucketName string
 		ObjectName string
 		Opts       minio.GetObjectOptions
 	}{
+		Ctx:        ctx,
 		BucketName: bucketName,
 		ObjectName: objectName,
 		Opts:       opts,
@@ -153,18 +168,20 @@ func (mock *S3Mock) GetObject(bucketName string, objectName string, opts minio.G
 	mock.lockGetObject.Lock()
 	mock.calls.GetObject = append(mock.calls.GetObject, callInfo)
 	mock.lockGetObject.Unlock()
-	return mock.GetObjectFunc(bucketName, objectName, opts)
+	return mock.GetObjectFunc(ctx, bucketName, objectName, opts)
 }
 
 // GetObjectCalls gets all the calls that were made to GetObject.
 // Check the length with:
 //     len(mockedS3.GetObjectCalls())
 func (mock *S3Mock) GetObjectCalls() []struct {
+	Ctx        context.Context
 	BucketName string
 	ObjectName string
 	Opts       minio.GetObjectOptions
 } {
 	var calls []struct {
+		Ctx        context.Context
 		BucketName string
 		ObjectName string
 		Opts       minio.GetObjectOptions
@@ -176,24 +193,29 @@ func (mock *S3Mock) GetObjectCalls() []struct {
 }
 
 // ListBuckets calls ListBucketsFunc.
-func (mock *S3Mock) ListBuckets() ([]minio.BucketInfo, error) {
+func (mock *S3Mock) ListBuckets(ctx context.Context) ([]minio.BucketInfo, error) {
 	if mock.ListBucketsFunc == nil {
 		panic("S3Mock.ListBucketsFunc: method is nil but S3.ListBuckets was just called")
 	}
 	callInfo := struct {
-	}{}
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
 	mock.lockListBuckets.Lock()
 	mock.calls.ListBuckets = append(mock.calls.ListBuckets, callInfo)
 	mock.lockListBuckets.Unlock()
-	return mock.ListBucketsFunc()
+	return mock.ListBucketsFunc(ctx)
 }
 
 // ListBucketsCalls gets all the calls that were made to ListBuckets.
 // Check the length with:
 //     len(mockedS3.ListBucketsCalls())
 func (mock *S3Mock) ListBucketsCalls() []struct {
+	Ctx context.Context
 } {
 	var calls []struct {
+		Ctx context.Context
 	}
 	mock.lockListBuckets.RLock()
 	calls = mock.calls.ListBuckets
@@ -201,77 +223,77 @@ func (mock *S3Mock) ListBucketsCalls() []struct {
 	return calls
 }
 
-// ListObjectsV2 calls ListObjectsV2Func.
-func (mock *S3Mock) ListObjectsV2(bucketName string, objectPrefix string, recursive bool, doneCh <-chan struct{}) <-chan minio.ObjectInfo {
-	if mock.ListObjectsV2Func == nil {
-		panic("S3Mock.ListObjectsV2Func: method is nil but S3.ListObjectsV2 was just called")
+// ListObjects calls ListObjectsFunc.
+func (mock *S3Mock) ListObjects(ctx context.Context, bucketName string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+	if mock.ListObjectsFunc == nil {
+		panic("S3Mock.ListObjectsFunc: method is nil but S3.ListObjects was just called")
 	}
 	callInfo := struct {
-		BucketName   string
-		ObjectPrefix string
-		Recursive    bool
-		DoneCh       <-chan struct{}
+		Ctx        context.Context
+		BucketName string
+		Opts       minio.ListObjectsOptions
 	}{
-		BucketName:   bucketName,
-		ObjectPrefix: objectPrefix,
-		Recursive:    recursive,
-		DoneCh:       doneCh,
+		Ctx:        ctx,
+		BucketName: bucketName,
+		Opts:       opts,
 	}
-	mock.lockListObjectsV2.Lock()
-	mock.calls.ListObjectsV2 = append(mock.calls.ListObjectsV2, callInfo)
-	mock.lockListObjectsV2.Unlock()
-	return mock.ListObjectsV2Func(bucketName, objectPrefix, recursive, doneCh)
+	mock.lockListObjects.Lock()
+	mock.calls.ListObjects = append(mock.calls.ListObjects, callInfo)
+	mock.lockListObjects.Unlock()
+	return mock.ListObjectsFunc(ctx, bucketName, opts)
 }
 
-// ListObjectsV2Calls gets all the calls that were made to ListObjectsV2.
+// ListObjectsCalls gets all the calls that were made to ListObjects.
 // Check the length with:
-//     len(mockedS3.ListObjectsV2Calls())
-func (mock *S3Mock) ListObjectsV2Calls() []struct {
-	BucketName   string
-	ObjectPrefix string
-	Recursive    bool
-	DoneCh       <-chan struct{}
+//     len(mockedS3.ListObjectsCalls())
+func (mock *S3Mock) ListObjectsCalls() []struct {
+	Ctx        context.Context
+	BucketName string
+	Opts       minio.ListObjectsOptions
 } {
 	var calls []struct {
-		BucketName   string
-		ObjectPrefix string
-		Recursive    bool
-		DoneCh       <-chan struct{}
+		Ctx        context.Context
+		BucketName string
+		Opts       minio.ListObjectsOptions
 	}
-	mock.lockListObjectsV2.RLock()
-	calls = mock.calls.ListObjectsV2
-	mock.lockListObjectsV2.RUnlock()
+	mock.lockListObjects.RLock()
+	calls = mock.calls.ListObjects
+	mock.lockListObjects.RUnlock()
 	return calls
 }
 
 // MakeBucket calls MakeBucketFunc.
-func (mock *S3Mock) MakeBucket(bucketName string, location string) error {
+func (mock *S3Mock) MakeBucket(ctx context.Context, bucketName string, opts minio.MakeBucketOptions) error {
 	if mock.MakeBucketFunc == nil {
 		panic("S3Mock.MakeBucketFunc: method is nil but S3.MakeBucket was just called")
 	}
 	callInfo := struct {
+		Ctx        context.Context
 		BucketName string
-		Location   string
+		Opts       minio.MakeBucketOptions
 	}{
+		Ctx:        ctx,
 		BucketName: bucketName,
-		Location:   location,
+		Opts:       opts,
 	}
 	mock.lockMakeBucket.Lock()
 	mock.calls.MakeBucket = append(mock.calls.MakeBucket, callInfo)
 	mock.lockMakeBucket.Unlock()
-	return mock.MakeBucketFunc(bucketName, location)
+	return mock.MakeBucketFunc(ctx, bucketName, opts)
 }
 
 // MakeBucketCalls gets all the calls that were made to MakeBucket.
 // Check the length with:
 //     len(mockedS3.MakeBucketCalls())
 func (mock *S3Mock) MakeBucketCalls() []struct {
+	Ctx        context.Context
 	BucketName string
-	Location   string
+	Opts       minio.MakeBucketOptions
 } {
 	var calls []struct {
+		Ctx        context.Context
 		BucketName string
-		Location   string
+		Opts       minio.MakeBucketOptions
 	}
 	mock.lockMakeBucket.RLock()
 	calls = mock.calls.MakeBucket
@@ -280,17 +302,19 @@ func (mock *S3Mock) MakeBucketCalls() []struct {
 }
 
 // PutObject calls PutObjectFunc.
-func (mock *S3Mock) PutObject(bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (int64, error) {
+func (mock *S3Mock) PutObject(ctx context.Context, bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (minio.UploadInfo, error) {
 	if mock.PutObjectFunc == nil {
 		panic("S3Mock.PutObjectFunc: method is nil but S3.PutObject was just called")
 	}
 	callInfo := struct {
+		Ctx        context.Context
 		BucketName string
 		ObjectName string
 		Reader     io.Reader
 		ObjectSize int64
 		Opts       minio.PutObjectOptions
 	}{
+		Ctx:        ctx,
 		BucketName: bucketName,
 		ObjectName: objectName,
 		Reader:     reader,
@@ -300,13 +324,14 @@ func (mock *S3Mock) PutObject(bucketName string, objectName string, reader io.Re
 	mock.lockPutObject.Lock()
 	mock.calls.PutObject = append(mock.calls.PutObject, callInfo)
 	mock.lockPutObject.Unlock()
-	return mock.PutObjectFunc(bucketName, objectName, reader, objectSize, opts)
+	return mock.PutObjectFunc(ctx, bucketName, objectName, reader, objectSize, opts)
 }
 
 // PutObjectCalls gets all the calls that were made to PutObject.
 // Check the length with:
 //     len(mockedS3.PutObjectCalls())
 func (mock *S3Mock) PutObjectCalls() []struct {
+	Ctx        context.Context
 	BucketName string
 	ObjectName string
 	Reader     io.Reader
@@ -314,6 +339,7 @@ func (mock *S3Mock) PutObjectCalls() []struct {
 	Opts       minio.PutObjectOptions
 } {
 	var calls []struct {
+		Ctx        context.Context
 		BucketName string
 		ObjectName string
 		Reader     io.Reader
@@ -327,28 +353,32 @@ func (mock *S3Mock) PutObjectCalls() []struct {
 }
 
 // RemoveBucket calls RemoveBucketFunc.
-func (mock *S3Mock) RemoveBucket(bucketName string) error {
+func (mock *S3Mock) RemoveBucket(ctx context.Context, bucketName string) error {
 	if mock.RemoveBucketFunc == nil {
 		panic("S3Mock.RemoveBucketFunc: method is nil but S3.RemoveBucket was just called")
 	}
 	callInfo := struct {
+		Ctx        context.Context
 		BucketName string
 	}{
+		Ctx:        ctx,
 		BucketName: bucketName,
 	}
 	mock.lockRemoveBucket.Lock()
 	mock.calls.RemoveBucket = append(mock.calls.RemoveBucket, callInfo)
 	mock.lockRemoveBucket.Unlock()
-	return mock.RemoveBucketFunc(bucketName)
+	return mock.RemoveBucketFunc(ctx, bucketName)
 }
 
 // RemoveBucketCalls gets all the calls that were made to RemoveBucket.
 // Check the length with:
 //     len(mockedS3.RemoveBucketCalls())
 func (mock *S3Mock) RemoveBucketCalls() []struct {
+	Ctx        context.Context
 	BucketName string
 } {
 	var calls []struct {
+		Ctx        context.Context
 		BucketName string
 	}
 	mock.lockRemoveBucket.RLock()
@@ -358,33 +388,41 @@ func (mock *S3Mock) RemoveBucketCalls() []struct {
 }
 
 // RemoveObject calls RemoveObjectFunc.
-func (mock *S3Mock) RemoveObject(bucketName string, objectName string) error {
+func (mock *S3Mock) RemoveObject(ctx context.Context, bucketName string, objectName string, opts minio.RemoveObjectOptions) error {
 	if mock.RemoveObjectFunc == nil {
 		panic("S3Mock.RemoveObjectFunc: method is nil but S3.RemoveObject was just called")
 	}
 	callInfo := struct {
+		Ctx        context.Context
 		BucketName string
 		ObjectName string
+		Opts       minio.RemoveObjectOptions
 	}{
+		Ctx:        ctx,
 		BucketName: bucketName,
 		ObjectName: objectName,
+		Opts:       opts,
 	}
 	mock.lockRemoveObject.Lock()
 	mock.calls.RemoveObject = append(mock.calls.RemoveObject, callInfo)
 	mock.lockRemoveObject.Unlock()
-	return mock.RemoveObjectFunc(bucketName, objectName)
+	return mock.RemoveObjectFunc(ctx, bucketName, objectName, opts)
 }
 
 // RemoveObjectCalls gets all the calls that were made to RemoveObject.
 // Check the length with:
 //     len(mockedS3.RemoveObjectCalls())
 func (mock *S3Mock) RemoveObjectCalls() []struct {
+	Ctx        context.Context
 	BucketName string
 	ObjectName string
+	Opts       minio.RemoveObjectOptions
 } {
 	var calls []struct {
+		Ctx        context.Context
 		BucketName string
 		ObjectName string
+		Opts       minio.RemoveObjectOptions
 	}
 	mock.lockRemoveObject.RLock()
 	calls = mock.calls.RemoveObject
