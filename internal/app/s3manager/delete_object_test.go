@@ -1,6 +1,7 @@
 package s3manager_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	"github.com/mastertinner/s3manager/internal/app/s3manager/mocks"
 	"github.com/matryer/is"
+	"github.com/minio/minio-go/v7"
 )
 
 func TestHandleDeleteObject(t *testing.T) {
@@ -16,13 +18,13 @@ func TestHandleDeleteObject(t *testing.T) {
 
 	cases := []struct {
 		it                   string
-		removeObjectFunc     func(string, string) error
+		removeObjectFunc     func(context.Context, string, string, minio.RemoveObjectOptions) error
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		{
 			it: "deletes an existing object",
-			removeObjectFunc: func(string, string) error {
+			removeObjectFunc: func(context.Context, string, string, minio.RemoveObjectOptions) error {
 				return nil
 			},
 			expectedStatusCode:   http.StatusNoContent,
@@ -30,7 +32,7 @@ func TestHandleDeleteObject(t *testing.T) {
 		},
 		{
 			it: "returns error if there is an S3 error",
-			removeObjectFunc: func(string, string) error {
+			removeObjectFunc: func(context.Context, string, string, minio.RemoveObjectOptions) error {
 				return errS3
 			},
 			expectedStatusCode:   http.StatusInternalServerError,

@@ -2,6 +2,7 @@ package s3manager_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	"github.com/mastertinner/s3manager/internal/app/s3manager/mocks"
 	"github.com/matryer/is"
+	"github.com/minio/minio-go/v7"
 )
 
 func TestHandleCreateBucket(t *testing.T) {
@@ -18,14 +20,14 @@ func TestHandleCreateBucket(t *testing.T) {
 
 	cases := []struct {
 		it                   string
-		makeBucketFunc       func(string, string) error
+		makeBucketFunc       func(context.Context, string, minio.MakeBucketOptions) error
 		body                 string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
 		{
 			it: "creates a new bucket",
-			makeBucketFunc: func(string, string) error {
+			makeBucketFunc: func(context.Context, string, minio.MakeBucketOptions) error {
 				return nil
 			},
 			body:                 `{"name":"myBucket"}`,
@@ -34,7 +36,7 @@ func TestHandleCreateBucket(t *testing.T) {
 		},
 		{
 			it: "returns error for empty request",
-			makeBucketFunc: func(string, string) error {
+			makeBucketFunc: func(context.Context, string, minio.MakeBucketOptions) error {
 				return nil
 			},
 			body:                 "",
@@ -43,7 +45,7 @@ func TestHandleCreateBucket(t *testing.T) {
 		},
 		{
 			it: "returns error for malformed request",
-			makeBucketFunc: func(string, string) error {
+			makeBucketFunc: func(context.Context, string, minio.MakeBucketOptions) error {
 				return nil
 			},
 			body:                 "}",
@@ -52,7 +54,7 @@ func TestHandleCreateBucket(t *testing.T) {
 		},
 		{
 			it: "returns error if there is an S3 error",
-			makeBucketFunc: func(string, string) error {
+			makeBucketFunc: func(context.Context, string, minio.MakeBucketOptions) error {
 				return errS3
 			},
 			body:                 `{"name":"myBucket"}`,

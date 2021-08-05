@@ -13,7 +13,8 @@ import (
 	"github.com/mastertinner/adapters/logging"
 	"github.com/mastertinner/s3manager/internal/app/s3manager"
 	"github.com/matryer/way"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 //go:embed web/template
@@ -32,6 +33,7 @@ func main() {
 	if !ok {
 		log.Fatal("please provide SECRET_ACCESS_KEY")
 	}
+	region := os.Getenv("REGION")
 	useSSL := getBoolEnvWithDefault("USE_SSL", true)
 	skipSSLVerification := getBoolEnvWithDefault("SKIP_SSL_VERIFICATION", false)
 	port, ok := os.LookupEnv("PORT")
@@ -46,12 +48,19 @@ func main() {
 	}
 
 	// Set up S3 client
-	s3, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
-	if err != nil {
-		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
+	opts := &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
+	}
+	if region != "" {
+		opts.Region = region
 	}
 	if useSSL && skipSSLVerification {
-		s3.SetCustomTransport(&http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}) //nolint:gosec
+		opts.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec
+	}
+	s3, err := minio.New(endpoint, opts)
+	if err != nil {
+		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
 	}
 
 	// Set up router

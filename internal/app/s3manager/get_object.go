@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/matryer/way"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 )
 
 // HandleGetObject downloads an object to the client.
@@ -15,7 +15,7 @@ func HandleGetObject(s3 S3) http.HandlerFunc {
 		bucketName := way.Param(r.Context(), "bucketName")
 		objectName := way.Param(r.Context(), "objectName")
 
-		object, err := s3.GetObject(bucketName, objectName, minio.GetObjectOptions{})
+		object, err := s3.GetObject(r.Context(), bucketName, objectName, minio.GetObjectOptions{})
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error getting object: %w", err))
 			return
