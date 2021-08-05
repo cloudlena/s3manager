@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/matryer/way"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 )
 
 // HandleCreateObject uploads a new object.
@@ -26,7 +26,7 @@ func HandleCreateObject(s3 S3) http.HandlerFunc {
 		defer file.Close()
 
 		opts := minio.PutObjectOptions{ContentType: "application/octet-stream"}
-		_, err = s3.PutObject(bucketName, header.Filename, file, -1, opts)
+		_, err = s3.PutObject(r.Context(), bucketName, header.Filename, file, -1, opts)
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error putting object: %w", err))
 			return
