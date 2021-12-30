@@ -10,8 +10,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/mastertinner/adapters/logging"
-	"github.com/mastertinner/s3manager/internal/app/s3manager"
+	"github.com/cloudlena/adapters/logging"
+	"github.com/cloudlena/s3manager/internal/app/s3manager"
 	"github.com/matryer/way"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
