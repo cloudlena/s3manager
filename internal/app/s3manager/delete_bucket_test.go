@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mastertinner/s3manager/internal/app/s3manager"
-	"github.com/mastertinner/s3manager/internal/app/s3manager/mocks"
+	"github.com/cloudlena/s3manager/internal/app/s3manager"
+	"github.com/cloudlena/s3manager/internal/app/s3manager/mocks"
 	"github.com/matryer/is"
 )
 

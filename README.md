@@ -1,12 +1,11 @@
 # S3 Manager
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/mastertinner/s3manager?style=flat-square)](https://goreportcard.com/report/github.com/mastertinner/s3manager)
-[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fmastertinner%2Fs3manager%2Fbadge&style=flat-square)](https://github.com/mastertinner/s3manager/actions)
-[![Docker Build](https://img.shields.io/docker/cloud/build/mastertinner/s3manager.svg?style=flat-square)](https://hub.docker.com/r/mastertinner/s3manager)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cloudlena/s3manager?style=flat-square)](https://goreportcard.com/report/github.com/cloudlena/s3manager)
+[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fcloudlena%2Fs3manager%2Fbadge&style=flat-square)](https://github.com/cloudlena/s3manager/actions)
 
 A Web GUI written in Go to manage S3 buckets from any provider.
 
-![Screenshot](https://raw.githubusercontent.com/mastertinner/s3manager/master/screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/cloudlena/s3manager/master/screenshot.png)
 
 ## Usage
 
@@ -49,7 +48,7 @@ The image is available on [Docker Hub](https://hub.docker.com/r/mastertinner/s3m
 
 ### Run Locally for Testing
 
-There is an example [docker-compose.yml](https://github.com/mastertinner/s3manager/blob/master/docker-compose.yml) file that spins up an S3 service and the s3manager. You can try it by issuing the following command:
+There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/master/docker-compose.yml) file that spins up an S3 service and the s3manager. You can try it by issuing the following command:
 
 ```shell
 $ docker-compose up

@@ -4,9 +4,14 @@ linters:
     - exhaustivestruct
     - funlen
     - gochecknoglobals
+    - golint
     - ifshort
+    - interfacer
     - lll
+    - maligned
     - nlreturn
+    - scopelint
+    - varnamelen
     - wsl
 
 issues:
@@ -18,7 +23,5 @@ issues:
 linters-settings:
   govet:
     check-shadowing: true
-  maligned:
-    suggest-new: true
   misspell:
     locale: US
