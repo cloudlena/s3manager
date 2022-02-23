@@ -7,6 +7,15 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 
 ![Screenshot](https://raw.githubusercontent.com/cloudlena/s3manager/master/screenshot.png)
 
+## Features
+
+- List all buckets in your account
+- Create a new bucket
+- List all objects in a bucket
+- Upload new objects to a bucket
+- Download object from a bucket
+- Delete an object in a bucket
+
 ## Usage
 
 ### Configuration
@@ -28,7 +37,7 @@ The application can be configured with the following environment variables:
 
 ### Run Container image
 
-1. Run `docker run -p 8080:8080 -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' mastertinner/s3manager`
+1. Run `docker run -p 8080:8080 -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' cloudlena/s3manager`
 
 ## Development
 
@@ -42,7 +51,7 @@ The application can be configured with the following environment variables:
 
 ### Build Container Image
 
-The image is available on [Docker Hub](https://hub.docker.com/r/mastertinner/s3manager/)
+The image is available on [Docker Hub](https://hub.docker.com/r/cloudlena/s3manager/)
 
 1.  Run `make build-image`
 
