@@ -1,7 +1,7 @@
 # S3 Manager
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/cloudlena/s3manager?style=flat-square)](https://goreportcard.com/report/github.com/cloudlena/s3manager)
-[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fcloudlena%2Fs3manager%2Fbadge&style=flat-square)](https://github.com/cloudlena/s3manager/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cloudlena/s3manager)](https://goreportcard.com/report/github.com/cloudlena/s3manager)
+[![Build Status](https://github.com/cloudlena/s3manager/actions/workflows/main.yml/badge.svg)](https://github.com/cloudlena/s3manager/actions)
 
 A Web GUI written in Go to manage S3 buckets from any provider.
 

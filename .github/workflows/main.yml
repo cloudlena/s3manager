@@ -6,8 +6,15 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
-      - uses: actions/checkout@v2
-      - uses: golangci/golangci-lint-action@v2
-      - run: make test
-      - run: make build
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18"
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Lint code
+        uses: golangci/golangci-lint-action@v3
+      - name: Run tests
+        run: make test
+      - name: Build application
+        run: make build
