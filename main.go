@@ -22,19 +22,29 @@ import (
 var templateFS embed.FS
 
 func main() {
+	var (
+		accessKeyID, secretAccessKey, iamEndpoint string
+	)
+
 	viper.AutomaticEnv()
 
 	viper.SetDefault("ENDPOINT", "s3.amazonaws.com")
 	endpoint := viper.GetString("ENDPOINT")
 
-	accessKeyID := viper.GetString("ACCESS_KEY_ID")
-	if len(accessKeyID) == 0 {
-		log.Fatal("please provide ACCESS_KEY_ID")
-	}
+	useIam := viper.GetBool("USE_IAM")
 
-	secretAccessKey := viper.GetString("SECRET_ACCESS_KEY")
-	if len(secretAccessKey) == 0 {
-		log.Fatal("please provide SECRET_ACCESS_KEY")
+	if useIam {
+		iamEndpoint = viper.GetString("IAM_ENDPOINT")
+	} else {
+		accessKeyID = viper.GetString("ACCESS_KEY_ID")
+		if len(accessKeyID) == 0 {
+			log.Fatal("please provide ACCESS_KEY_ID")
+		}
+
+		secretAccessKey = viper.GetString("SECRET_ACCESS_KEY")
+		if len(secretAccessKey) == 0 {
+			log.Fatal("please provide SECRET_ACCESS_KEY")
+		}
 	}
 
 	region := viper.GetString("REGION")
@@ -64,9 +74,14 @@ func main() {
 
 	// Set up S3 client
 	opts := &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: useSSL,
 	}
+	if useIam {
+		opts.Creds = credentials.NewIAM(iamEndpoint)
+	} else {
+		opts.Creds = credentials.NewStaticV4(accessKeyID, secretAccessKey, "")
+	}
+
 	if region != "" {
 		opts.Region = region
 	}
