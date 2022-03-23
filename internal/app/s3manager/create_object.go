@@ -2,16 +2,18 @@ package s3manager
 
 import (
 	"fmt"
+	"log"
+	"mime/multipart"
 	"net/http"
 
-	"github.com/matryer/way"
+	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 )
 
 // HandleCreateObject uploads a new object.
 func HandleCreateObject(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		bucketName := way.Param(r.Context(), "bucketName")
+		bucketName := mux.Vars(r)["bucketName"]
 
 		err := r.ParseMultipartForm(0)
 		if err != nil {
@@ -23,7 +25,12 @@ func HandleCreateObject(s3 S3) http.HandlerFunc {
 			handleHTTPError(w, fmt.Errorf("error getting file from form: %w", err))
 			return
 		}
-		defer file.Close()
+		defer func(file multipart.File) {
+			err := file.Close()
+			if err != nil {
+				log.Fatal(fmt.Errorf("file cannot be closed: %w", err))
+			}
+		}(file)
 
 		opts := minio.PutObjectOptions{ContentType: "application/octet-stream"}
 		_, err = s3.PutObject(r.Context(), bucketName, header.Filename, file, -1, opts)

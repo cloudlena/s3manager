@@ -11,11 +11,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gorilla/mux"
+	"github.com/matryer/is"
+	"github.com/minio/minio-go/v7"
+
 	"github.com/cloudlena/s3manager/internal/app/s3manager"
 	"github.com/cloudlena/s3manager/internal/app/s3manager/mocks"
-	"github.com/matryer/is"
-	"github.com/matryer/way"
-	"github.com/minio/minio-go/v7"
 )
 
 func TestHandleBucketView(t *testing.T) {
@@ -136,8 +137,8 @@ func TestHandleBucketView(t *testing.T) {
 			}
 
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
-			r := way.NewRouter()
-			r.Handle(http.MethodGet, "/buckets/:bucketName", s3manager.HandleBucketView(s3, templates))
+			r := mux.NewRouter()
+			r.Handle("/buckets/{bucketName}", s3manager.HandleBucketView(s3, templates, true, true)).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

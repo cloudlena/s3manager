@@ -5,10 +5,11 @@ package mocks
 
 import (
 	"context"
-	"github.com/cloudlena/s3manager/internal/app/s3manager"
-	"github.com/minio/minio-go/v7"
 	"io"
 	"sync"
+
+	"github.com/cloudlena/s3manager/internal/app/s3manager"
+	"github.com/minio/minio-go/v7"
 )
 
 // Ensure, that S3Mock does implement s3manager.S3.

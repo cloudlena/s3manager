@@ -46,8 +46,10 @@
                     </button>
                     <!-- Dropdown Structure -->
                     <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
-                        <li><a href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Info.Key }}">Download</a></li>
+                        <li><a target="_blank" href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Info.Key }}">Download</a></li>
+                        {{- if $.AllowDelete }}
                         <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Info.Key }})">Delete</a></li>
+                        {{- end }}
                     </ul>
                 </td>
             </tr>
