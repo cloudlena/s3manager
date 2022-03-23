@@ -1,6 +1,7 @@
 services:
   s3manager:
     build: .
+
     ports:
       - 8080:8080
     environment:
@@ -13,6 +14,11 @@ services:
   s3:
     image: minio/minio
     command: server /data
+    ports:
+      - 9000:9000
+      - 9001:9001
     environment:
       - MINIO_ACCESS_KEY=s3manager
       - MINIO_SECRET_KEY=s3manager
+      - MINIO_ADDRESS=0.0.0.0:9000
+      - MINIO_CONSOLE_ADDRESS=0.0.0.0:9001
