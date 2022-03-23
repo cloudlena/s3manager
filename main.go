@@ -8,38 +8,53 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/cloudlena/adapters/logging"
-	"github.com/cloudlena/s3manager/internal/app/s3manager"
-	"github.com/matryer/way"
+	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/spf13/viper"
+
+	"github.com/cloudlena/s3manager/internal/app/s3manager"
 )
 
 //go:embed web/template
 var templateFS embed.FS
 
 func main() {
-	endpoint, ok := os.LookupEnv("ENDPOINT")
-	if !ok {
-		endpoint = "s3.amazonaws.com"
-	}
-	accessKeyID, ok := os.LookupEnv("ACCESS_KEY_ID")
-	if !ok {
+	viper.AutomaticEnv()
+
+	viper.SetDefault("ENDPOINT", "s3.amazonaws.com")
+	endpoint := viper.GetString("ENDPOINT")
+
+	accessKeyID := viper.GetString("ACCESS_KEY_ID")
+	if len(accessKeyID) == 0 {
 		log.Fatal("please provide ACCESS_KEY_ID")
 	}
-	secretAccessKey, ok := os.LookupEnv("SECRET_ACCESS_KEY")
-	if !ok {
+
+	secretAccessKey := viper.GetString("SECRET_ACCESS_KEY")
+	if len(secretAccessKey) == 0 {
 		log.Fatal("please provide SECRET_ACCESS_KEY")
 	}
-	region := os.Getenv("REGION")
-	useSSL := getBoolEnvWithDefault("USE_SSL", true)
-	skipSSLVerification := getBoolEnvWithDefault("SKIP_SSL_VERIFICATION", false)
-	port, ok := os.LookupEnv("PORT")
-	if !ok {
-		port = "8080"
-	}
+
+	region := viper.GetString("REGION")
+
+	viper.SetDefault("ALLOW_DELETE", true)
+	allowDelete := viper.GetBool("ALLOW_DELETE")
+
+	viper.SetDefault("FORCE_DOWNLOAD", true)
+	forceDownload := viper.GetBool("FORCE_DOWNLOAD")
+
+	viper.SetDefault("USE_SSL", true)
+	useSSL := viper.GetBool("USE_SSL")
+
+	viper.SetDefault("SKIP_SSL_VERIFICATION", false)
+	skipSSLVerification := viper.GetBool("SKIP_SSL_VERIFICATION")
+
+	listRecursive := viper.GetBool("LIST_RECURSIVE")
+
+	viper.SetDefault("PORT", "8080")
+	port := viper.GetString("PORT")
 
 	// Set up templates
 	templates, err := fs.Sub(templateFS, "web/template")
@@ -64,28 +79,20 @@ func main() {
 	}
 
 	// Set up router
-	r := way.NewRouter()
-	r.Handle(http.MethodGet, "/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect))
-	r.Handle(http.MethodGet, "/buckets", s3manager.HandleBucketsView(s3, templates))
-	r.Handle(http.MethodGet, "/buckets/:bucketName", s3manager.HandleBucketView(s3, templates))
-	r.Handle(http.MethodPost, "/api/buckets", s3manager.HandleCreateBucket(s3))
-	r.Handle(http.MethodDelete, "/api/buckets/:bucketName", s3manager.HandleDeleteBucket(s3))
-	r.Handle(http.MethodPost, "/api/buckets/:bucketName/objects", s3manager.HandleCreateObject(s3))
-	r.Handle(http.MethodGet, "/api/buckets/:bucketName/objects/:objectName", s3manager.HandleGetObject(s3))
-	r.Handle(http.MethodDelete, "/api/buckets/:bucketName/objects/:objectName", s3manager.HandleDeleteObject(s3))
+	r := mux.NewRouter()
+	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
+	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, allowDelete)).Methods(http.MethodGet)
+	r.Handle("/buckets/{bucketName}", s3manager.HandleBucketView(s3, templates, allowDelete, listRecursive)).Methods(http.MethodGet)
+	r.Handle("/api/buckets", s3manager.HandleCreateBucket(s3)).Methods(http.MethodPost)
+	if allowDelete {
+		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucket(s3)).Methods(http.MethodDelete)
+	}
+	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3)).Methods(http.MethodPost)
+	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObject(s3, forceDownload)).Methods(http.MethodGet)
+	if allowDelete {
+		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObject(s3)).Methods(http.MethodDelete)
+	}
 
 	lr := logging.Handler(os.Stdout)(r)
 	log.Fatal(http.ListenAndServe(":"+port, lr))
-}
-
-func getBoolEnvWithDefault(name string, defaultValue bool) bool {
-	envValue, ok := os.LookupEnv(name)
-	if !ok {
-		return defaultValue
-	}
-	value, err := strconv.ParseBool(envValue)
-	if err != nil {
-		log.Fatalf("invalid value for %s", name)
-	}
-	return value
 }

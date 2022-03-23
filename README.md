@@ -29,6 +29,9 @@ The application can be configured with the following environment variables:
 - `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
 - `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
 - `PORT`: The port the s3manager app should listen on (defaults to `8080`)
+- `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
+- `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
+- `LIST_RECURSIVE`: List all objects in the bucket recursively (defaults to `false`)
 
 ### Build and Run Locally
 
