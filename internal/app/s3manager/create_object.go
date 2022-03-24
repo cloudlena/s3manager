@@ -26,8 +26,7 @@ func HandleCreateObject(s3 S3) http.HandlerFunc {
 			return
 		}
 		defer func(file multipart.File) {
-			err := file.Close()
-			if err != nil {
+			if err = file.Close(); err != nil {
 				log.Fatal(fmt.Errorf("file cannot be closed: %w", err))
 			}
 		}(file)

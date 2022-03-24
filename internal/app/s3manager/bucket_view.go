@@ -30,9 +30,8 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		var objs []objectWithIcon
 		doneCh := make(chan struct{})
 		defer close(doneCh)
-		opts := minio.ListObjectsOptions{}
-		if listRecursive {
-			opts.Recursive = true
+		opts := minio.ListObjectsOptions{
+			Recursive: listRecursive,
 		}
 		objectCh := s3.ListObjects(r.Context(), bucketName, opts)
 		for object := range objectCh {

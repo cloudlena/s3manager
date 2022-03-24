@@ -24,14 +24,14 @@ The application can be configured with the following environment variables:
 
 - `ENDPOINT`: The endpoint of your S3 server (defaults to `s3.amazonaws.com`)
 - `REGION`: The region of your S3 server (defaults to `""`)
-- `ACCESS_KEY_ID`: Your S3 access key ID (required) (works only is `USE_IAM` is `false`)
-- `SECRET_ACCESS_KEY`: Your S3 secret access key (required) (works only is `USE_IAM` is `false`)
+- `ACCESS_KEY_ID`: Your S3 access key ID (required) (works only if `USE_IAM` is `false`)
+- `SECRET_ACCESS_KEY`: Your S3 secret access key (required) (works only if `USE_IAM` is `false`)
 - `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
 - `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
 - `PORT`: The port the s3manager app should listen on (defaults to `8080`)
 - `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
 - `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
-- `LIST_RECURSIVE`: List all objects in the bucket recursively (defaults to `false`)
+- `LIST_RECURSIVE`: List all objects in buckets recursively (defaults to `false`)
 - `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)
 - `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
 
