@@ -10,21 +10,18 @@ import (
 	"os"
 
 	"github.com/cloudlena/adapters/logging"
+	"github.com/cloudlena/s3manager/internal/app/s3manager"
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/viper"
-
-	"github.com/cloudlena/s3manager/internal/app/s3manager"
 )
 
 //go:embed web/template
 var templateFS embed.FS
 
 func main() {
-	var (
-		accessKeyID, secretAccessKey, iamEndpoint string
-	)
+	var accessKeyID, secretAccessKey, iamEndpoint string
 
 	viper.AutomaticEnv()
 
