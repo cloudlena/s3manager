@@ -44,9 +44,9 @@ The application can be configured with the following environment variables:
 
 1. Run `docker run -p 8080:8080 -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' cloudlena/s3manager`
 
-### Deploy options
+### Deploy to Kubernetes
 
-You can deploy s3manager in kubernetes cluster with helm chart: https://github.com/sergeyshevch/s3manager-helm
+You can deploy s3manager to a Kubernetes cluster using the [Helm chart](https://github.com/sergeyshevch/s3manager-helm).
 
 ## Development
 
