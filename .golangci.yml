@@ -1,6 +1,7 @@
 linters:
   enable-all: true
   disable:
+    - cyclop
     - exhaustivestruct
     - funlen
     - gochecknoglobals
