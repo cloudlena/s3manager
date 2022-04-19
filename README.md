@@ -60,7 +60,7 @@ You can deploy s3manager to a Kubernetes cluster using the [Helm chart](https://
 
 ### Build Container Image
 
-The image is available on [Docker Hub](https://hub.docker.com/r/cloudlena/s3manager/)
+The image is available on [Docker Hub](https://hub.docker.com/r/cloudlena/s3manager/).
 
 1.  Run `make build-image`
 
