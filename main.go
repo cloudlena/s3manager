@@ -20,6 +20,9 @@ import (
 //go:embed web/template
 var templateFS embed.FS
 
+//go:embed static
+var staticFS embed.FS
+
 func main() {
 	var accessKeyID, secretAccessKey, iamEndpoint string
 
@@ -68,6 +71,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Set up templates
+	statics, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Set up S3 client
 	opts := &minio.Options{
@@ -93,6 +101,7 @@ func main() {
 	// Set up router
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
 	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, allowDelete)).Methods(http.MethodGet)
 	r.Handle("/buckets/{bucketName}", s3manager.HandleBucketView(s3, templates, allowDelete, listRecursive)).Methods(http.MethodGet)
 	r.Handle("/api/buckets", s3manager.HandleCreateBucket(s3)).Methods(http.MethodPost)
