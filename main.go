@@ -71,7 +71,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Set up templates
+	// Set up statics
 	statics, err := fs.Sub(staticFS, "static")
 	if err != nil {
 		log.Fatal(err)
