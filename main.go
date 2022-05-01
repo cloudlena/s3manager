@@ -20,7 +20,7 @@ import (
 //go:embed web/template
 var templateFS embed.FS
 
-//go:embed static
+//go:embed web/static
 var staticFS embed.FS
 
 func main() {
@@ -72,7 +72,7 @@ func main() {
 		log.Fatal(err)
 	}
 	// Set up statics
-	statics, err := fs.Sub(staticFS, "static")
+	statics, err := fs.Sub(staticFS, "web/static")
 	if err != nil {
 		log.Fatal(err)
 	}
