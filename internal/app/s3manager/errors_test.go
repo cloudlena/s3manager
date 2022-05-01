@@ -4,5 +4,5 @@ import "errors"
 
 var (
 	errS3                 = errors.New("mocked s3 error")
-	errBucketDoesNotExist = errors.New("The specified bucket does not exist")
+	errBucketDoesNotExist = errors.New("error: The specified bucket does not exist")
 )

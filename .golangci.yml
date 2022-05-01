@@ -3,6 +3,7 @@ linters:
   disable:
     - cyclop
     - exhaustivestruct
+    - exhaustruct
     - funlen
     - gochecknoglobals
     - golint
