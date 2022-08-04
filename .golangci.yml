@@ -2,6 +2,7 @@ linters:
   enable-all: true
   disable:
     - cyclop
+    - deadcode
     - exhaustivestruct
     - exhaustruct
     - funlen
@@ -12,7 +13,10 @@ linters:
     - lll
     - maligned
     - nlreturn
+    - nosnakecase
     - scopelint
+    - structcheck
+    - varcheck
     - varnamelen
     - wsl
 

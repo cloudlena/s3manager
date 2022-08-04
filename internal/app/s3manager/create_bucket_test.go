@@ -30,9 +30,9 @@ func TestHandleCreateBucket(t *testing.T) {
 			makeBucketFunc: func(context.Context, string, minio.MakeBucketOptions) error {
 				return nil
 			},
-			body:                 `{"name":"myBucket"}`,
+			body:                 `{"name":"BUCKET-NAME"}`,
 			expectedStatusCode:   http.StatusCreated,
-			expectedBodyContains: `{"name":"myBucket","creationDate":"0001-01-01T00:00:00Z"}`,
+			expectedBodyContains: `{"name":"BUCKET-NAME","creationDate":"0001-01-01T00:00:00Z"}`,
 		},
 		{
 			it: "returns error for empty request",
@@ -57,7 +57,7 @@ func TestHandleCreateBucket(t *testing.T) {
 			makeBucketFunc: func(context.Context, string, minio.MakeBucketOptions) error {
 				return errS3
 			},
-			body:                 `{"name":"myBucket"}`,
+			body:                 `{"name":"BUCKET-NAME"}`,
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},

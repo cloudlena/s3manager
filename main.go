@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/cloudlena/adapters/logging"
 	"github.com/cloudlena/s3manager/internal/app/s3manager"
@@ -16,6 +17,8 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/viper"
 )
+
+const serverTimeout = 5 * time.Second
 
 //go:embed web/template
 var templateFS embed.FS
@@ -115,5 +118,11 @@ func main() {
 	}
 
 	lr := logging.Handler(os.Stdout)(r)
-	log.Fatal(http.ListenAndServe(":"+port, lr))
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      lr,
+		ReadTimeout:  serverTimeout,
+		WriteTimeout: serverTimeout,
+	}
+	log.Fatal(srv.ListenAndServe())
 }

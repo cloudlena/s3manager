@@ -28,10 +28,10 @@ func TestHandleBucketsView(t *testing.T) {
 		{
 			it: "renders a list of buckets",
 			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
-				return []minio.BucketInfo{{Name: "testBucket"}}, nil
+				return []minio.BucketInfo{{Name: "BUCKET-NAME"}}, nil
 			},
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "testBucket",
+			expectedBodyContains: "BUCKET-NAME",
 		},
 		{
 			it: "renders placeholder if no buckets",
