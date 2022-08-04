@@ -32,8 +32,8 @@ func TestHandleGetObject(t *testing.T) {
 			getObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
 				return nil, errS3
 			},
-			bucketName:           "testBucket",
-			objectName:           "testObject",
+			bucketName:           "BUCKET-NAME",
+			objectName:           "OBJECT-NAME",
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},

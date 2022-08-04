@@ -33,14 +33,14 @@ func TestHandleBucketView(t *testing.T) {
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
-					objCh <- minio.ObjectInfo{Key: "testFile"}
+					objCh <- minio.ObjectInfo{Key: "FILE-NAME"}
 					close(objCh)
 				}()
 				return objCh
 			},
-			bucketName:           "testBucket",
+			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "testFile",
+			expectedBodyContains: "FILE-NAME",
 		},
 		{
 			it: "renders placeholder for an empty bucket",
@@ -49,7 +49,7 @@ func TestHandleBucketView(t *testing.T) {
 				close(objCh)
 				return objCh
 			},
-			bucketName:           "testBucket",
+			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "No objects in",
 		},
@@ -63,7 +63,7 @@ func TestHandleBucketView(t *testing.T) {
 				}()
 				return objCh
 			},
-			bucketName:           "testBucket",
+			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "archive",
 		},
@@ -72,12 +72,12 @@ func TestHandleBucketView(t *testing.T) {
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
-					objCh <- minio.ObjectInfo{Key: "testImage.png"}
+					objCh <- minio.ObjectInfo{Key: "FILE-NAME.png"}
 					close(objCh)
 				}()
 				return objCh
 			},
-			bucketName:           "testBucket",
+			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "photo",
 		},
@@ -86,12 +86,12 @@ func TestHandleBucketView(t *testing.T) {
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				objCh := make(chan minio.ObjectInfo)
 				go func() {
-					objCh <- minio.ObjectInfo{Key: "testSound.mp3"}
+					objCh <- minio.ObjectInfo{Key: "FILE-NAME.mp3"}
 					close(objCh)
 				}()
 				return objCh
 			},
-			bucketName:           "testBucket",
+			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "music_note",
 		},
@@ -105,7 +105,7 @@ func TestHandleBucketView(t *testing.T) {
 				}()
 				return objCh
 			},
-			bucketName:           "testBucket",
+			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusNotFound,
 			expectedBodyContains: http.StatusText(http.StatusNotFound),
 		},
@@ -119,7 +119,7 @@ func TestHandleBucketView(t *testing.T) {
 				}()
 				return objCh
 			},
-			bucketName:           "testBucket",
+			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},

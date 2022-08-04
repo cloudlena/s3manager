@@ -1,5 +1,6 @@
 services:
   s3manager:
+    container_name: s3manager
     build: .
     ports:
       - 8080:8080
@@ -11,7 +12,8 @@ services:
     depends_on:
       - s3
   s3:
-    image: minio/minio
+    container_name: s3
+    image: docker.io/minio/minio
     command: server /data
     ports:
       - 9000:9000

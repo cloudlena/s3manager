@@ -50,7 +50,7 @@ func TestHandleDeleteBucket(t *testing.T) {
 				RemoveBucketFunc: tc.removeBucketFunc,
 			}
 
-			req, err := http.NewRequest(http.MethodDelete, "/api/buckets/bucketName", nil)
+			req, err := http.NewRequest(http.MethodDelete, "/api/buckets/BUCKET-NAME", nil)
 			is.NoErr(err)
 
 			rr := httptest.NewRecorder()
