@@ -69,6 +69,11 @@ func main() {
 	viper.SetDefault("PORT", "8080")
 	port := viper.GetString("PORT")
 
+	viper.SetDefault("SSE_TYPE", "")
+	viper.SetDefault("SSE_KEY", "")
+
+	sseType := s3manager.SSEType{Type: viper.GetString("SSE_TYPE"), Key: viper.GetString("SSE_KEY")}
+
 	// Set up templates
 	templates, err := fs.Sub(templateFS, "web/template")
 	if err != nil {
@@ -111,7 +116,7 @@ func main() {
 	if allowDelete {
 		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucket(s3)).Methods(http.MethodDelete)
 	}
-	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3)).Methods(http.MethodPost)
+	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, sseType)).Methods(http.MethodPost)
 	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObject(s3, forceDownload)).Methods(http.MethodGet)
 	if allowDelete {
 		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObject(s3)).Methods(http.MethodDelete)

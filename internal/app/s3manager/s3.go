@@ -19,3 +19,8 @@ type S3 interface {
 	RemoveBucket(ctx context.Context, bucketName string) error
 	RemoveObject(ctx context.Context, bucketName, objectName string, opts minio.RemoveObjectOptions) error
 }
+
+type SSEType struct {
+	Type string
+	Key string
+}

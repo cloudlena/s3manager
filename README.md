@@ -34,6 +34,8 @@ The application can be configured with the following environment variables:
 - `LIST_RECURSIVE`: List all objects in buckets recursively (defaults to `false`)
 - `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)
 - `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
+- `SSE_TYPE`: Specified server side encrpytion (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
+- `SSE_KEY`: The key needed for SSE method (only for `KMS` and `SSE-C`)
 
 ### Build and Run Locally
 
