@@ -111,7 +111,7 @@ func main() {
 	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
 	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, allowDelete)).Methods(http.MethodGet)
-	r.Handle("/buckets/{bucketName}", s3manager.HandleBucketView(s3, templates, allowDelete, listRecursive)).Methods(http.MethodGet)
+	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, allowDelete, listRecursive)).Methods(http.MethodGet)
 	r.Handle("/api/buckets", s3manager.HandleCreateBucket(s3)).Methods(http.MethodPost)
 	if allowDelete {
 		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucket(s3)).Methods(http.MethodDelete)
