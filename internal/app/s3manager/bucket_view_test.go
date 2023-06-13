@@ -25,6 +25,7 @@ func TestHandleBucketView(t *testing.T) {
 		it                   string
 		listObjectsFunc      func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo
 		bucketName           string
+		path                 string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
@@ -123,6 +124,32 @@ func TestHandleBucketView(t *testing.T) {
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: http.StatusText(http.StatusInternalServerError),
 		},
+		{
+			it: "renders a bucket with folder",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Key: "AFolder/"}
+					close(objCh)
+				}()
+				return objCh
+			},
+			bucketName:           "BUCKET-NAME",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "folder",
+		},
+		{
+			it: "renders a bucket with path",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo)
+				close(objCh)
+				return objCh
+			},
+			bucketName:           "BUCKET-NAME",
+			path:                 "abc/def",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "def",
+		},
 	}
 
 	for _, tc := range cases {
@@ -137,12 +164,12 @@ func TestHandleBucketView(t *testing.T) {
 
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 			r := mux.NewRouter()
-			r.Handle("/buckets/{bucketName}", s3manager.HandleBucketView(s3, templates, true, true)).Methods(http.MethodGet)
+			r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, true, true)).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
-			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s", ts.URL, tc.bucketName))
+			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s/%s", ts.URL, tc.bucketName, tc.path))
 			is.NoErr(err)
 			defer resp.Body.Close()
 			body, err := io.ReadAll(resp.Body)

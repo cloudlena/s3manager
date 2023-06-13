@@ -6,32 +6,44 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"regexp"
+	"strings"
+	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 )
 
 // HandleBucketView shows the details page of a bucket.
 func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool) http.HandlerFunc {
 	type objectWithIcon struct {
-		Info minio.ObjectInfo
-		Icon string
+		Key          string
+		Size         int64
+		LastModified time.Time
+		Owner        string
+		Icon         string
+		IsFolder     bool
+		DisplayName  string
 	}
 
 	type pageData struct {
 		BucketName  string
 		Objects     []objectWithIcon
 		AllowDelete bool
+		Paths       []string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		bucketName := mux.Vars(r)["bucketName"]
+		regex := regexp.MustCompile(`\/buckets\/([^\/]*)\/?(.*)`)
+		matches := regex.FindStringSubmatch(r.RequestURI)
+		bucketName := matches[1]
+		path := matches[2]
 
 		var objs []objectWithIcon
 		doneCh := make(chan struct{})
 		defer close(doneCh)
 		opts := minio.ListObjectsOptions{
 			Recursive: listRecursive,
+			Prefix:    path,
 		}
 		objectCh := s3.ListObjects(r.Context(), bucketName, opts)
 		for object := range objectCh {
@@ -39,13 +51,23 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 				handleHTTPError(w, fmt.Errorf("error listing objects: %w", object.Err))
 				return
 			}
-			obj := objectWithIcon{Info: object, Icon: icon(object.Key)}
+
+			obj := objectWithIcon{
+				Key:          object.Key,
+				Size:         object.Size,
+				LastModified: object.LastModified,
+				Owner:        object.Owner.DisplayName,
+				Icon:         icon(object.Key),
+				IsFolder:     strings.HasSuffix(object.Key, "/"),
+				DisplayName:  strings.TrimSuffix(strings.TrimPrefix(object.Key, path), "/"),
+			}
 			objs = append(objs, obj)
 		}
 		data := pageData{
 			BucketName:  bucketName,
 			Objects:     objs,
 			AllowDelete: allowDelete,
+			Paths:       removeEmptyStrings(strings.Split(path, "/")),
 		}
 
 		t, err := template.ParseFS(templates, "layout.html.tmpl", "bucket.html.tmpl")
@@ -63,6 +85,10 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 
 // icon returns an icon for a file type.
 func icon(fileName string) string {
+	if strings.HasSuffix(fileName, "/") {
+		return "folder"
+	}
+
 	e := path.Ext(fileName)
 	switch e {
 	case ".tgz", ".gz", ".zip":
@@ -74,4 +100,14 @@ func icon(fileName string) string {
 	}
 
 	return "insert_drive_file"
+}
+
+func removeEmptyStrings(input []string) []string {
+	var result []string
+	for _, str := range input {
+		if str != "" {
+			result = append(result, str)
+		}
+	}
+	return result
 }
