@@ -22,5 +22,5 @@ type S3 interface {
 
 type SSEType struct {
 	Type string
-	Key string
+	Key  string
 }
