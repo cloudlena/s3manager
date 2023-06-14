@@ -10,13 +10,13 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: "1.20"
       - uses: actions/checkout@v3
       - uses: golangci/golangci-lint-action@v3
       - run: make test
-      - uses: goreleaser/goreleaser-action@v3
+      - uses: goreleaser/goreleaser-action@v4
         with:
           args: release --rm-dist
         env:
