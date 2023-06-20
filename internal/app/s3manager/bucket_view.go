@@ -30,6 +30,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		Objects     []objectWithIcon
 		AllowDelete bool
 		Paths       []string
+		CurrentPath string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +69,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			Objects:     objs,
 			AllowDelete: allowDelete,
 			Paths:       removeEmptyStrings(strings.Split(path, "/")),
+			CurrentPath: path,
 		}
 
 		t, err := template.ParseFS(templates, "layout.html.tmpl", "bucket.html.tmpl")
