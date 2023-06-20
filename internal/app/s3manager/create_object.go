@@ -22,6 +22,7 @@ func HandleCreateObject(s3 S3, sseInfo SSEType) http.HandlerFunc {
 			return
 		}
 		file, header, err := r.FormFile("file")
+		path := r.FormValue("path")
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error getting file from form: %w", err))
 			return
@@ -50,7 +51,8 @@ func HandleCreateObject(s3 S3, sseInfo SSEType) http.HandlerFunc {
 			}
 		}
 
-		_, err = s3.PutObject(r.Context(), bucketName, header.Filename, file, -1, opts)
+		objectName := fmt.Sprintf("%s%s", path, header.Filename)
+		_, err = s3.PutObject(r.Context(), bucketName, objectName, file, -1, opts)
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error putting object: %w", err))
 			return
