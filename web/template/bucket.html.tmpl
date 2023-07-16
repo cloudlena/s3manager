@@ -102,50 +102,27 @@
 </div>
 
 <div class="fixed-action-btn">
-    <button type="button" class="btn-floating btn-large red modal-trigger" data-target="modal-create-object">
+    <button type="button" class="btn-floating btn-large red tooltipped" id="upload-file-btn" data-position="top" data-tooltip="Upload files">
         <i class="large material-icons">add</i>
     </button>
 
-     <button type="button" class="btn-floating btn-large red modal-trigger" data-target="modal-create-folder">
+    <button type="button" class="btn-floating btn-large red tooltipped" id="upload-folder-btn" data-position="top" data-tooltip="Upload folder">
         <i class="large material-icons">create_new_folder</i>
+    </button>
+
+     <button type="button" class="btn-floating btn-large red modal-trigger tooltipped" data-target="modal-create-folder" data-position="top" data-tooltip="Change path">
+        <i class="large material-icons">create</i>
     </button>
 </div>
 
-<div id="modal-create-object" class="modal">
-    <form action="/api/buckets/{{ .BucketName }}/objects" method="POST" id="create-object-form" enctype="multipart/form-data">
-
-        <div class="modal-content">
-            <h4>Create Object</h4>
-            <br>
-            <div class="row">
-                <div class="col s6">
-                    <div class="file-field input-field">
-                        <div class="btn">
-                            <span>File</span>
-                            <input type="file" name="file">
-                        </div>
-                        <div class="file-path-wrapper">
-                            <input class="file-path validate" type="text">
-                        </div>
-                        <input type="hidden" name="path" value="{{ $.CurrentPath }}">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal-footer">
-            <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="submit" class="modal-close waves-effect waves-green btn">Upload</button>
-        </div>
-
-    </form>
-</div>
+<input type="file" id="upload-folder-input" webkitdirectory multiple style="display: none;">
+<input type="file" id="upload-file-input" name="file" multiple style="display: none;">
 
 <div id="modal-create-folder" class="modal">
     <form id="create-folder-form" enctype="multipart/form-data">
 
         <div class="modal-content">
-            <h4>Create Folder</h4>
+            <h4>Change directory path</h4>
             <br>
             <div class="row">
                 <div class="col s6">
@@ -181,6 +158,12 @@ function deleteBucket(bucketName) {
     })
 }
 
+function handleUploadFiles(event) {
+    files = event.target.files
+    url = "/api/buckets/{{ .BucketName }}/objects"
+    uploadFiles(files, url);
+}
+
 function handleCreateFolder(event) {
     event.preventDefault();
 
@@ -196,35 +179,60 @@ function handleCreateFolder(event) {
     window.location.href = newHref
 }
 
-function handleCreateObject(event) {
-    event.preventDefault();
+function uploadFiles(files, url) {
+    uploadPromises = [];
+    for(file of files) {
+        uploadPromises.push(uploadFile(file, url));
+    }
+    Promise.all(uploadPromises).then(values => {
+        window.location.reload();
+    });
+}
 
-    const form = event.target;
-    const url = new URL(form.action);
-    const formData = new FormData(form);
-    createNotification(formData.get("file").name)
-    fetch(url, {
+function uploadFile(file, url) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if( !!file.webkitRelativePath ) {
+        formData.append('path', "{{ .CurrentPath }}" + file.webkitRelativePath );
+    } else {
+        formData.append('path', "{{ .CurrentPath }}" + file.name );
+    }
+
+    const notification = createNotification(file.name);
+    notifications = document.getElementById('notifications');
+    notifications.appendChild(notification);
+
+    return fetch(url, {
         method: "POST",
         body: formData
     }).then(response => {
-        window.location.reload();
+        notifications.removeChild(notification);
     })
 }
 
 function createNotification(fileName) {
     notificationTemplate = document.getElementById('notification-template');
-    notification = notificationTemplate.cloneNode(true)
-    notification.getElementsByTagName('p')[0].setHTML(fileName)
-    notification.removeAttribute("id")
-    notification.removeAttribute("style")
-
-    notifications = document.getElementById('notifications');
-    notifications.appendChild(notification)
+    notification = notificationTemplate.cloneNode(true);
+    notification.getElementsByTagName('p')[0].setHTML(fileName);
+    notification.removeAttribute("id");
+    notification.removeAttribute("style");
+    return notification;
 }
 
 window.onload = (event) => {
-    document.getElementById('create-folder-form').addEventListener('submit', handleCreateFolder);
-    document.getElementById('create-object-form').addEventListener('submit', handleCreateObject);
+    $('#create-folder-form').submit(handleCreateFolder)
+
+    uploadFolderInput = $('#upload-folder-input');
+    $('#upload-folder-btn').click(event => uploadFolderInput.click());
+    uploadFolderInput.change(handleUploadFiles);
+
+    uploadFileInput = $('#upload-file-input');
+    $('#upload-file-btn').click(event => uploadFileInput.click());
+    uploadFileInput.change(handleUploadFiles);
+
+    $(document).ready(function(){
+        $('.tooltipped').tooltip();
+    });
 };
 </script>
 {{ end }}
