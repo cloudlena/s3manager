@@ -21,7 +21,7 @@ func HandleCreateObject(s3 S3, sseInfo SSEType) http.HandlerFunc {
 			handleHTTPError(w, fmt.Errorf("error parsing multipart form: %w", err))
 			return
 		}
-		file, header, err := r.FormFile("file")
+		file, _, err := r.FormFile("file")
 		path := r.FormValue("path")
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error getting file from form: %w", err))
@@ -51,8 +51,7 @@ func HandleCreateObject(s3 S3, sseInfo SSEType) http.HandlerFunc {
 			}
 		}
 
-		objectName := fmt.Sprintf("%s%s", path, header.Filename)
-		_, err = s3.PutObject(r.Context(), bucketName, objectName, file, -1, opts)
+		_, err = s3.PutObject(r.Context(), bucketName, path, file, -1, opts)
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error putting object: %w", err))
 			return
