@@ -18,8 +18,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const serverTimeout = 5 * time.Second
-
 //go:embed web/template
 var templateFS embed.FS
 
@@ -73,6 +71,9 @@ func main() {
 	viper.SetDefault("SSE_KEY", "")
 
 	sseType := s3manager.SSEType{Type: viper.GetString("SSE_TYPE"), Key: viper.GetString("SSE_KEY")}
+
+	viper.SetDefault("TIMEOUT", 600)
+	serverTimeout := time.Duration(viper.GetInt32("TIMEOUT")) * time.Second
 
 	// Set up templates
 	templates, err := fs.Sub(templateFS, "web/template")
