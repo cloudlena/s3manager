@@ -36,7 +36,7 @@ The application can be configured with the following environment variables:
 - `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
 - `SSE_TYPE`: Specified server side encrpytion (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
 - `SSE_KEY`: The key needed for SSE method (only for `KMS` and `SSE-C`)
-- `TIMEOUT`: The read timout and write timout in second (default to `600` - 10 minute)
+- `TIMEOUT`: The read and write timout in seconds (default to `600` - 10 minutes)
 
 ### Build and Run Locally
 
