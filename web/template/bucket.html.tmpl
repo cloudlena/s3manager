@@ -72,6 +72,7 @@
                         <!-- Dropdown Structure -->
                         <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
                             <li><a target="_blank" href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
+                            <li><a onclick="handleOpenDownloadLinkModal({{ $object.Key }})">Download link</a></li>
                             {{- if $.AllowDelete }}
                             <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
                             {{- end }}
@@ -110,7 +111,7 @@
         <i class="large material-icons">create_new_folder</i>
     </button>
 
-     <button type="button" class="btn-floating btn-large red modal-trigger tooltipped" data-target="modal-create-folder" data-position="top" data-tooltip="Change path">
+     <button type="button" class="btn-floating btn-large red modal-trigger tooltipped" data-target="modal-change-path" data-position="top" data-tooltip="Change path">
         <i class="large material-icons">create</i>
     </button>
 </div>
@@ -118,9 +119,8 @@
 <input type="file" id="upload-folder-input" webkitdirectory multiple style="display: none;">
 <input type="file" id="upload-file-input" name="file" multiple style="display: none;">
 
-<div id="modal-create-folder" class="modal">
-    <form id="create-folder-form" enctype="multipart/form-data">
-
+<div id="modal-change-path" class="modal">
+    <form id="change-path-form" enctype="multipart/form-data">
         <div class="modal-content">
             <h4>Change directory path</h4>
             <br>
@@ -133,12 +133,58 @@
                 </div>
             </div>
         </div>
-
         <div class="modal-footer">
             <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="submit" class="modal-close waves-effect waves-green btn">Create</button>
+            <button type="submit" class="modal-close waves-effect waves-green btn">Change path</button>
         </div>
+    </form>
+</div>
 
+<div id="modal-create-download-link" class="modal">
+    <form id="download-link-form">
+        <div class="modal-content">
+            <div class="row">
+                <h4>Create download link for </h4>
+                <input name="objectName" id="objectName" type="text" readonly>
+            </div>
+            <div class="row">
+                <div class="col s4">
+                    <div class="input-field">
+                        <input name="day" id="gen-link-day" value="0" type="text" pattern="^[\d]+$" class="validate">
+                        <label for="gen-link-day">Day</label>
+                        <span class="helper-text" data-error="Invalid day format"></span>
+                    </div>
+                </div>
+                <div class="col s4">
+                    <div class="input-field">
+                        <input name="hour" id="gen-link-hour" value="1" type="text" pattern="^([0-9]|1\d|2[0-3])$" class="validate">
+                        <label for="gen-link-hour">Hour</label>
+                        <span class="helper-text" data-error="Invalid hour format"></span>
+                    </div>
+                </div>
+                <div class="col s4">
+                    <div class="input-field">
+                        <input name="minute" id="gen-link-minute" value="0" type="text" pattern="^([0-9]|[1-5]\d)$" class="validate">
+                        <label for="gen-link-minute">Minute</label>
+                        <span class="helper-text" data-error="Invalid minute format"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s3">
+                    <button id="create-link-btn" class="waves-effect waves-green btn">Create link</button>
+                </div>
+                <div class="col s9 red-text text-darken-2" id="gen-url-error"></div>
+            </div>
+            <div class="row">
+                <div class="col s11">
+                    <div class="input-field">
+                        <i class="material-icons prefix" onclick="handleCopyLink()" style="cursor:pointer;">content_copy</i>
+                        <input name="generated-link" id="generated-link" type="text" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
     </form>
 </div>
 
@@ -150,6 +196,7 @@ function deleteObject(bucketName, objectName) {
         success: function () { location.reload(); }
     })
 }
+
 function deleteBucket(bucketName) {
     $.ajax({
         type: 'DELETE',
@@ -164,19 +211,24 @@ function handleUploadFiles(event) {
     uploadFiles(files, url);
 }
 
-function handleCreateFolder(event) {
+function handleChangePath(event) {
     event.preventDefault();
 
     const form = event.target;
     const formData = new FormData(form);
-    const newPath = formData.get("new-path")
 
-    let newHref = window.location.href + newPath
-    if(!newHref.endsWith("/")) {
-        newHref = newHref + "/"
+    let appendPath = formData.get("new-path")
+    if(!appendPath.endsWith("/")) {
+        appendPath = appendPath + "/";
     }
 
-    window.location.href = newHref
+    let currentPath = window.location.href
+    if(!currentPath.endsWith("/")) {
+        currentPath = currentPath + "/";
+    }
+
+    form.reset();
+    window.location.href = currentPath + appendPath;
 }
 
 function uploadFiles(files, url) {
@@ -219,8 +271,60 @@ function createNotification(fileName) {
     return notification;
 }
 
+function handleOpenDownloadLinkModal(objectName) {
+    const downloadLinkForm = document.forms['download-link-form']
+    downloadLinkForm.elements['objectName'].value = objectName;
+    
+    const createLinkModalElement = document.getElementById('modal-create-download-link')
+    document.getElementById('generated-link').setAttribute('value', "");
+    document.getElementById('gen-url-error').setHTML("");
+    const modalInstance = M.Modal.init(createLinkModalElement);
+    modalInstance.open()
+}
+
+function handleGenerateDownloadLink(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+    const objectName = formData.get('objectName');
+    const genUrlMessage = document.getElementById('gen-url-error');
+
+    const expiryTime = formData.get('day') * 24 * 60 * 60 + formData.get('hour') * 60 * 60 + formData.get('minute') * 60;
+
+    if(expiryTime > 7 * 24 * 60 * 60) {
+        genUrlMessage.setHTML("Expiry time must be less than 7 days");
+        return;
+    }
+
+    $.ajax({
+        type: 'GET',
+        url: '/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectName + "/url?expiry=" + expiryTime,
+        success: function (result) {
+            genUrlMessage.setHTML("")
+            document.getElementById("generated-link").setAttribute('value', JSON.parse(result).url);
+        },
+        error: function(request, status, error) {
+            genUrlMessage.setHTML("Error when generating url")
+        }
+    });
+}
+
+function handleCopyLink() {
+    const url = document.getElementById("generated-link").value;
+
+    if(!!url) {
+        navigator.clipboard.writeText(url).then(function() {
+            M.toast({html: 'Copied to clipboard!'});
+        }, function(err) {
+            console.error('Could not copy:', err);
+        });
+    }
+}
+
 window.onload = (event) => {
-    $('#create-folder-form').submit(handleCreateFolder)
+    $('#change-path-form').submit(handleChangePath)
+    $('#download-link-form').submit(handleGenerateDownloadLink)
 
     uploadFolderInput = $('#upload-folder-input');
     $('#upload-folder-btn').click(event => uploadFolderInput.click());
