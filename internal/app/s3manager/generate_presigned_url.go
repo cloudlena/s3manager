@@ -38,6 +38,10 @@ func HandleGenerateUrl(s3 S3) http.HandlerFunc {
 
 		encoder := json.NewEncoder(w)
 		encoder.SetEscapeHTML(false)
-		encoder.Encode(map[string]string{"url": url.String()})
+		err = encoder.Encode(map[string]string{"url": url.String()})
+		if err != nil {
+			handleHTTPError(w, fmt.Errorf("error encoding JSON: %w", err))
+			return
+		}
 	}
 }
