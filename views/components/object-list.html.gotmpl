@@ -1,0 +1,55 @@
+{{define "object-list"}}
+{{if not .Objects}}
+<div style="text-align:center;margin-top:2em;">
+  <p style="color:gray;">No objects in <strong>{{.BucketName}}{{if .Path}}/{{.Path}}{{end}}</strong> yet</p>
+  {{if not .Path}}
+  <button class="btn waves-effect waves-light" style="margin-top:2em" hx-delete="/api/buckets/{{$.BucketName}}">
+    Delete Bucket
+  </button>
+  {{end}}
+</div>
+{{else}}
+<table class="striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Name</th>
+      <th>Last Modified</th>
+      <th>Size</th>
+      <th>Storage Class</th>
+      <th style="min-width:165px;"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{range $index, $object := .Objects}}
+    <tr {{if $object.IsFolder}} onclick="location.href='/buckets/{{$.BucketName}}/objects/{{$object.Key}}'" } style="cursor:pointer;" {{end}}>
+      <td><i class="material-icons">{{ $object.Icon }}</i></td>
+      <td>{{ $object.DisplayName }}</td>
+      {{if $object.LastModified.IsZero}}
+      <td>-</td>
+      {{else}}
+      <td>{{$object.LastModified.Format "Jan 02, 2006 at 15:04:05 (UTC)"}}</td>
+      {{end}}
+      <td>{{$object.Size}} bytes</td>
+      <td>{{$object.StorageClass}}</td>
+      <td style="text-align:right">
+        {{if not $object.IsFolder}}
+        <button class="dropdown-trigger waves-effect waves-teal btn" data-target="actions-dropdown-{{$index}}">
+          Actions <i class="material-icons right">arrow_drop_down</i>
+        </button>
+        <!-- Dropdown Structure -->
+        <ul id="actions-dropdown-{{$index}}" class="dropdown-content">
+          <li><a target="_blank" href="/api/buckets/{{$.BucketName}}/objects/{{$object.Key}}">Download</a></li>
+          {{if $.AllowDelete}}
+          <li><a href="#" onclick="deleteObject({{$.BucketName}}, {{$object.Key}})">Delete</a></li>
+          {{end}}
+        </ul>
+        {{end}}
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}
+{{end}}

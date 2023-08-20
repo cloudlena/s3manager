@@ -1,0 +1,101 @@
+<script>
+  function openCreateModal() {
+    document.getElementById("create-object-modal").style.display = "block";
+  }
+  function closeCreateModal() {
+    document.getElementById("create-object-modal").style.display = "none";
+  }
+  htmx.on("objectListChanged", closeCreateModal)
+</script>
+
+<nav class="nav-extended">
+  <div class="nav-wrapper container">
+    <a href="/buckets" class="breadcrumb"><i class="material-icons">arrow_back</i>buckets</a>
+    {{$url := printf "/buckets/%s/objects" .BucketName}}
+    <a href="{{$url}}" class="breadcrumb">{{.BucketName}}</a>
+    {{range .PathParts}}
+    {{ $url = printf "%s/%s" $url .}}
+    <a href="{{$url}}" class="breadcrumb">{{.}}</a>
+    {{end}}
+  </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="section" style="margin: 10px; position: relative;">
+    <div class="row" hx-trigger="load, objectListChanged from:body" hx-get="/components/buckets/{{.BucketName}}/object-list/{{.Path}}" />
+  </div>
+</div>
+
+<div class="fixed-action-btn">
+  <button type="button" class="btn-floating btn-large red tooltipped" id="upload-file-btn" data-position="top" data-tooltip="Upload files" onclick="openCreateModal()">
+    <i class="large material-icons">add</i>
+  </button>
+
+  <button type="button" class="btn-floating btn-large red tooltipped" id="upload-folder-btn" data-position="top" data-tooltip="Upload folder">
+    <i class="large material-icons">create_new_folder</i>
+  </button>
+
+  <button type="button" class="btn-floating btn-large red modal-trigger tooltipped" data-target="modal-create-folder" data-position="top" data-tooltip="Change path">
+    <i class="large material-icons">create</i>
+  </button>
+</div>
+
+<div id="create-object-modal" class="modal">
+  <form id="create-object-form" hx-encoding='multipart/form-data' hx-post='/buckets/{{.BucketName}}/objects' hx-swap="none">
+    <div class="modal-content">
+      <h4>Upload Files</h4>
+      <br />
+      <div class="row">
+        <div class="input-field col m6">
+          <input id="path" name="path" value={{.Path}} />
+          <input type="file" name="files" multiple />
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button
+        type="button"
+        class="modal-close waves-effect waves-green btn-flat"
+        onclick="closeCreateModal()"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="modal-close waves-effect waves-green btn"
+      >
+        Upload
+      </button>
+    </div>
+  </form>
+</div>
+
+<div id="modal-create-folder" class="modal">
+  <form id="create-folder-form" enctype="multipart/form-data">
+    <div class="modal-content">
+      <h4>Change directory path</h4>
+      <br>
+      <div class="row">
+        <div class="col s6">
+          <div class="input-field">
+            <input name="new-path" id="new-path" type="text">
+            <label for="new-path">Path</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
+      <button type="submit" class="modal-close waves-effect waves-green btn">Create</button>
+    </div>
+  </form>
+</div>
+
+<style>
+  .breadcrumb:before {
+    content: '/';
+  }
+</style>
