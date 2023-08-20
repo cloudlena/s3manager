@@ -1,0 +1,45 @@
+<nav
+  class="sticky top-0 z-40 w-full mx-auto bg-white border-b border-gray-200 dark:border-gray-600 dark:bg-gray-800"
+>
+  <div class="max-w-screen-xl mx-auto flex justify-between items-center p-4">
+    <a href="/">
+      <span class="text-xl font-semibold whitespace-nowrap dark:text-white">
+        s3manager
+      </span>
+    </a>
+    <div>
+      <button
+        class="cursor-pointer text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center me-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800"
+        data-modal-target="create-folder-modal"
+        data-modal-toggle="create-folder-modal"
+      >
+        Create Folder
+      </button>
+      <button
+        class="cursor-pointer text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+        data-modal-target="create-objects-modal"
+        data-modal-toggle="create-objects-modal"
+      >
+        Upload Files
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-screen-xl mx-auto px-4 py-8 items-center">
+  {{template "partials/object-bread-crumb" $}}
+
+  <div
+    class="mx-auto py-8"
+    hx-trigger="load, objectListChanged from:body"
+    hx-get="/partials/buckets/{{.BucketName}}/object-list/{{.Path}}"
+  >
+    {{template "partials/object-list-skeleton"}}
+  </div>
+</main>
+
+<!-- Create folder modal -->
+{{template "partials/create-folder-modal"}}
+
+<!-- Create objects modal -->
+{{template "partials/create-objects-modal"}}

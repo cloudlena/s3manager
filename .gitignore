@@ -9,6 +9,9 @@
 *.dylib
 bin/
 
+# Air temporary directory
+tmp/
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -20,3 +23,7 @@ bin/
 
 # Go workspace file
 go.work
+go.work.sum
+
+# env file
+.env

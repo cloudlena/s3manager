@@ -1,0 +1,33 @@
+<nav
+  class="sticky top-0 z-40 w-full mx-auto bg-white border-b border-gray-200 dark:border-gray-600 dark:bg-gray-800"
+>
+  <div class="max-w-screen-xl mx-auto flex justify-between items-center p-4">
+    <a href="/">
+      <span class="text-xl font-semibold whitespace-nowrap dark:text-white">
+        s3manager
+      </span>
+    </a>
+    <button
+      class="cursor-pointer text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+      data-modal-target="create-bucket-modal"
+      data-modal-toggle="create-bucket-modal"
+    >
+      Create Bucket
+    </button>
+  </div>
+</nav>
+
+<main
+  class="max-w-screen-xl mx-auto px-4 py-8"
+  hx-trigger="load, bucketListChanged from:body"
+  hx-get="/partials/bucket-list"
+>
+  <div class="grid md:grid-cols-3 gap-8">
+    <div>{{template "partials/bucket-skeleton"}}</div>
+    <div>{{template "partials/bucket-skeleton"}}</div>
+    <div>{{template "partials/bucket-skeleton"}}</div>
+  </div>
+</main>
+
+<!-- Create Modal -->
+{{template "partials/create-bucket-modal"}}

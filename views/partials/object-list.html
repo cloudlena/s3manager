@@ -1,0 +1,119 @@
+{{define "object-list"}}
+
+<!-- Object list -->
+{{if .Objects}}
+<div class="relative overflow-x-auto">
+  <table
+    class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400"
+  >
+    <thead
+      class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
+    >
+      <tr>
+        <th scope="col" class="px-6 py-3">Name</th>
+        <th scope="col" class="px-6 py-3">Last Modified</th>
+        <th scope="col" class="px-6 py-3">Size</th>
+        <th scope="col" class="px-6 py-3">Storage Class</th>
+        <th scope="col" class="px-6 py-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range $index, $object := .Objects}}
+      <tr
+        class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
+      >
+        <th
+          scope="row"
+          class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+        >
+          {{if $object.IsFolder}}
+          <a
+            class="font-medium text-blue-600 dark:text-white hover:text-blue-500 dark:hover:text-blue-500"
+            href="/buckets/{{$.BucketName}}/objects/{{$object.Key}}"
+          >
+            {{$object.DisplayName}}
+          </a>
+          {{else}}
+          <span>{{$object.DisplayName}}</span>
+          {{end}}
+        </th>
+        <td class="px-6 py-4">
+          {{$object.LastModified.Format "Jan 02, 2006 at 15:04:05"}}
+        </td>
+        <td class="px-6 py-4">{{$object.Size}} bytes</td>
+        <td class="px-6 py-4">{{$object.StorageClass}}</td>
+        <td class="px-6 py-4">
+          <a
+            href="#"
+            class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+            >Actions</a
+          >
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+
+<table class="striped">
+  <tbody>
+    {{range $index, $object := .Objects}}
+    <tr>
+      <td><i class="material-icons">{{ $object.Icon }}</i></td>
+      <td>{{ $object.DisplayName }}</td>
+      {{if $object.LastModified.IsZero}}
+      <td>-</td>
+      {{else}}
+      <td>{{$object.LastModified.Format "Jan 02, 2006 at 15:04:05 (UTC)"}}</td>
+      {{end}}
+      <td>{{$object.Size}} bytes</td>
+      <td>{{$object.StorageClass}}</td>
+      <td style="text-align: right">
+        {{if not $object.IsFolder}}
+        <button
+          class="dropdown-trigger waves-effect waves-teal btn"
+          data-target="actions-dropdown-{{$index}}"
+        >
+          Actions <i class="material-icons right">arrow_drop_down</i>
+        </button>
+        <ul id="actions-dropdown-{{$index}}" class="dropdown-content">
+          <li>
+            <a
+              target="_blank"
+              href="/api/buckets/{{$.BucketName}}/objects/{{$object.Key}}"
+              >Download</a
+            >
+          </li>
+          {{if $.AllowDelete}}
+          <li>
+            <a
+              href="#"
+              onclick="deleteObject({{$.BucketName}}, {{$object.Key}})"
+              >Delete</a
+            >
+          </li>
+          {{end}}
+        </ul>
+        {{end}}
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+
+<!-- Fallback -->
+{{else}}
+<div class="w-full mx-auto items-center flex flex-col mt-10">
+  <p class="text-gray-700 dark:text-gray-400 mb-8">
+    No objects in
+    <strong>{{.BucketName}}{{if .Path}}/{{.Path}}{{end}}</strong> yet
+  </p>
+  {{if not .Path}}
+  <button
+    class="cursor-pointer text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900"
+    hx-delete="/api/buckets/{{$.BucketName}}"
+  >
+    Delete Bucket
+  </button>
+</div>
+{{end}} {{end}} {{end}}
