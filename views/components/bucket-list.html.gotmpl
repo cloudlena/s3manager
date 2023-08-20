@@ -1,0 +1,20 @@
+{{define "bucket-list"}}
+{{if not .Buckets}}
+<p style="color:gray">
+  No buckets yet
+</p>
+{{else}}
+<div class="grid">
+  {{range .Buckets}}
+  <a href="/buckets/{{.Name}}/objects" style="text-decoration:none">
+    <article>
+      <header>{{.Name}}</header>
+      <p style="color: gray">
+        Created {{.CreationDate.Format "on Jan 02, 2006 at 15:04:05 (UTC)"}}
+      </p>
+    </article>
+  </a>
+  {{end}}
+</div>
+{{end}}
+{{end}}

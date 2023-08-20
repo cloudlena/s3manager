@@ -1,0 +1,57 @@
+<script>
+  function openCreateModal() {
+    document.getElementById("create-bucket-modal").setAttribute("open", true);
+  }
+  function closeCreateModal() {
+    document.getElementById("create-bucket-modal").setAttribute("open", false);
+  }
+  htmx.on("bucketListChanged", closeCreateModal)
+</script>
+
+<nav>
+  <ul>
+    <li><a href="/"><strong>S3 Manager</strong></a></li>
+  </ul>
+  <ul>
+    <li>
+      <button
+        data-target="create-bucket-modal"
+        onclick="openCreateModal()"
+      >
+        + Create Bucket
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<main
+  class="container-fluid"
+  hx-trigger="load, bucketListChanged from:body"
+  hx-get="/components/bucket-list"
+></main>
+
+<dialog id="create-bucket-modal">
+  <article>
+    <header>
+      Create Bucket
+      <a
+        class="close"
+        href="#close"
+        aria-label="Close"
+        data-target="create-bucket-modal"
+        onclick="closeCreateModal()"
+      ></a>
+    </header>
+    <form id="create-bucket-form" hx-post="/api/buckets" hx-swap="none">
+      <label for="name">
+        Name
+        <input id="name" name="name" placeholder="My Bucket" required />
+      </label>
+    </form>
+      <footer>
+        <button type="submit" form="create-bucket-form">
+          Create
+        </button>
+      </footer>
+  </article>
+</dialog>
