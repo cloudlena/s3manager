@@ -8,7 +8,9 @@ import (
 	"github.com/cloudlena/s3manager/internal/app/s3manager"
 	"github.com/minio/minio-go/v7"
 	"io"
+	"net/url"
 	"sync"
+	"time"
 )
 
 // Ensure, that S3Mock does implement s3manager.S3.
@@ -32,6 +34,9 @@ var _ s3manager.S3 = &S3Mock{}
 //			},
 //			MakeBucketFunc: func(ctx context.Context, bucketName string, opts minio.MakeBucketOptions) error {
 //				panic("mock out the MakeBucket method")
+//			},
+//			PresignedGetObjectFunc: func(ctx context.Context, bucketName string, objectName string, expiry time.Duration, reqParams url.Values) (*url.URL, error) {
+//				panic("mock out the PresignedGetObject method")
 //			},
 //			PutObjectFunc: func(ctx context.Context, bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (minio.UploadInfo, error) {
 //				panic("mock out the PutObject method")
@@ -60,6 +65,9 @@ type S3Mock struct {
 
 	// MakeBucketFunc mocks the MakeBucket method.
 	MakeBucketFunc func(ctx context.Context, bucketName string, opts minio.MakeBucketOptions) error
+
+	// PresignedGetObjectFunc mocks the PresignedGetObject method.
+	PresignedGetObjectFunc func(ctx context.Context, bucketName string, objectName string, expiry time.Duration, reqParams url.Values) (*url.URL, error)
 
 	// PutObjectFunc mocks the PutObject method.
 	PutObjectFunc func(ctx context.Context, bucketName string, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (minio.UploadInfo, error)
@@ -106,6 +114,19 @@ type S3Mock struct {
 			// Opts is the opts argument value.
 			Opts minio.MakeBucketOptions
 		}
+		// PresignedGetObject holds details about calls to the PresignedGetObject method.
+		PresignedGetObject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// BucketName is the bucketName argument value.
+			BucketName string
+			// ObjectName is the objectName argument value.
+			ObjectName string
+			// Expiry is the expiry argument value.
+			Expiry time.Duration
+			// ReqParams is the reqParams argument value.
+			ReqParams url.Values
+		}
 		// PutObject holds details about calls to the PutObject method.
 		PutObject []struct {
 			// Ctx is the ctx argument value.
@@ -140,13 +161,14 @@ type S3Mock struct {
 			Opts minio.RemoveObjectOptions
 		}
 	}
-	lockGetObject    sync.RWMutex
-	lockListBuckets  sync.RWMutex
-	lockListObjects  sync.RWMutex
-	lockMakeBucket   sync.RWMutex
-	lockPutObject    sync.RWMutex
-	lockRemoveBucket sync.RWMutex
-	lockRemoveObject sync.RWMutex
+	lockGetObject          sync.RWMutex
+	lockListBuckets        sync.RWMutex
+	lockListObjects        sync.RWMutex
+	lockMakeBucket         sync.RWMutex
+	lockPresignedGetObject sync.RWMutex
+	lockPutObject          sync.RWMutex
+	lockRemoveBucket       sync.RWMutex
+	lockRemoveObject       sync.RWMutex
 }
 
 // GetObject calls GetObjectFunc.
@@ -302,6 +324,54 @@ func (mock *S3Mock) MakeBucketCalls() []struct {
 	mock.lockMakeBucket.RLock()
 	calls = mock.calls.MakeBucket
 	mock.lockMakeBucket.RUnlock()
+	return calls
+}
+
+// PresignedGetObject calls PresignedGetObjectFunc.
+func (mock *S3Mock) PresignedGetObject(ctx context.Context, bucketName string, objectName string, expiry time.Duration, reqParams url.Values) (*url.URL, error) {
+	if mock.PresignedGetObjectFunc == nil {
+		panic("S3Mock.PresignedGetObjectFunc: method is nil but S3.PresignedGetObject was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		BucketName string
+		ObjectName string
+		Expiry     time.Duration
+		ReqParams  url.Values
+	}{
+		Ctx:        ctx,
+		BucketName: bucketName,
+		ObjectName: objectName,
+		Expiry:     expiry,
+		ReqParams:  reqParams,
+	}
+	mock.lockPresignedGetObject.Lock()
+	mock.calls.PresignedGetObject = append(mock.calls.PresignedGetObject, callInfo)
+	mock.lockPresignedGetObject.Unlock()
+	return mock.PresignedGetObjectFunc(ctx, bucketName, objectName, expiry, reqParams)
+}
+
+// PresignedGetObjectCalls gets all the calls that were made to PresignedGetObject.
+// Check the length with:
+//
+//	len(mockedS3.PresignedGetObjectCalls())
+func (mock *S3Mock) PresignedGetObjectCalls() []struct {
+	Ctx        context.Context
+	BucketName string
+	ObjectName string
+	Expiry     time.Duration
+	ReqParams  url.Values
+} {
+	var calls []struct {
+		Ctx        context.Context
+		BucketName string
+		ObjectName string
+		Expiry     time.Duration
+		ReqParams  url.Values
+	}
+	mock.lockPresignedGetObject.RLock()
+	calls = mock.calls.PresignedGetObject
+	mock.lockPresignedGetObject.RUnlock()
 	return calls
 }
 
