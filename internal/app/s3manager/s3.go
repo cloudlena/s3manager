@@ -3,6 +3,8 @@ package s3manager
 import (
 	"context"
 	"io"
+	"net/url"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -15,6 +17,7 @@ type S3 interface {
 	ListBuckets(ctx context.Context) ([]minio.BucketInfo, error)
 	ListObjects(ctx context.Context, bucketName string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo
 	MakeBucket(ctx context.Context, bucketName string, opts minio.MakeBucketOptions) error
+	PresignedGetObject(ctx context.Context, bucketName, objectName string, expiry time.Duration, reqParams url.Values) (*url.URL, error)
 	PutObject(ctx context.Context, bucketName, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (minio.UploadInfo, error)
 	RemoveBucket(ctx context.Context, bucketName string) error
 	RemoveObject(ctx context.Context, bucketName, objectName string, opts minio.RemoveObjectOptions) error
