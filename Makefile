@@ -4,7 +4,7 @@ build:
 
 .PHONY: run
 run:
-	go run
+	go run ./...
 
 .PHONY: lint
 lint:
