@@ -94,7 +94,7 @@ func parseConfiguration() configuration {
 
 	viper.SetDefault("SSE_TYPE", "")
 	sseType := viper.GetString("SSE_TYPE")
-	
+
 	viper.SetDefault("SSE_KEY", "")
 	sseKey := viper.GetString("SSE_KEY")
 
@@ -145,16 +145,16 @@ func main() {
 		var signatureType credentials.SignatureType
 
 		switch configuration.SignatureType {
-			case "V2":
-				signatureType = credentials.SignatureV2
-			case "V4":
-				signatureType = credentials.SignatureV4
-			case "V4Streaming":
-				signatureType = credentials.SignatureV4Streaming
-			case "Anonymous":
-				signatureType = credentials.SignatureAnonymous
-			default:
-				log.Fatalf("Invalid SIGNATURE_TYPE: %s", configuration.SignatureType)
+		case "V2":
+			signatureType = credentials.SignatureV2
+		case "V4":
+			signatureType = credentials.SignatureV4
+		case "V4Streaming":
+			signatureType = credentials.SignatureV4Streaming
+		case "Anonymous":
+			signatureType = credentials.SignatureAnonymous
+		default:
+			log.Fatalf("Invalid SIGNATURE_TYPE: %s", configuration.SignatureType)
 		}
 
 		opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", signatureType)
