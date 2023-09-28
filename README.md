@@ -28,7 +28,7 @@ The application can be configured with the following environment variables:
 - `SECRET_ACCESS_KEY`: Your S3 secret access key (required) (works only if `USE_IAM` is `false`)
 - `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
 - `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
-- `SKIP_SIGNATURE_AUTHORIZATION`: Whether signature authorization should be skipped (defaults to `false`)
+- `SKIP_SIGNATURE`: Whether signature should be skipped (defaults to `false`)
 - `PORT`: The port the s3manager app should listen on (defaults to `8080`)
 - `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
 - `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
