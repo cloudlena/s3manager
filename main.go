@@ -35,7 +35,7 @@ type configuration struct {
 	ForceDownload       bool
 	UseSSL              bool
 	SkipSSLVerification bool
-	SignatureVersion    string
+	SignatureType       string
 	ListRecursive       bool
 	Port                string
 	Timeout             int32
@@ -81,8 +81,8 @@ func parseConfiguration() configuration {
 	viper.SetDefault("SKIP_SSL_VERIFICATION", false)
 	skipSSLVerification := viper.GetBool("SKIP_SSL_VERIFICATION")
 
-	viper.SetDefault("SIGNATURE_VERSION", "V4")
-	signatureVersion := viper.GetString("SIGNATURE_VERSION")
+	viper.SetDefault("SIGNATURE_TYPE", "V4")
+	signatureType := viper.GetString("SIGNATURE_TYPE")
 
 	listRecursive := viper.GetBool("LIST_RECURSIVE")
 
@@ -109,7 +109,7 @@ func parseConfiguration() configuration {
 		ForceDownload:       forceDownload,
 		UseSSL:              useSSL,
 		SkipSSLVerification: skipSSLVerification,
-		SignatureVersion:    signatureVersion,
+		SignatureType:       signatureType,
 		ListRecursive:       listRecursive,
 		Port:                port,
 		Timeout:             timeout,
@@ -142,22 +142,22 @@ func main() {
 	if configuration.UseIam {
 		opts.Creds = credentials.NewIAM(configuration.IamEndpoint)
 	} else {
-		var signatureVersion credentials.SignatureType
+		var signatureType credentials.SignatureType
 
-		switch configuration.SignatureVersion {
+		switch configuration.SignatureType {
 			case "V2":
-				signatureVersion = credentials.SignatureV2
+				signatureType = credentials.SignatureV2
 			case "V4":
-				signatureVersion = credentials.SignatureV4
+				signatureType = credentials.SignatureV4
 			case "V4Streaming":
-				signatureVersion = credentials.SignatureV4Streaming
+				signatureType = credentials.SignatureV4Streaming
 			case "Anonymous":
-				signatureVersion = credentials.SignatureAnonymous
+				signatureType = credentials.SignatureAnonymous
 			default:
-				log.Fatalf("Invalid Signature Version: %s", configuration.SignatureVersion)
+				log.Fatalf("Invalid SIGNATURE_TYPE: %s", configuration.SignatureType)
 		}
 
-		opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", signatureVersion)
+		opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", signatureType)
 	}
 
 	if configuration.Region != "" {
