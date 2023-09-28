@@ -35,6 +35,7 @@ type configuration struct {
 	ForceDownload       bool
 	UseSSL              bool
 	SkipSSLVerification bool
+	SkipSignature       bool
 	ListRecursive       bool
 	Port                string
 	Timeout             int32
@@ -80,6 +81,9 @@ func parseConfiguration() configuration {
 	viper.SetDefault("SKIP_SSL_VERIFICATION", false)
 	skipSSLVerification := viper.GetBool("SKIP_SSL_VERIFICATION")
 
+	viper.SetDefault("SKIP_SIGNATURE", false)
+	skipSignature := viper.GetBool("SKIP_SIGNATURE")
+
 	listRecursive := viper.GetBool("LIST_RECURSIVE")
 
 	viper.SetDefault("PORT", "8080")
@@ -90,6 +94,7 @@ func parseConfiguration() configuration {
 
 	viper.SetDefault("SSE_TYPE", "")
 	sseType := viper.GetString("SSE_TYPE")
+	
 	viper.SetDefault("SSE_KEY", "")
 	sseKey := viper.GetString("SSE_KEY")
 
@@ -104,6 +109,7 @@ func parseConfiguration() configuration {
 		ForceDownload:       forceDownload,
 		UseSSL:              useSSL,
 		SkipSSLVerification: skipSSLVerification,
+		SkipSignature:       skipSignature,
 		ListRecursive:       listRecursive,
 		Port:                port,
 		Timeout:             timeout,
@@ -136,7 +142,11 @@ func main() {
 	if configuration.UseIam {
 		opts.Creds = credentials.NewIAM(configuration.IamEndpoint)
 	} else {
-		opts.Creds = credentials.NewStaticV4(configuration.AccessKeyID, configuration.SecretAccessKey, "")
+		if (configuration.SkipSignature) {
+			opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", SignatureType.SignatureAnonymous)
+		} else {
+			opts.Creds = credentials.NewStaticV4(configuration.AccessKeyID, configuration.SecretAccessKey, "")
+		}
 	}
 
 	if configuration.Region != "" {
