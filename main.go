@@ -143,7 +143,7 @@ func main() {
 		opts.Creds = credentials.NewIAM(configuration.IamEndpoint)
 	} else {
 		if (configuration.SkipSignature) {
-			opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", SignatureType.SignatureAnonymous)
+			opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", credentials.SignatureAnonymous)
 		} else {
 			opts.Creds = credentials.NewStaticV4(configuration.AccessKeyID, configuration.SecretAccessKey, "")
 		}
