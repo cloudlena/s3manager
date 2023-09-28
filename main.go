@@ -35,7 +35,7 @@ type configuration struct {
 	ForceDownload       bool
 	UseSSL              bool
 	SkipSSLVerification bool
-	SkipSignature       bool
+	SignatureVersion    string
 	ListRecursive       bool
 	Port                string
 	Timeout             int32
@@ -81,8 +81,8 @@ func parseConfiguration() configuration {
 	viper.SetDefault("SKIP_SSL_VERIFICATION", false)
 	skipSSLVerification := viper.GetBool("SKIP_SSL_VERIFICATION")
 
-	viper.SetDefault("SKIP_SIGNATURE", false)
-	skipSignature := viper.GetBool("SKIP_SIGNATURE")
+	viper.SetDefault("SIGNATURE_VERSION", "V4")
+	signatureVersion := viper.GetString("SIGNATURE_VERSION")
 
 	listRecursive := viper.GetBool("LIST_RECURSIVE")
 
@@ -109,7 +109,7 @@ func parseConfiguration() configuration {
 		ForceDownload:       forceDownload,
 		UseSSL:              useSSL,
 		SkipSSLVerification: skipSSLVerification,
-		SkipSignature:       skipSignature,
+		SignatureVersion:    signatureVersion,
 		ListRecursive:       listRecursive,
 		Port:                port,
 		Timeout:             timeout,
@@ -142,11 +142,22 @@ func main() {
 	if configuration.UseIam {
 		opts.Creds = credentials.NewIAM(configuration.IamEndpoint)
 	} else {
-		if (configuration.SkipSignature) {
-			opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", credentials.SignatureAnonymous)
-		} else {
-			opts.Creds = credentials.NewStaticV4(configuration.AccessKeyID, configuration.SecretAccessKey, "")
+		var signatureVersion credentials.SignatureType
+
+		switch configuration.SignatureVersion {
+			case "V2":
+				signatureVersion = credentials.SignatureV2
+			case "V4":
+				signatureVersion = credentials.SignatureV4
+			case "V4Streaming":
+				signatureVersion = credentials.SignatureV4Streaming
+			case "Anonymous":
+				signatureVersion = credentials.SignatureAnonymous
+			default:
+				log.Fatalf("Invalid Signature Version: %s", configuration.SignatureVersion)
 		}
+
+		opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", signatureVersion)
 	}
 
 	if configuration.Region != "" {
