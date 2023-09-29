@@ -265,7 +265,7 @@ function uploadFile(file, url) {
 function createNotification(fileName) {
     notificationTemplate = document.getElementById('notification-template');
     notification = notificationTemplate.cloneNode(true);
-    notification.getElementsByTagName('p')[0].setHTML(fileName);
+    notification.getElementsByTagName('p')[0].innerHTML = fileName;
     notification.removeAttribute("id");
     notification.removeAttribute("style");
     return notification;
@@ -277,7 +277,7 @@ function handleOpenDownloadLinkModal(objectName) {
     
     const createLinkModalElement = document.getElementById('modal-create-download-link')
     document.getElementById('generated-link').setAttribute('value', "");
-    document.getElementById('gen-url-error').setHTML("");
+    document.getElementById('gen-url-error').innerHTML = "";
     const modalInstance = M.Modal.init(createLinkModalElement);
     modalInstance.open()
 }
@@ -293,7 +293,7 @@ function handleGenerateDownloadLink(event) {
     const expiryTime = formData.get('day') * 24 * 60 * 60 + formData.get('hour') * 60 * 60 + formData.get('minute') * 60;
 
     if(expiryTime > 7 * 24 * 60 * 60) {
-        genUrlMessage.setHTML("Expiry time must be less than 7 days");
+        genUrlMessage.innerHTML = "Expiry time must be less than 7 days";
         return;
     }
 
@@ -301,11 +301,11 @@ function handleGenerateDownloadLink(event) {
         type: 'GET',
         url: '/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectName + "/url?expiry=" + expiryTime,
         success: function (result) {
-            genUrlMessage.setHTML("")
+            genUrlMessage.innerHTML = "";
             document.getElementById("generated-link").setAttribute('value', JSON.parse(result).url);
         },
         error: function(request, status, error) {
-            genUrlMessage.setHTML("Error when generating url")
+            genUrlMessage.innerHTML = "Error when generating url";
         }
     });
 }
