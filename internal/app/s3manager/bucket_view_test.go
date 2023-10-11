@@ -146,7 +146,7 @@ func TestHandleBucketView(t *testing.T) {
 				return objCh
 			},
 			bucketName:           "BUCKET-NAME",
-			path:                 "abc/def",
+			path:                 "YWJjL2RlZgo=", // base64 of `abc/def`
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "def",
 		},
@@ -164,7 +164,7 @@ func TestHandleBucketView(t *testing.T) {
 
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 			r := mux.NewRouter()
-			r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, true, true)).Methods(http.MethodGet)
+			r.Handle("/buckets/{bucketName}/{pathKey:.*}", s3manager.HandleBucketView(s3, templates, true, true)).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

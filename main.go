@@ -118,24 +118,7 @@ func parseConfiguration() configuration {
 	}
 }
 
-func main() {
-	configuration := parseConfiguration()
-
-	sseType := s3manager.SSEType{Type: configuration.SseType, Key: configuration.SseKey}
-	serverTimeout := time.Duration(configuration.Timeout) * time.Second
-
-	// Set up templates
-	templates, err := fs.Sub(templateFS, "web/template")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Set up statics
-	statics, err := fs.Sub(staticFS, "web/static")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Set up S3 client
+func createS3(configuration configuration) *minio.Client {
 	opts := &minio.Options{
 		Secure: configuration.UseSSL,
 	}
@@ -170,30 +153,67 @@ func main() {
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
 	}
+	return s3
+}
 
-	// Set up router
+func createRouter(templatesResource fs.FS, staticsResource fs.FS, s3 *minio.Client, configuration configuration) *mux.Router {
+	sseType := s3manager.SSEType{Type: configuration.SseType, Key: configuration.SseKey}
+	allowDelete := configuration.AllowDelete
+
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
-	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, configuration.AllowDelete)).Methods(http.MethodGet)
-	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, configuration.AllowDelete, configuration.ListRecursive)).Methods(http.MethodGet)
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(staticsResource)))).Methods(http.MethodGet)
+	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templatesResource, allowDelete)).Methods(http.MethodGet)
+	r.Handle("/buckets/{bucketName}/{pathKey:.*}", s3manager.HandleBucketView(s3, templatesResource, allowDelete, configuration.ListRecursive)).Methods(http.MethodGet)
+	r.Handle("/buckets/{bucketName}", s3manager.HandleBucketView(s3, templatesResource, allowDelete, configuration.ListRecursive)).Methods(http.MethodGet)
 	r.Handle("/api/buckets", s3manager.HandleCreateBucket(s3)).Methods(http.MethodPost)
-	if configuration.AllowDelete {
+	if allowDelete {
 		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucket(s3)).Methods(http.MethodDelete)
 	}
 	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, sseType)).Methods(http.MethodPost)
-	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateUrl(s3)).Methods(http.MethodGet)
-	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObject(s3, configuration.ForceDownload)).Methods(http.MethodGet)
-	if configuration.AllowDelete {
-		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObject(s3)).Methods(http.MethodDelete)
+	r.Handle("/api/buckets/{bucketName}/objects/{objectKey:.*}/url", s3manager.HandleGenerateUrl(s3)).Methods(http.MethodGet)
+	r.Handle("/api/buckets/{bucketName}/objects/{objectKey:.*}", s3manager.HandleGetObject(s3, configuration.ForceDownload)).Methods(http.MethodGet)
+	if allowDelete {
+		r.Handle("/api/buckets/{bucketName}/objects/{objectKey:.*}", s3manager.HandleDeleteObject(s3)).Methods(http.MethodDelete)
 	}
+	return r
+}
 
-	lr := logging.Handler(os.Stdout)(r)
-	srv := &http.Server{
+func createStaticsResource() fs.FS {
+	statics, err := fs.Sub(staticFS, "web/static")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return statics
+}
+
+func createTemplatesResource() fs.FS {
+	templates, err := fs.Sub(templateFS, "web/template")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return templates
+}
+
+func createServer(router *mux.Router, configuration configuration) *http.Server {
+	loggingHandler := logging.Handler(os.Stdout)(router)
+	serverTimeout := time.Duration(configuration.Timeout) * time.Second
+	return &http.Server{
 		Addr:         ":" + configuration.Port,
-		Handler:      lr,
+		Handler:      loggingHandler,
 		ReadTimeout:  serverTimeout,
 		WriteTimeout: serverTimeout,
 	}
-	log.Fatal(srv.ListenAndServe())
+}
+
+func main() {
+	configuration := parseConfiguration()
+
+	templatesResource := createTemplatesResource()
+	staticsResource := createStaticsResource()
+	s3 := createS3(configuration)
+	router := createRouter(templatesResource, staticsResource, s3, configuration)
+
+	server := createServer(router, configuration)
+	log.Fatal(server.ListenAndServe())
 }

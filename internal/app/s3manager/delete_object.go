@@ -12,7 +12,13 @@ import (
 func HandleDeleteObject(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
-		objectName := mux.Vars(r)["objectName"]
+		objectKey := mux.Vars(r)["objectKey"]
+
+		objectName, decodeErr := decodeVariable(objectKey)
+		if decodeErr != nil {
+			handleHTTPError(w, fmt.Errorf("error when decoding object name: %w", decodeErr))
+			return
+		}
 
 		err := s3.RemoveObject(r.Context(), bucketName, objectName, minio.RemoveObjectOptions{})
 		if err != nil {

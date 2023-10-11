@@ -14,7 +14,7 @@
 <nav class="nav-extended">
     <div class="nav-wrapper container">
         <a href="/buckets/{{$.BucketName}}" class="brand-logo center"><i class="material-icons">folder_open</i>{{ .BucketName }}</a>
-        {{ if not .Objects }}
+        {{ if and (not .Objects) (not .PathDirectories) }}
         <ul class="right">
             <li>
                 <a class="waves-effect waves-light btn" href="#" onclick="deleteBucket({{ .BucketName }})">
@@ -27,12 +27,11 @@
 
     <div class="nav-wrapper container">
         <a href="/buckets" class="breadcrumb"><i class="material-icons">arrow_back</i> buckets </a>
-        {{ $url := printf "/buckets/%s/" $.BucketName }}
-        <a href="{{ $url }}" class="breadcrumb">{{ $.BucketName }}</a>
+        {{ $baseUrl := printf "/buckets/%s" $.BucketName }}
+        <a href="{{ $baseUrl }}" class="breadcrumb">{{ $.BucketName }}</a>
 
-        {{ range $index, $path := .Paths }}
-        {{ $url = printf "%s%s/" $url $path }}
-        <a href="{{ $url }}" class="breadcrumb">{{ $path }}</a>
+        {{ range $index, $pathDirectory := .PathDirectories }}
+        <a href="{{ $baseUrl }}/{{ $pathDirectory.Key }}" class="breadcrumb">{{ $pathDirectory.DisplayName }}</a>
         {{ end }}
     </div>
   </div>
@@ -72,7 +71,7 @@
                         <!-- Dropdown Structure -->
                         <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
                             <li><a target="_blank" href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
-                            <li><a onclick="handleOpenDownloadLinkModal({{ $object.Key }})">Download link</a></li>
+                            <li><a onclick="handleOpenDownloadLinkModal({{ $object.DisplayName }}, {{ $object.Key }})">Download link</a></li>
                             {{- if $.AllowDelete }}
                             <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
                             {{- end }}
@@ -146,6 +145,7 @@
             <div class="row">
                 <h4>Create download link for </h4>
                 <input name="objectName" id="objectName" type="text" readonly>
+                <input name="objectKey" id="objectKey" type="hidden" readonly>
             </div>
             <div class="row">
                 <div class="col s4">
@@ -271,9 +271,10 @@ function createNotification(fileName) {
     return notification;
 }
 
-function handleOpenDownloadLinkModal(objectName) {
+function handleOpenDownloadLinkModal(objectName, objectKey) {
     const downloadLinkForm = document.forms['download-link-form']
     downloadLinkForm.elements['objectName'].value = objectName;
+    downloadLinkForm.elements['objectKey'].value = objectKey;
     
     const createLinkModalElement = document.getElementById('modal-create-download-link')
     document.getElementById('generated-link').setAttribute('value', "");
@@ -287,7 +288,7 @@ function handleGenerateDownloadLink(event) {
 
     const form = event.target;
     const formData = new FormData(form);
-    const objectName = formData.get('objectName');
+    const objectKey = formData.get('objectKey');
     const genUrlMessage = document.getElementById('gen-url-error');
 
     const expiryTime = formData.get('day') * 24 * 60 * 60 + formData.get('hour') * 60 * 60 + formData.get('minute') * 60;
@@ -299,7 +300,7 @@ function handleGenerateDownloadLink(event) {
 
     $.ajax({
         type: 'GET',
-        url: '/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectName + "/url?expiry=" + expiryTime,
+        url: '/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectKey + "/url?expiry=" + expiryTime,
         success: function (result) {
             genUrlMessage.innerHTML = "";
             document.getElementById("generated-link").setAttribute('value', JSON.parse(result).url);

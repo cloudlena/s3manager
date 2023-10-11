@@ -14,8 +14,14 @@ import (
 func HandleGenerateUrl(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
-		objectName := mux.Vars(r)["objectName"]
+		objectKey := mux.Vars(r)["objectKey"]
 		expiry := r.URL.Query().Get("expiry")
+
+		objectName, decodeErr := decodeVariable(objectKey)
+		if decodeErr != nil {
+			handleHTTPError(w, fmt.Errorf("error when decoding object name: %w", decodeErr))
+			return
+		}
 
 		parsedExpiry, err := strconv.ParseInt(expiry, 10, 0)
 		if err != nil {

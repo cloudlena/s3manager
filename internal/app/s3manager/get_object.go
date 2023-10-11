@@ -13,7 +13,13 @@ import (
 func HandleGetObject(s3 S3, forceDownload bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
-		objectName := mux.Vars(r)["objectName"]
+		objectKey := mux.Vars(r)["objectKey"]
+
+		objectName, decodeErr := decodeVariable(objectKey)
+		if decodeErr != nil {
+			handleHTTPError(w, fmt.Errorf("error when decoding object name: %w", decodeErr))
+			return
+		}
 
 		object, err := s3.GetObject(r.Context(), bucketName, objectName, minio.GetObjectOptions{})
 		if err != nil {
