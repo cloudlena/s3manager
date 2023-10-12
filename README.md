@@ -5,7 +5,7 @@
 
 A Web GUI written in Go to manage S3 buckets from any provider.
 
-![Screenshot](https://raw.githubusercontent.com/cloudlena/s3manager/master/screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/cloudlena/s3manager/main/screenshot.png)
 
 ## Features
 
@@ -70,7 +70,7 @@ The image is available on [Docker Hub](https://hub.docker.com/r/cloudlena/s3mana
 
 ### Run Locally for Testing
 
-There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/master/docker-compose.yml) file that spins up an S3 service and the s3manager. You can try it by issuing the following command:
+There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/main/docker-compose.yml) file that spins up an S3 service and the s3manager. You can try it by issuing the following command:
 
 ```shell
 $ docker-compose up
