@@ -3,9 +3,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/cloudlena/s3manager)](https://goreportcard.com/report/github.com/cloudlena/s3manager)
 [![Build Status](https://github.com/cloudlena/s3manager/actions/workflows/main.yml/badge.svg)](https://github.com/cloudlena/s3manager/actions)
 
-A Web GUI written in Go to manage S3 buckets from any provider.
+A web server written in Go to manage S3 buckets from any provider.
+The UI is provided as a separate project [s3manager-ui](https://github.com/denysvitali/s3manager-ui).
 
-![Screenshot](https://raw.githubusercontent.com/cloudlena/s3manager/master/screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/denysvitali/s3manager-ui/master/docs/example.jpg)
 
 ## Features
 
@@ -29,6 +30,7 @@ The application can be configured with the following environment variables:
 - `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
 - `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
 - `SIGNATURE_TYPE`: The signature type to be used (defaults to `V4`; valid values are `V2, V4, V4Streaming, Anonymous`)
+- `ADDRESS`: The address the s3manager app should listen on (defaults to `127.0.0.1`)
 - `PORT`: The port the s3manager app should listen on (defaults to `8080`)
 - `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
 - `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
