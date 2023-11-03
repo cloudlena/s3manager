@@ -86,7 +86,7 @@
     {{ end }}
 
     {{ if not .Objects }}
-    <p style="text-align:center;margin-top:2em;color:gray;">No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet</p>
+    <p style="text-align:center;margin-top:2em;color:rgb(128,128,128);">No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet</p>
     {{ end }}
 
     <div id="notifications">
@@ -251,20 +251,20 @@ function uploadFile(file, url) {
     }
 
     const notification = createNotification(file.name);
-    notifications = document.getElementById('notifications');
+    const notifications = document.getElementById('notifications');
     notifications.appendChild(notification);
 
     return fetch(url, {
         method: "POST",
         body: formData
-    }).then(response => {
+    }).then(() => {
         notifications.removeChild(notification);
     })
 }
 
 function createNotification(fileName) {
-    notificationTemplate = document.getElementById('notification-template');
-    notification = notificationTemplate.cloneNode(true);
+    const notificationTemplate = document.getElementById('notification-template');
+    const notification = notificationTemplate.cloneNode(true);
     notification.getElementsByTagName('p')[0].innerHTML = fileName;
     notification.removeAttribute("id");
     notification.removeAttribute("style");
@@ -287,27 +287,36 @@ function handleGenerateDownloadLink(event) {
 
     const form = event.target;
     const formData = new FormData(form);
-    const objectName = formData.get('objectName');
+    const objectName = encodeURIComponent(formData.get('objectName').toString());
     const genUrlMessage = document.getElementById('gen-url-error');
+    const generatedLink = document.getElementById("generated-link");
 
-    const expiryTime = formData.get('day') * 24 * 60 * 60 + formData.get('hour') * 60 * 60 + formData.get('minute') * 60;
+    const expiryTime = encodeURIComponent(formData.get('day') * 24 * 60 * 60 + formData.get('hour') * 60 * 60 + formData.get('minute') * 60);
 
     if(expiryTime > 7 * 24 * 60 * 60) {
         genUrlMessage.innerHTML = "Expiry time must be less than 7 days";
         return;
     }
 
-    $.ajax({
-        type: 'GET',
-        url: '/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectName + "/url?expiry=" + expiryTime,
-        success: function (result) {
-            genUrlMessage.innerHTML = "";
-            document.getElementById("generated-link").setAttribute('value', JSON.parse(result).url);
-        },
-        error: function(request, status, error) {
-            genUrlMessage.innerHTML = "Error when generating url";
+    const bucketName = encodeURIComponent('{{ $.BucketName }}');
+
+    fetch(`/api/buckets/${bucketName}/objects/${objectName}/url?expiry=${expiryTime}`, {
+      method: 'GET'
+    })
+      .then(response => {
+        if (response.ok) {
+          genUrlMessage.innerHTML = "";
+          return response.json();
+        } else {
+          throw new Error('Error when generating URL');
         }
-    });
+      })
+      .then(result => {
+        generatedLink.value = result.url;
+      })
+      .catch(error => {
+        genUrlMessage.innerHTML = error.message;
+      });
 }
 
 function handleCopyLink() {
@@ -323,19 +332,20 @@ function handleCopyLink() {
 }
 
 window.onload = (event) => {
-    $('#change-path-form').submit(handleChangePath)
-    $('#download-link-form').submit(handleGenerateDownloadLink)
+    document.getElementById('change-path-form').addEventListener('submit', handleChangePath);
+    document.getElementById('download-link-form').addEventListener('submit', handleGenerateDownloadLink);
 
-    uploadFolderInput = $('#upload-folder-input');
-    $('#upload-folder-btn').click(event => uploadFolderInput.click());
-    uploadFolderInput.change(handleUploadFiles);
+    const uploadFolderInput = document.getElementById('upload-folder-input');
+    document.getElementById('upload-folder-btn').addEventListener('click', (event) => uploadFolderInput.click());
+    uploadFolderInput.addEventListener('change', handleUploadFiles);
 
-    uploadFileInput = $('#upload-file-input');
-    $('#upload-file-btn').click(event => uploadFileInput.click());
-    uploadFileInput.change(handleUploadFiles);
+    const uploadFileInput = document.getElementById('upload-file-input');
+    document.getElementById('upload-file-btn').addEventListener('click', (event) => uploadFileInput.click());
+    uploadFileInput.addEventListener('change', handleUploadFiles);
 
-    $(document).ready(function(){
-        $('.tooltipped').tooltip();
+    const tooltips = document.querySelectorAll('.tooltipped');
+    tooltips.forEach((element) => {
+        new M.Tooltip(element);
     });
 };
 </script>

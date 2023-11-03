@@ -16,16 +16,20 @@
 <body>
 
     {{ template "content" . }}
-
-    <script
-      src="/static/js/jquery-3.6.0.min.js"
-    ></script>
     <script src="/static/js/materialize.min.js"></script>
-    <script>
-        $(document).ready(function(){
-            $('.dropdown-trigger').dropdown();
-            $('.modal').modal();
+    <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropdownElements = document.querySelectorAll('.dropdown-trigger');
+        const modalElements = document.querySelectorAll('.modal');
+
+        dropdownElements.forEach(function(element) {
+            new M.Dropdown(element);
         });
+
+        modalElements.forEach(function(element) {
+            new M.Modal(element);
+        });
+    });
     </script>
 </body>
 

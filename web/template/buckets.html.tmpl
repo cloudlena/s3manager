@@ -23,7 +23,7 @@
                                     <span class="card-title">
                                         {{ $bucket.Name }}
                                     </span>
-                                    <p style="color:gray;">Created on {{ $bucket.CreationDate }}</p>
+                                    <p style="color:rgb(128,128,128);">Created on {{ $bucket.CreationDate }}</p>
                                 </div>
                             </div>
                         </div>
@@ -67,21 +67,29 @@
     </form>
 </div>
 
-<script>
-    function createBucket() {
-        var formData = {};
-        $.each($('#create-bucket-form')
-            .serializeArray(), function(i, field) {
-                formData[field.name] = field.value;
-            });
-        $.ajax({
-            type: 'POST',
-            url: '/api/buckets',
-            data: JSON.stringify(formData),
-            dataType: 'json',
-            contentType: 'application/json; charset=utf-8',
-            success: function() { location.reload(); }
-        });
-    }
+<script type="text/javascript">
+function createBucket() {
+    const formData = Object.fromEntries(new FormData(document.getElementById('create-bucket-form')));
+    fetch('/api/buckets', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('Failed to create bucket');
+        }
+    })
+    .then(() => {
+        location.reload();
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
 </script>
 {{ end }}
