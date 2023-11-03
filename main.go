@@ -2,9 +2,8 @@ package main
 
 import (
 	"crypto/tls"
-	"embed"
 	"fmt"
-	"io/fs"
+	"github.com/cloudlena/adapters/cors"
 	"log"
 	"net/http"
 	"os"
@@ -17,12 +16,6 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/viper"
 )
-
-//go:embed web/template
-var templateFS embed.FS
-
-//go:embed web/static
-var staticFS embed.FS
 
 type configuration struct {
 	Endpoint            string
@@ -37,10 +30,13 @@ type configuration struct {
 	SkipSSLVerification bool
 	SignatureType       string
 	ListRecursive       bool
-	Port                string
-	Timeout             int32
-	SseType             string
-	SseKey              string
+
+	// Addr is the address to listen on
+	Addr    string
+	Port    string
+	Timeout int32
+	SseType string
+	SseKey  string
 }
 
 func parseConfiguration() configuration {
@@ -89,6 +85,9 @@ func parseConfiguration() configuration {
 	viper.SetDefault("PORT", "8080")
 	port := viper.GetString("PORT")
 
+	viper.SetDefault("ADDR", "127.0.0.1")
+	addr := viper.GetString("ADDR")
+
 	viper.SetDefault("TIMEOUT", 600)
 	timeout := viper.GetInt32("TIMEOUT")
 
@@ -111,6 +110,7 @@ func parseConfiguration() configuration {
 		SkipSSLVerification: skipSSLVerification,
 		SignatureType:       signatureType,
 		ListRecursive:       listRecursive,
+		Addr:                addr,
 		Port:                port,
 		Timeout:             timeout,
 		SseType:             sseType,
@@ -119,32 +119,21 @@ func parseConfiguration() configuration {
 }
 
 func main() {
-	configuration := parseConfiguration()
+	cfg := parseConfiguration()
 
-	sseType := s3manager.SSEType{Type: configuration.SseType, Key: configuration.SseKey}
-	serverTimeout := time.Duration(configuration.Timeout) * time.Second
-
-	// Set up templates
-	templates, err := fs.Sub(templateFS, "web/template")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Set up statics
-	statics, err := fs.Sub(staticFS, "web/static")
-	if err != nil {
-		log.Fatal(err)
-	}
+	sseType := s3manager.SSEType{Type: cfg.SseType, Key: cfg.SseKey}
+	serverTimeout := time.Duration(cfg.Timeout) * time.Second
 
 	// Set up S3 client
 	opts := &minio.Options{
-		Secure: configuration.UseSSL,
+		Secure: cfg.UseSSL,
 	}
-	if configuration.UseIam {
-		opts.Creds = credentials.NewIAM(configuration.IamEndpoint)
+	if cfg.UseIam {
+		opts.Creds = credentials.NewIAM(cfg.IamEndpoint)
 	} else {
 		var signatureType credentials.SignatureType
 
-		switch configuration.SignatureType {
+		switch cfg.SignatureType {
 		case "V2":
 			signatureType = credentials.SignatureV2
 		case "V4":
@@ -154,44 +143,49 @@ func main() {
 		case "Anonymous":
 			signatureType = credentials.SignatureAnonymous
 		default:
-			log.Fatalf("Invalid SIGNATURE_TYPE: %s", configuration.SignatureType)
+			log.Fatalf("Invalid SIGNATURE_TYPE: %s", cfg.SignatureType)
 		}
 
-		opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", signatureType)
+		opts.Creds = credentials.NewStatic(cfg.AccessKeyID, cfg.SecretAccessKey, "", signatureType)
 	}
 
-	if configuration.Region != "" {
-		opts.Region = configuration.Region
+	if cfg.Region != "" {
+		opts.Region = cfg.Region
 	}
-	if configuration.UseSSL && configuration.SkipSSLVerification {
+	if cfg.UseSSL && cfg.SkipSSLVerification {
 		opts.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec
 	}
-	s3, err := minio.New(configuration.Endpoint, opts)
+	s3, err := minio.New(cfg.Endpoint, opts)
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
 	}
 
 	// Set up router
 	r := mux.NewRouter()
-	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
-	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, configuration.AllowDelete)).Methods(http.MethodGet)
-	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, configuration.AllowDelete, configuration.ListRecursive)).Methods(http.MethodGet)
+	corsHandler := cors.Handler(cors.Options{
+		Methods: []string{"GET", "HEAD", "POST", "PUT", "OPTIONS"},
+		Origins: []string{"*"},
+	})
+
+	r.Handle("/api/buckets", s3manager.HandleListBuckets(s3)).Methods(http.MethodGet)
 	r.Handle("/api/buckets", s3manager.HandleCreateBucket(s3)).Methods(http.MethodPost)
-	if configuration.AllowDelete {
+	if cfg.AllowDelete {
 		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucket(s3)).Methods(http.MethodDelete)
 	}
 	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, sseType)).Methods(http.MethodPost)
+	r.Handle("/api/buckets/{bucketName}/list/{objectName:.*}", s3manager.HandleListObjects(s3)).Methods(http.MethodGet)
 	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateUrl(s3)).Methods(http.MethodGet)
-	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObject(s3, configuration.ForceDownload)).Methods(http.MethodGet)
-	if configuration.AllowDelete {
+	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObject(s3, cfg.ForceDownload)).Methods(http.MethodGet)
+	if cfg.AllowDelete {
 		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObject(s3)).Methods(http.MethodDelete)
 	}
 
 	lr := logging.Handler(os.Stdout)(r)
+
+	log.Println("Listening on " + cfg.Addr + ":" + cfg.Port)
 	srv := &http.Server{
-		Addr:         ":" + configuration.Port,
-		Handler:      lr,
+		Addr:         cfg.Addr + ":" + cfg.Port,
+		Handler:      corsHandler(lr),
 		ReadTimeout:  serverTimeout,
 		WriteTimeout: serverTimeout,
 	}

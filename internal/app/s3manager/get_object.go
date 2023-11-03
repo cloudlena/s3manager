@@ -2,11 +2,11 @@ package s3manager
 
 import (
 	"fmt"
-	"io"
-	"net/http"
-
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
+	"io"
+	"net/http"
+	"path"
 )
 
 // HandleGetObject downloads an object to the client.
@@ -21,8 +21,10 @@ func HandleGetObject(s3 S3, forceDownload bool) http.HandlerFunc {
 			return
 		}
 
+		fileName := path.Base(objectName)
+
 		if forceDownload {
-			w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
+			w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 			w.Header().Set("Content-Type", "application/octet-stream")
 		}
 		_, err = io.Copy(w, object)
