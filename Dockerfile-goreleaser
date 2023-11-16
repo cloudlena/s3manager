@@ -1,0 +1,11 @@
+FROM docker.io/library/alpine:latest
+WORKDIR /usr/src/app
+RUN addgroup -S s3manager && adduser -S s3manager -G s3manager
+RUN apk add --no-cache \
+  ca-certificates \
+  dumb-init
+COPY --chown=s3manager:s3manager s3manager /usr/src/app/
+USER s3manager
+EXPOSE 8080
+ENTRYPOINT [ "/usr/bin/dumb-init", "--" ]
+CMD [ "/usr/src/app/s3manager" ]
