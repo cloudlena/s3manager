@@ -1,8 +1,12 @@
+project_name: s3manager
+
 before:
   hooks:
     - go mod tidy
+
 builds:
-  - env:
+  - binary: s3manager
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -10,3 +14,50 @@ builds:
       - darwin
 checksum:
   name_template: "checksums.txt"
+
+dockers:
+  - use: buildx
+    dockerfile: Dockerfile-goreleaser
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+    image_templates:
+      - 'butuzov/s3manager:latest-amd64'
+      - 'butuzov/s3manager:{{ .Version }}-amd64'
+
+  - use: buildx
+    dockerfile: Dockerfile-goreleaser
+    goos: linux
+    goarch: arm64
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm/v8"
+    image_templates:
+      - 'butuzov/s3manager:latest-arm64'
+      - 'butuzov/s3manager:{{ .Version }}-arm64'
+
+  - use: buildx
+    dockerfile: Dockerfile-goreleaser
+    goos: linux
+    goarch: "386"
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/386"
+    image_templates:
+      - 'butuzov/s3manager:latest-386'
+      - 'butuzov/s3manager:{{ .Version }}-386'
+
+docker_manifests:
+- name_template: 'butuzov/s3manager:latest'
+  image_templates:
+  - 'butuzov/s3manager:{{ .Version }}-amd64'
+  - 'butuzov/s3manager:{{ .Version }}-arm64'
+  - 'butuzov/s3manager:{{ .Version }}-386'
+
+- name_template: 'butuzov/s3manager:{{ .Version }}'
+  image_templates:
+  - 'butuzov/s3manager:{{ .Version }}-amd64'
+  - 'butuzov/s3manager:{{ .Version }}-arm64'
+  - 'butuzov/s3manager:{{ .Version }}-386'
