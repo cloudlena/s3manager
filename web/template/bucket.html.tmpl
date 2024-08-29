@@ -27,12 +27,12 @@
 
     <div class="nav-wrapper container">
         <a href="{{$.RootUrl}}/buckets" class="breadcrumb"><i class="material-icons">arrow_back</i> buckets </a>
-        {{ $url := printf "/buckets/%s/" $.BucketName }}
-        <a href="{{$.RootUrl}}{{ $url }}" class="breadcrumb">{{ $.BucketName }}</a>
+        {{ $url := printf "%s/buckets/%s/" $.RootUrl $.BucketName }}
+        <a href="{{ $url }}" class="breadcrumb">{{ $.BucketName }}</a>
 
         {{ range $index, $path := .Paths }}
         {{ $url = printf "%s%s/" $url $path }}
-        <a href="{{$.RootUrl}}{{ $url }}" class="breadcrumb">{{ $path }}</a>
+        <a href="{{ $url }}" class="breadcrumb">{{ $path }}</a>
         {{ end -}}
     </div>
   </div>
