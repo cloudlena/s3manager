@@ -61,7 +61,7 @@
                     {{ end }}>
                     <i class="material-icons">{{ $object.Icon }}</i> {{ $object.DisplayName }}
                 </td>
-                <td>{{ $object.Size }} bytes</td>
+                <td>{{ if $object.IsFolder }}-{{ else }}{{ $object.Size }} bytes{{ end }}</td>
                 <td>{{ $object.Owner }}</td>
                 <td>{{ $object.LastModified }}</td>
                 <td>
