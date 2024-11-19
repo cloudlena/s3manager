@@ -18,7 +18,7 @@
     padding: 8px !important;
     border: 1px solid #ddd !important;
     border-radius: 4px !important;
-    height: 540px !important;
+    height: 480px !important;
     overflow-y: auto !important;
 }
 </style>
@@ -210,8 +210,179 @@
         <div class="modal-content">
             <h4>Edit Bucket Policy</h4>
             <div class="row">
-                <div class="input-field col s12">
-                    <textarea id="policy" name="policy" class="materialize-textarea monospace" spellcheck="false"></textarea>
+                <div class="col s12">
+                    <div class="switch">
+                        <label>
+                            <input type="checkbox" id="advanced-editor-toggle">
+                            <span class="lever"></span>
+                            Advanced Editor
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div id="simple-editor">
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="policy-user" type="text" class="validate">
+                        <label for="policy-user">AWS User ARN or ID</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col s12">
+                        <div class="switch">
+                            <label>
+                                <input type="checkbox" id="allow-all-actions">
+                                <span class="lever"></span>
+                                Allow All Actions
+                            </label>
+                        </div>
+                        <div id="specific-actions">
+                            <div class="row">
+                                <div class="col s4">
+                                    <h6>Read Operations</h6>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetObject" checked/>
+                                            <span>Get Object</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:ListBucket" checked/>
+                                            <span>List Bucket Contents</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetBucketLocation" checked/>
+                                            <span>Get Bucket Location</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetObjectVersion" checked/>
+                                            <span>Get Object Version</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetObjectTagging" checked/>
+                                            <span>Get Object Tags</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetBucketPolicy" checked/>
+                                            <span>Get Bucket Policy</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:ListBucketVersions" checked/>
+                                            <span>List Bucket Versions</span>
+                                        </label>
+                                    </p>
+                                </div>
+                                <div class="col s4">
+                                    <h6>Write Operations</h6>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutObject" checked/>
+                                            <span>Put Object</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:DeleteObject" checked/>
+                                            <span>Delete Object</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:DeleteObjectVersion" checked/>
+                                            <span>Delete Object Version</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutObjectTagging" checked/>
+                                            <span>Put Object Tags</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:DeleteObjectTagging" checked/>
+                                            <span>Delete Object Tags</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutBucketPolicy" checked/>
+                                            <span>Put Bucket Policy</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:AbortMultipartUpload" checked/>
+                                            <span>Abort Multipart Upload</span>
+                                        </label>
+                                    </p>
+                                </div>
+                                <div class="col s4">
+                                    <h6>Advanced Operations</h6>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetLifecycleConfiguration" checked/>
+                                            <span>Get Lifecycle Config</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutLifecycleConfiguration" checked/>
+                                            <span>Put Lifecycle Config</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetBucketVersioning" checked/>
+                                            <span>Get Bucket Versioning</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutBucketVersioning" checked/>
+                                            <span>Put Bucket Versioning</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:ReplicateObject" checked/>
+                                            <span>Replicate Object</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:ReplicateDelete" checked/>
+                                            <span>Replicate Delete</span>
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" class="filled-in policy-action" value="s3:RestoreObject" checked/>
+                                            <span>Restore Object</span>
+                                        </label>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="advanced-editor" style="display: none;">
+                <div class="row">
+                    <div class="input-field col s12">
+                        <textarea id="policy" name="policy" class="materialize-textarea monospace" spellcheck="false"></textarea>
+                    </div>
                 </div>
             </div>
             <div class="red-text" id="policy-error"></div>
@@ -376,21 +547,91 @@ function highlightJSON(text) {
     });
 }
 
-function updateEditor(text) {
-    const editor = document.getElementById('policy-editor');
-    const hiddenInput = document.getElementById('policy');
-    try {
-        const obj = JSON.parse(text);
-        const formatted = JSON.stringify(obj, null, 2);
-        editor.innerHTML = highlightJSON(formatted);
-        hiddenInput.value = formatted;
-    } catch (e) {
-        editor.innerHTML = highlightJSON(text);
-        hiddenInput.value = text;
+function generateSimplePolicy() {
+    const userId = document.getElementById('policy-user').value;
+    const allowAll = document.getElementById('allow-all-actions').checked;
+    const actions = allowAll ?
+        ["s3:*"] :
+        Array.from(document.getElementsByClassName('policy-action'))
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+    const policy = {
+        "Version": "2012-10-17",
+        "Id": "S3Policy",
+        "Statement": [
+            {
+                "Sid": "BucketAllow",
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": [userId.startsWith('arn:') ? userId : `arn:aws:iam:::user/${userId}`]
+                },
+                "Action": actions,
+                "Resource": [
+                    `arn:aws:s3:::{{ $.BucketName }}`,
+                    `arn:aws:s3:::{{ $.BucketName }}/*`
+                ]
+            }
+        ]
+    };
+    return JSON.stringify(policy, null, 2);
+}
+
+function handlePolicyEditorToggle() {
+    const isAdvanced = document.getElementById('advanced-editor-toggle').checked;
+    document.getElementById('simple-editor').style.display = isAdvanced ? 'none' : 'block';
+    document.getElementById('advanced-editor').style.display = isAdvanced ? 'block' : 'none';
+    if (!isAdvanced) {
+        try {
+            const policyText = document.getElementById('policy').value;
+            const policy = JSON.parse(policyText);
+            const statement = policy.Statement[0];
+            if (statement && statement.Principal && statement.Principal.AWS) {
+                let userArn = Array.isArray(statement.Principal.AWS)
+                    ? statement.Principal.AWS[0]
+                    : statement.Principal.AWS;
+                if (userArn.startsWith('arn:aws:iam:::user/')) {
+                    userArn = userArn.replace('arn:aws:iam:::user/', '');
+                }
+                const userIdField = document.getElementById('policy-user');
+                userIdField.value = userArn;
+                M.updateTextFields();
+            }
+            const hasAllActions = policy.Statement.some(statement => {
+                const actions = Array.isArray(statement.Action) ? statement.Action : [statement.Action];
+                return actions.includes('s3:*');
+            });
+            const allowAllCheckbox = document.getElementById('allow-all-actions');
+            allowAllCheckbox.checked = hasAllActions;
+            document.getElementById('specific-actions').style.display = hasAllActions ? 'none' : 'block';
+            if (!hasAllActions && statement.Action) {
+                const actions = Array.isArray(statement.Action) ? statement.Action : [statement.Action];
+                document.querySelectorAll('.policy-action').forEach(checkbox => {
+                    checkbox.checked = actions.includes(checkbox.value);
+                });
+            }
+        } catch (e) {
+            console.error('Error parsing policy:', e);
+        }
+        const policyText = generateSimplePolicy();
+        document.getElementById('policy').value = policyText;
+        M.textareaAutoResize(document.getElementById('policy'));
+    }
+}
+
+function toggleSpecificActions() {
+    const allowAll = document.getElementById('allow-all-actions').checked;
+    const specificActions = document.getElementById('specific-actions');
+    specificActions.style.display = allowAll ? 'none' : 'block';
+    if (!document.getElementById('advanced-editor-toggle').checked) {
+        const policyText = generateSimplePolicy();
+        document.getElementById('policy').value = policyText;
+        M.textareaAutoResize(document.getElementById('policy'));
     }
 }
 
 function loadBucketPolicy() {
+    document.getElementById('simple-editor').style.display = 'none';
+    document.getElementById('advanced-editor').style.display = 'none';
     $.ajax({
         type: 'GET',
         url: '/api/buckets/' + {{ $.BucketName }} + '/policy',
@@ -401,38 +642,47 @@ function loadBucketPolicy() {
             textarea.value = policyText;
             textarea.addEventListener('keydown', handleEditorKeydown);
             M.textareaAutoResize(textarea);
+            const toggle = document.getElementById('advanced-editor-toggle');
+            toggle.checked = true;
+            toggle.disabled = false;
+            handlePolicyEditorToggle();
             M.updateTextFields();
         },
         error: function(request, status, error) {
-            const defaultPolicy = {
-                "Version": "2012-10-17",
-                "Id": "S3Policy",
-                "Statement": [
-                    {
-                        "Sid": "BucketAllow",
-                        "Effect": "Allow",
-                        "Principal": {
-                            "AWS": [
-                                "arn:aws:iam:::user/<USER_ID>"
-                            ]
-                        },
-                        "Action": [
-                            "s3:*"
-                        ],
-                        "Resource": [
-                            "arn:aws:s3:::" + {{ $.BucketName }},
-                            "arn:aws:s3:::" + {{ $.BucketName }} + "/*"
-                        ]
-                    }
-                ]
-            };
-            const textarea = document.getElementById('policy');
-            textarea.value = JSON.stringify(defaultPolicy, null, 2);
-            textarea.addEventListener('keydown', handleEditorKeydown);
-            M.textareaAutoResize(textarea);
-            document.getElementById('policy-error').innerHTML = "No policy found. Replace with your own policy.";
+            const toggle = document.getElementById('advanced-editor-toggle');
+            toggle.checked = false;
+            handlePolicyEditorToggle();
+            document.getElementById('policy-user').value = '';
+            document.getElementById('allow-all-actions').checked = false;
+            document.getElementById('specific-actions').style.display = 'block';
+            handleUserIdInput();
+            document.querySelectorAll('.policy-action').forEach(cb => {
+                cb.checked = false;
+            });
+            const recommendedActions = [
+                's3:GetObject',
+                's3:ListBucket',
+                's3:GetBucketLocation',
+                's3:PutObject',
+                's3:AbortMultipartUpload'
+            ];
+            recommendedActions.forEach(action => {
+                const checkbox = document.querySelector(`.policy-action[value="${action}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+            const policyText = generateSimplePolicy();
+            document.getElementById('policy').value = policyText;
+            M.textareaAutoResize(document.getElementById('policy'));
+            document.getElementById('policy-error').innerHTML = "Existing policy not found. Use the editor to create one.";
+            M.updateTextFields();
         }
     });
+}
+
+function handleUserIdInput() {
+    const userId = document.getElementById('policy-user').value.trim();
+    const toggle = document.getElementById('advanced-editor-toggle');
+    toggle.disabled = !userId;
 }
 
 function handleEditPolicy(event) {
@@ -552,11 +802,20 @@ window.onload = (event) => {
     $(document).ready(function(){
         $('.tooltipped').tooltip();
     });
-    const editor = document.getElementById('policy-editor');
-    editor.addEventListener('input', function() {
-        updateEditor(this.innerText);
-    });
-    editor.addEventListener('keydown', handleEditorKeydown);
+    document.getElementById('policy').addEventListener('keydown', handleEditorKeydown);
+    document.getElementById('advanced-editor-toggle')
+        .addEventListener('change', handlePolicyEditorToggle);
+    document.getElementById('allow-all-actions')
+        .addEventListener('change', toggleSpecificActions);
+    document.querySelectorAll('.policy-action, #policy-user, #allow-all-actions')
+        .forEach(el => el.addEventListener('change', function() {
+            if (!document.getElementById('advanced-editor-toggle').checked) {
+                const policyText = generateSimplePolicy();
+                document.getElementById('policy').value = policyText;
+                M.textareaAutoResize(document.getElementById('policy'));
+            }
+        }));
+    document.getElementById('policy-user').addEventListener('input', handleUserIdInput);
 };
 </script>
 {{ end }}
