@@ -14,15 +14,20 @@
 <nav class="nav-extended">
     <div class="nav-wrapper container">
         <a href="/buckets/{{$.BucketName}}" class="brand-logo center"><i class="material-icons">folder_open</i>{{ .BucketName }}</a>
-        {{ if not .Objects }}
         <ul class="right">
+            {{ if not .Objects }}
             <li>
                 <a class="waves-effect waves-light btn" href="#" onclick="deleteBucket({{ .BucketName }})">
                     Delete <i class="material-icons right">delete</i>
                 </a>
             </li>
+            {{ end }}
+            <li>
+                <a class="waves-effect waves-light btn modal-trigger" href="#modal-edit-policy">
+                    Edit Policy <i class="material-icons right">description</i>
+                </a>
+            </li>
         </ul>
-        {{ end }}
     </div>
 
     <div class="nav-wrapper container">
@@ -188,6 +193,25 @@
     </form>
 </div>
 
+<div id="modal-edit-policy" class="modal">
+    <form id="edit-policy-form">
+        <div class="modal-content">
+            <h4>Edit Bucket Policy</h4>
+            <div class="row">
+                <div class="input-field col s12">
+                    <textarea id="policy" name="policy" class="materialize-textarea"></textarea>
+                    <label for="policy">Policy (JSON)</label>
+                </div>
+            </div>
+            <div class="red-text" id="policy-error"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
+            <button type="submit" class="waves-effect waves-green btn">Save Policy</button>
+        </div>
+    </form>
+</div>
+
 <script>
 function deleteObject(bucketName, objectName) {
     $.ajax({
@@ -322,9 +346,82 @@ function handleCopyLink() {
     }
 }
 
+function loadBucketPolicy() {
+    $.ajax({
+        type: 'GET',
+        url: '/api/buckets/' + {{ $.BucketName }} + '/policy',
+        success: function(result) {
+            const policy = typeof result === 'string' ? JSON.parse(result) : result;
+            const policyText = JSON.stringify(policy, null, 2);
+            const textarea = document.getElementById('policy');
+            textarea.value = policyText;
+            M.textareaAutoResize(textarea);
+            M.updateTextFields();
+            setTimeout(() => {
+                M.textareaAutoResize(textarea);
+                M.updateTextFields();
+            }, 100);
+        },
+        error: function(request, status, error) {
+            const defaultPolicy = {
+                "Version": "2012-10-17",
+                "Id": "S3Policy",
+                "Statement": [
+                    {
+                        "Sid": "BucketAllow",
+                        "Effect": "Allow",
+                        "Principal": {
+                            "AWS": [
+                                "arn:aws:iam:::user/<USER_ID>"
+                            ]
+                        },
+                        "Action": [
+                            "s3:*"
+                        ],
+                        "Resource": [
+                            "arn:aws:s3:::" + {{ $.BucketName }},
+                            "arn:aws:s3:::" + {{ $.BucketName }} + "/*"
+                        ]
+                    }
+                ]
+            };
+            document.getElementById('policy').value = JSON.stringify(defaultPolicy, null, 2);
+            M.textareaAutoResize($('#policy'));
+            M.updateTextFields();
+            document.getElementById('policy-error').innerHTML = "No policy found. Replace with your own policy.";
+        }
+    });
+}
+
+function handleEditPolicy(event) {
+    event.preventDefault();
+    const form = event.target;
+    const policyText = form.elements['policy'].value;
+    try {
+        JSON.parse(policyText);
+    } catch (e) {
+        document.getElementById('policy-error').innerHTML = "Invalid JSON format";
+        return;
+    }
+    $.ajax({
+        type: 'PUT',
+        url: '/api/buckets/' + {{ $.BucketName }} + '/policy',
+        data: policyText,
+        contentType: 'application/json',
+        success: function() {
+            M.Modal.getInstance(document.getElementById('modal-edit-policy')).close();
+            M.toast({html: 'Policy updated successfully'});
+        },
+        error: function(request, status, error) {
+            document.getElementById('policy-error').innerHTML = request.responseText;
+        }
+    });
+}
+
 window.onload = (event) => {
     $('#change-path-form').submit(handleChangePath)
     $('#download-link-form').submit(handleGenerateDownloadLink)
+    $('#edit-policy-form').submit(handleEditPolicy)
 
     uploadFolderInput = $('#upload-folder-input');
     $('#upload-folder-btn').click(event => uploadFolderInput.click());
@@ -334,6 +431,7 @@ window.onload = (event) => {
     $('#upload-file-btn').click(event => uploadFileInput.click());
     uploadFileInput.change(handleUploadFiles);
 
+    $('.modal-trigger[href="#modal-edit-policy"]').click(loadBucketPolicy);
     $(document).ready(function(){
         $('.tooltipped').tooltip();
     });
