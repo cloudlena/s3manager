@@ -389,7 +389,7 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="submit" class="waves-effect waves-green btn">Save Policy</button>
+            <button type="submit" id="save-policy-btn" class="waves-effect waves-green btn">Save Policy</button>
         </div>
     </form>
 </div>
@@ -642,9 +642,23 @@ function loadBucketPolicy() {
             textarea.value = policyText;
             textarea.addEventListener('keydown', handleEditorKeydown);
             M.textareaAutoResize(textarea);
+            const hasValidUser = policy.Statement &&
+                               policy.Statement[0] &&
+                               policy.Statement[0].Principal &&
+                               policy.Statement[0].Principal.AWS;
             const toggle = document.getElementById('advanced-editor-toggle');
-            toggle.checked = true;
-            toggle.disabled = false;
+            const saveButton = document.getElementById('save-policy-btn');
+            if (hasValidUser) {
+                toggle.checked = true;
+                toggle.disabled = false;
+                saveButton.disabled = false;
+                saveButton.classList.remove('disabled');
+            } else {
+                toggle.checked = false;
+                toggle.disabled = true;
+                saveButton.disabled = true;
+                saveButton.classList.add('disabled');
+            }
             handlePolicyEditorToggle();
             M.updateTextFields();
         },
@@ -682,7 +696,14 @@ function loadBucketPolicy() {
 function handleUserIdInput() {
     const userId = document.getElementById('policy-user').value.trim();
     const toggle = document.getElementById('advanced-editor-toggle');
+    const saveButton = document.getElementById('save-policy-btn');
     toggle.disabled = !userId;
+    saveButton.disabled = !userId;
+    if (!userId) {
+        saveButton.classList.add('disabled');
+    } else {
+        saveButton.classList.remove('disabled');
+    }
 }
 
 function handleEditPolicy(event) {
