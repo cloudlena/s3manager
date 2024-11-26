@@ -75,3 +75,7 @@ There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/
 ```shell
 $ docker-compose up
 ```
+
+## GitHub Stars
+
+[![GitHub stars over time](https://starchart.cc/cloudlena/s3manager.svg?variant=adaptive)](https://starchart.cc/cloudlena/s3manager)
