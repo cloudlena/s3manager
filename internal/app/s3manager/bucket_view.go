@@ -14,7 +14,7 @@ import (
 )
 
 // HandleBucketView shows the details page of a bucket.
-func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool) http.HandlerFunc {
+func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootUrl string) http.HandlerFunc {
 	type objectWithIcon struct {
 		Key          string
 		Size         int64
@@ -26,6 +26,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 	}
 
 	type pageData struct {
+		RootUrl     string
 		BucketName  string
 		Objects     []objectWithIcon
 		AllowDelete bool
@@ -65,6 +66,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			objs = append(objs, obj)
 		}
 		data := pageData{
+			RootUrl:     rootUrl,
 			BucketName:  bucketName,
 			Objects:     objs,
 			AllowDelete: allowDelete,
