@@ -187,6 +187,8 @@ func main() {
 	if configuration.AllowDelete {
 		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObject(s3)).Methods(http.MethodDelete)
 	}
+	r.Handle("/api/buckets/{bucketName}/policy", s3manager.HandleGetBucketPolicy(s3)).Methods(http.MethodGet)
+	r.Handle("/api/buckets/{bucketName}/policy", s3manager.HandlePutBucketPolicy(s3)).Methods(http.MethodPut)
 
 	lr := logging.Handler(os.Stdout)(r)
 	srv := &http.Server{
