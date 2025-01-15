@@ -1,7 +1,7 @@
 {{ define "content" }}
 <nav>
     <div class="nav-wrapper container">
-        <a href="/" class="brand-logo">S3 Manager</a>
+        <a href="{{$.RootUrl}}" class="brand-logo">S3 Manager</a>
     </div>
 </nav>
 
@@ -12,7 +12,7 @@
             {{ if .Buckets }}
             {{ range $bucket := .Buckets }}
             <div class="col l6 m12">
-                <a href="/buckets/{{ $bucket.Name }}" style="color:black;">
+                <a href="{{$.RootUrl}}/buckets/{{ $bucket.Name }}" style="color:black;">
                     <div class="card">
                         <div class="card-content">
                             <div class="row">
