@@ -58,7 +58,10 @@ func TestHandleDeleteBucket(t *testing.T) {
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
-			defer resp.Body.Close()
+			defer func() {
+				err = resp.Body.Close()
+				is.NoErr(err)
+			}()
 			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 
