@@ -3,7 +3,6 @@ package s3manager
 import (
 	"fmt"
 	"log"
-	"mime/multipart"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -27,11 +26,11 @@ func HandleCreateObject(s3 S3, sseInfo SSEType) http.HandlerFunc {
 			handleHTTPError(w, fmt.Errorf("error getting file from form: %w", err))
 			return
 		}
-		defer func(file multipart.File) {
-			if err = file.Close(); err != nil {
-				log.Fatal(fmt.Errorf("file cannot be closed: %w", err))
+		defer func() {
+			if cErr := file.Close(); cErr != nil {
+				log.Printf("error closing file: %v", cErr)
 			}
-		}(file)
+		}()
 
 		opts := minio.PutObjectOptions{ContentType: "application/octet-stream"}
 

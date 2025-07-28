@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
       - name: Lint code
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
       - name: Run tests
         run: make test
       - name: Log in to Docker Hub

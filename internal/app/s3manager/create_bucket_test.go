@@ -3,6 +3,7 @@ package s3manager_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -32,7 +33,7 @@ func TestHandleCreateBucket(t *testing.T) {
 			},
 			body:                 `{"name":"BUCKET-NAME"}`,
 			expectedStatusCode:   http.StatusCreated,
-			expectedBodyContains: `{"name":"BUCKET-NAME","creationDate":"0001-01-01T00:00:00Z"}`,
+			expectedBodyContains: `{"name":"BUCKET-NAME","creationDate":"0001-01-01T00:00:00Z","bucketRegion":""}`,
 		},
 		{
 			it: "returns error for empty request",
@@ -88,7 +89,8 @@ func TestHandleCreateBucket(t *testing.T) {
 			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 
-			is.Equal(tc.expectedStatusCode, resp.StatusCode)                 // status code
+			is.Equal(tc.expectedStatusCode, resp.StatusCode) // status code
+			fmt.Println(string(body))
 			is.True(strings.Contains(string(body), tc.expectedBodyContains)) // body
 		})
 	}
