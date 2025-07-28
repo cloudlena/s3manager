@@ -23,6 +23,7 @@ type S3 interface {
 	RemoveObject(ctx context.Context, bucketName, objectName string, opts minio.RemoveObjectOptions) error
 }
 
+// SSEType describes a type of server side encryption.
 type SSEType struct {
 	Type string
 	Key  string

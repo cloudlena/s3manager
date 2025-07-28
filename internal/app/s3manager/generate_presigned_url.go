@@ -11,7 +11,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func HandleGenerateUrl(s3 S3) http.HandlerFunc {
+// HandleGenerateURL generates a presigned URL.
+func HandleGenerateURL(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 		objectName := mux.Vars(r)["objectName"]

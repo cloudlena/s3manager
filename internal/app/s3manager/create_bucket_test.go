@@ -3,7 +3,6 @@ package s3manager_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -65,7 +64,6 @@ func TestHandleCreateBucket(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.it, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
@@ -89,8 +87,7 @@ func TestHandleCreateBucket(t *testing.T) {
 			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 
-			is.Equal(tc.expectedStatusCode, resp.StatusCode) // status code
-			fmt.Println(string(body))
+			is.Equal(tc.expectedStatusCode, resp.StatusCode)                 // status code
 			is.True(strings.Contains(string(body), tc.expectedBodyContains)) // body
 		})
 	}

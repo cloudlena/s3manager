@@ -153,7 +153,6 @@ func TestHandleBucketView(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.it, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)

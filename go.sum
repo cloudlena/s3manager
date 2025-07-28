@@ -1,5 +1,5 @@
-github.com/cloudlena/adapters v0.0.0-20250526104710-cf437cc41e89 h1:rQwk7HzzZbwAY9Su83R7/JbbvtJUagqM4kpI4KwMUCg=
-github.com/cloudlena/adapters v0.0.0-20250526104710-cf437cc41e89/go.mod h1:LA00++Xi6E3JqyO58GcO57bRltr362DEoNjuULEKvzY=
+github.com/cloudlena/adapters v0.0.0-20250728121319-727f6c720317 h1:a4lRsiWfF4iVMvMHEH5gDTFk4oz8g48PlvfonuSHdOA=
+github.com/cloudlena/adapters v0.0.0-20250728121319-727f6c720317/go.mod h1:U84ZSc+LapVZkHCa4FRNeu9xD+MTXA/9MY2YzfcgChE=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
