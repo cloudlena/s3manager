@@ -32,7 +32,7 @@ func handleHTTPError(w http.ResponseWriter, err error) {
 		code = http.StatusNotFound
 	}
 
-	http.Error(w, http.StatusText(code), code)
+	http.Error(w, err.Error(), code)
 
 	// Log if server error
 	if code >= http.StatusInternalServerError {
