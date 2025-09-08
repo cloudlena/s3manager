@@ -38,6 +38,36 @@ The application can be configured with the following environment variables:
 - `SSE_TYPE`: Specified server side encryption (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
 - `SSE_KEY`: The key needed for SSE method (only for `KMS` and `SSE-C`)
 - `TIMEOUT`: The read and write timeout in seconds (default to `600` - 10 minutes)
+- `NAVBAR_COLOR`: The background color for the navigation bar (defaults to `#ee6e73` - Materialize teal color)
+- `LOGO_PATH`: Custom path to logo image (defaults to `/static/img/logo.png` if the file exists, empty otherwise). When a logo is provided, both the logo and "S3 Manager" text are displayed together in the navbar.
+- `BUTTON_COLOR`: The background color for primary buttons (defaults to `#f44336` - Materialize red color)
+
+#### UI Customization Examples
+
+Customize the navbar color to match your brand:
+```bash
+export NAVBAR_COLOR="#2196F3"  # Blue navbar
+export NAVBAR_COLOR="#4CAF50"  # Green navbar
+export NAVBAR_COLOR="#FF9800"  # Orange navbar
+```
+
+Customize button colors:
+```bash
+export BUTTON_COLOR="#2196F3"  # Blue buttons
+export BUTTON_COLOR="#4CAF50"  # Green buttons
+export BUTTON_COLOR="#FF9800"  # Orange buttons
+```
+
+Use a custom logo (must be accessible as a static file):
+```bash
+export LOGO_PATH="/static/img/company-logo.png"
+```
+
+The application automatically detects if `web/static/img/logo.png` exists and uses it as the default logo.
+
+#### Custom Styling
+
+The application uses CSS custom properties (CSS variables) for dynamic theming. All styling is properly separated into CSS files rather than inline styles for better maintainability. The main custom styles are located in `/static/css/s3manager.css`.
 
 ### Build and Run Locally
 

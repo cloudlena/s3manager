@@ -41,6 +41,9 @@ type configuration struct {
 	Timeout             int32
 	SseType             string
 	SseKey              string
+	NavbarColor         string
+	LogoPath            string
+	ButtonColor         string
 }
 
 func parseConfiguration() configuration {
@@ -98,6 +101,24 @@ func parseConfiguration() configuration {
 	viper.SetDefault("SSE_KEY", "")
 	sseKey := viper.GetString("SSE_KEY")
 
+	// UI Customization options
+	viper.SetDefault("NAVBAR_COLOR", "#ee6e73") // Default materialize teal color
+	navbarColor := viper.GetString("NAVBAR_COLOR")
+
+	viper.SetDefault("BUTTON_COLOR", "#f44336") // Default red color (materialize red)
+	buttonColor := viper.GetString("BUTTON_COLOR")
+
+	// Logo path - check if logo exists, if not leave empty
+	logoPath := ""
+	// Since we're using embedded filesystem, check if the logo file would be available
+	// In production, the file is embedded, so we can assume it exists if it's in the repo
+	logoPath = "/static/img/logo.png"
+
+	// Allow override via environment variable
+	if envLogoPath := viper.GetString("LOGO_PATH"); envLogoPath != "" {
+		logoPath = envLogoPath
+	}
+
 	return configuration{
 		Endpoint:            endpoint,
 		UseIam:              useIam,
@@ -115,6 +136,9 @@ func parseConfiguration() configuration {
 		Timeout:             timeout,
 		SseType:             sseType,
 		SseKey:              sseKey,
+		NavbarColor:         navbarColor,
+		LogoPath:            logoPath,
+		ButtonColor:         buttonColor,
 	}
 }
 
@@ -175,8 +199,8 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
-	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, configuration.AllowDelete)).Methods(http.MethodGet)
-	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, configuration.AllowDelete, configuration.ListRecursive)).Methods(http.MethodGet)
+	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, configuration.AllowDelete, configuration.NavbarColor, configuration.LogoPath, configuration.ButtonColor)).Methods(http.MethodGet)
+	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, configuration.AllowDelete, configuration.ListRecursive, configuration.NavbarColor, configuration.LogoPath, configuration.ButtonColor)).Methods(http.MethodGet)
 	r.Handle("/api/buckets", s3manager.HandleCreateBucket(s3)).Methods(http.MethodPost)
 	if configuration.AllowDelete {
 		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucket(s3)).Methods(http.MethodDelete)

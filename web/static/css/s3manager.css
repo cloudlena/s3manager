@@ -1,0 +1,425 @@
+/* S3 Manager Custom Styles */
+
+/* Navigation Bar */
+nav {
+    background-color: var(--navbar-color) !important;
+    padding: 0 20px !important;
+    min-height: 64px !important;
+}
+
+/* Logo and Branding */
+.s3-logo {
+    height: 2.5rem;
+    margin-right: 10px;
+    padding-top: 8px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.s3-logo-text {
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: inherit;
+}
+
+.brand-logo {
+    display: flex !important;
+    align-items: center;
+    font-size: 1.8rem !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+    transition: opacity 0.2s ease;
+    padding: 16px 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+}
+
+.brand-logo:hover {
+    opacity: 0.9;
+}
+
+/* Button Customizations */
+.s3-button {
+    background-color: var(--button-color) !important;
+}
+
+/* Bucket Card Styles */
+.bucket-link {
+    color: black;
+}
+
+.compact-card {
+    height: auto;
+    min-height: 80px;
+}
+
+.compact-content {
+    padding: 12px !important;
+}
+
+.bucket-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bucket-folder-icon {
+    color: #FFC107;
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.bucket-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.bucket-name {
+    font-size: 1.1rem !important;
+    margin: 0 !important;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.bucket-creation-date {
+    color: gray;
+    margin: 4px 0 0 0 !important;
+    font-size: 0.9rem;
+}
+
+.no-buckets-message {
+    text-align: center;
+    margin-top: 2em;
+    color: gray;
+}
+
+.no-objects-message {
+    text-align: center;
+    margin-top: 2em;
+    color: gray;
+}
+
+/* Content Section */
+.content-section {
+    margin: 10px;
+    position: relative;
+}
+
+/* Table Container for Better Scrolling */
+.table-container {
+    overflow-x: auto;
+    max-height: 70vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+/* Fixed table headers */
+.table-container table {
+    width: 100%;
+    display: table;
+    table-layout: fixed;
+}
+
+.table-container thead {
+    display: table-header-group;
+}
+
+.table-container tbody {
+    display: table-row-group;
+}
+
+.table-container thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f5f5f5;
+    z-index: 10;
+    border-bottom: 1px solid #ddd;
+    display: table-cell;
+}
+
+.table-container tbody tr {
+    display: table-row;
+}
+
+.table-container tbody td {
+    display: table-cell;
+}
+
+/* Responsive table adjustments */
+@media screen and (max-width: 992px) {
+    .table-container {
+        max-height: 65vh;
+    }
+}
+
+/* Tablet optimizations */
+@media screen and (max-width: 768px) {
+    .table-container table {
+        font-size: 0.9rem;
+    }
+    
+    .table-container thead th,
+    .table-container tbody td {
+        padding: 8px 6px;
+    }
+    
+    .actions-column {
+        min-width: 100px;
+    }
+}
+
+/* Table Styles */
+.actions-column {
+    min-width: 165px;
+}
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.copy-icon {
+    cursor: pointer;
+}
+
+/* Ensure proper table structure */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table td, table th {
+    text-align: left !important;
+    vertical-align: middle;
+    padding: 12px 8px;
+}
+
+table th {
+    font-weight: 500;
+}
+
+/* File item layout */
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.file-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    color: #64B5F6;  /* Light blue for all file icons */
+}
+
+.file-icon.folder-icon {
+    color: #FFC107;  /* Golden color for folder icons */
+}
+
+.file-name {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+}
+
+/* Form Controls */
+.hidden-file-input {
+    display: none;
+}
+
+/* Dropdown Styles */
+.dropdown-content {
+    min-width: 140px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dropdown-content li > a {
+    color: #2196F3 !important;  /* Blue color for dropdown links */
+    padding: 14px 16px !important;
+    display: block;
+    white-space: nowrap;
+}
+
+.dropdown-content li > a:hover {
+    background-color: rgba(33, 150, 243, 0.1) !important;  /* Light blue hover effect */
+}
+
+/* Notification Styles */
+.notification-template {
+    display: none;
+}
+
+.notification-content {
+    padding: 12px;
+}
+
+/* Mobile Responsive Styles */
+@media screen and (max-width: 600px) {
+    nav {
+        padding: 0 15px !important;
+        min-height: 56px !important;
+    }
+    
+    .s3-logo {
+        height: 2.2rem;
+        margin-right: 8px;
+        padding-top: 6px;
+        flex-shrink: 0;
+        flex-grow: 0;
+        object-fit: contain;
+    }
+    
+    .brand-logo {
+        font-size: 1.6rem !important;
+        padding: 12px 0 !important;
+    }
+    
+    .content-section {
+        margin: 5px;
+        max-height: calc(100vh - 160px);
+        overflow-y: auto;
+    }
+    
+    .actions-column {
+        min-width: 120px;
+    }
+    
+    .bucket-folder-icon {
+        font-size: 28px;
+    }
+    
+    .compact-content {
+        padding: 10px !important;
+    }
+    
+    .bucket-header {
+        gap: 10px;
+    }
+    
+    /* Enhanced table scrolling for mobile */
+    .table-container {
+        max-height: 60vh !important;
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table-container table {
+        display: table !important;
+        min-width: 600px !important;
+        font-size: 0.8rem !important;
+        width: auto !important;
+    }
+    
+    .table-container thead {
+        display: table-header-group !important;
+    }
+    
+    .table-container tbody {
+        display: table-row-group !important;
+    }
+    
+    .table-container thead th {
+        background-color: #fafafa !important;
+        font-size: 0.75rem !important;
+        padding: 8px 6px !important;
+        display: table-cell !important;
+        white-space: nowrap !important;
+        font-weight: 600 !important;
+    }
+    
+    .table-container tbody tr {
+        display: table-row !important;
+    }
+    
+    .table-container tbody td {
+        display: table-cell !important;
+        padding: 8px 6px !important;
+        font-size: 0.8rem !important;
+        vertical-align: middle !important;
+    }
+    
+    /* Mobile column specific widths */
+    .size-column {
+        width: 80px !important;
+        min-width: 80px !important;
+    }
+    
+    .owner-column {
+        width: 120px !important;
+        min-width: 120px !important;
+        max-width: 120px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+    
+    .modified-column {
+        width: 120px !important;
+        min-width: 120px !important;
+        max-width: 120px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+    
+    .actions-column {
+        width: 90px !important;
+        min-width: 90px !important;
+    }
+    
+    /* Key column takes remaining space */
+    th:first-child, td:first-child {
+        width: 180px !important;
+        min-width: 180px !important;
+    }
+    
+    /* Compact file items on mobile */
+    .file-item {
+        gap: 6px !important;
+        align-items: center !important;
+    }
+    
+    .file-icon {
+        font-size: 18px !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .file-name {
+        font-size: 0.8rem !important;
+        line-height: 1.2 !important;
+        word-break: break-word !important;
+    }
+    
+    /* Compact action buttons */
+    .dropdown-trigger {
+        padding: 4px 6px !important;
+        font-size: 0.7rem !important;
+        height: auto !important;
+        line-height: 1.2 !important;
+        min-height: 28px !important;
+    }
+    
+    .dropdown-trigger i {
+        font-size: 16px !important;
+    }
+    
+    /* Better text wrapping for file names */
+    td:first-child {
+        word-break: break-word !important;
+        white-space: normal !important;
+    }
+    
+    /* Ensure owner and modified columns show ellipsis */
+    .owner-column, .modified-column {
+        font-size: 0.7rem !important;
+    }
+    
+    .content-section {
+        margin: 3px !important;
+    }
+}

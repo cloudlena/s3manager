@@ -66,7 +66,7 @@ func TestHandleBucketsView(t *testing.T) {
 			is.NoErr(err)
 
 			rr := httptest.NewRecorder()
-			handler := s3manager.HandleBucketsView(s3, templates, true)
+			handler := s3manager.HandleBucketsView(s3, templates, true, "#ee6e73", "/static/img/logo.png", "#f44336")
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()

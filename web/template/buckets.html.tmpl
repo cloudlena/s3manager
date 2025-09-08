@@ -1,7 +1,14 @@
 {{ define "content" }}
 <nav>
     <div class="nav-wrapper container">
+        {{ if .LogoPath }}
+        <a href="/" class="brand-logo">
+            <img src="{{ .LogoPath }}" alt="S3 Manager" class="s3-logo">
+            <span class="s3-logo-text">S3 Manager</span>
+        </a>
+        {{ else }}
         <a href="/" class="brand-logo">S3 Manager</a>
+        {{ end }}
     </div>
 </nav>
 
@@ -10,20 +17,16 @@
         <div class="row">
 
             {{ if .Buckets }}
-            {{ range $bucket := .Buckets }}
-            <div class="col l6 m12">
-                <a href="/buckets/{{ $bucket.Name }}" style="color:black;">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="row">
-                                <div class="col">
-                                    <i class="material-icons large">folder_open</i>
-                                </div>
-                                <div class="col">
-                                    <span class="card-title">
-                                        {{ $bucket.Name }}
-                                    </span>
-                                    <p style="color:gray;">Created on {{ $bucket.CreationDate }}</p>
+                        {{ range $bucket := .Buckets }}
+            <div class="col s12 m4">
+                <a href="/buckets/{{ $bucket.Name }}" class="bucket-link">
+                    <div class="card white hoverable compact-card">
+                        <div class="card-content compact-content">
+                            <div class="bucket-header">
+                                <i class="material-icons bucket-folder-icon">folder</i>
+                                <div class="bucket-info">
+                                    <span class="card-title bucket-name">{{ $bucket.Name }}</span>
+                                    <p class="bucket-creation-date">Created on {{ $bucket.CreationDate }}</p>
                                 </div>
                             </div>
                         </div>
@@ -34,7 +37,7 @@
             {{ end }}
 
             {{ if not .Buckets }}
-            <p style="text-align:center;margin-top:2em;color:gray;">No buckets yet</p>
+            <p class="no-buckets-message">No buckets yet</p>
             {{ end }}
 
         </div>
@@ -42,7 +45,7 @@
 </div>
 
 <div class="fixed-action-btn">
-    <button type="button" class="btn-floating btn-large red modal-trigger" data-target="modal-create-bucket">
+    <button type="button" class="btn-floating btn-large modal-trigger s3-button" data-target="modal-create-bucket">
         <i class="material-icons large">add</i>
     </button>
 </div>
@@ -62,7 +65,7 @@
 
         <div class="modal-footer">
             <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="button" class="modal-close waves-effect waves-green btn" onclick="createBucket()">Create</button>
+            <button type="button" class="modal-close waves-effect waves-green btn s3-button" onclick="createBucket()">Create</button>
         </div>
     </form>
 </div>
