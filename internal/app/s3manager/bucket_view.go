@@ -14,7 +14,7 @@ import (
 )
 
 // HandleBucketView shows the details page of a bucket.
-func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool) http.HandlerFunc {
+func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, navbarColor, logoPath, buttonColor string) http.HandlerFunc {
 	type objectWithIcon struct {
 		Key          string
 		Size         int64
@@ -31,6 +31,9 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		AllowDelete bool
 		Paths       []string
 		CurrentPath string
+		NavbarColor string
+		LogoPath    string
+		ButtonColor string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +56,13 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 				return
 			}
 
+			displayName := strings.TrimSuffix(strings.TrimPrefix(object.Key, path), "/")
+
+			// Skip the current folder itself (empty display name)
+			if displayName == "" {
+				continue
+			}
+
 			obj := objectWithIcon{
 				Key:          object.Key,
 				Size:         object.Size,
@@ -60,7 +70,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 				Owner:        object.Owner.DisplayName,
 				Icon:         icon(object.Key),
 				IsFolder:     strings.HasSuffix(object.Key, "/"),
-				DisplayName:  strings.TrimSuffix(strings.TrimPrefix(object.Key, path), "/"),
+				DisplayName:  displayName,
 			}
 			objs = append(objs, obj)
 		}
@@ -70,6 +80,9 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			AllowDelete: allowDelete,
 			Paths:       removeEmptyStrings(strings.Split(path, "/")),
 			CurrentPath: path,
+			NavbarColor: navbarColor,
+			LogoPath:    logoPath,
+			ButtonColor: buttonColor,
 		}
 
 		t, err := template.ParseFS(templates, "layout.html.tmpl", "bucket.html.tmpl")

@@ -9,15 +9,59 @@
     position: fixed;
     z-index: 2
 }
+
+/* Mobile responsive styles */
+@media only screen and (max-width: 600px) {
+    .brand-logo {
+        font-size: 1.2rem !important;
+        left: 0 !important;
+        transform: none !important;
+    }
+    .brand-logo img {
+        height: 24px !important;
+        margin-right: 6px !important;
+    }
+    .s3-logo-text {
+        font-size: 1.2rem !important;
+    }
+    
+    /* Compact navigation */
+    .nav-wrapper {
+        padding: 0 10px !important;
+    }
+    
+    /* Compact breadcrumbs */
+    .breadcrumb {
+        font-size: 0.8rem !important;
+        padding: 0 4px !important;
+    }
+    
+    .breadcrumb i {
+        font-size: 16px !important;
+    }
+    
+    /* Hide some breadcrumb separators on very small screens */
+    .breadcrumb:before {
+        content: '/' !important;
+        font-size: 0.7rem !important;
+    }
+}
 </style>
 
 <nav class="nav-extended">
     <div class="nav-wrapper container">
-        <a href="/buckets/{{$.BucketName}}" class="brand-logo center"><i class="material-icons">folder_open</i>{{ .BucketName }}</a>
+        {{ if .LogoPath }}
+        <a href="/buckets" class="brand-logo">
+            <img src="{{ .LogoPath }}" alt="S3 Manager" class="s3-logo">
+            <span class="s3-logo-text">S3 Manager</span>
+        </a>
+        {{ else }}
+        <a href="/buckets" class="brand-logo">S3 Manager</a>
+        {{ end }}
         {{ if not .Objects }}
         <ul class="right">
             <li>
-                <a class="waves-effect waves-light btn" href="#" onclick="deleteBucket({{ .BucketName }})">
+                <a class="waves-effect waves-light btn s3-button" href="#" onclick="deleteBucket({{ .BucketName }})">
                     Delete <i class="material-icons right">delete</i>
                 </a>
             </li>
@@ -38,60 +82,64 @@
   </div>
 </nav>
 
-<div class="section" style="margin: 10px; position: relative;">
+<div class="content-section">
     {{ if .Objects }}
-    <table class="striped">
-        <thead>
+    <div class="table-container">
+        <table class="striped">
+            <thead>
             <tr>
                 <th>Key</th>
-                <th>Size</th>
-                <th>Owner</th>
-                <th>Last Modified</th>
-                <th style="min-width:165px;"></th>
+                <th class="size-column">Size</th>
+                <th class="owner-column">Owner</th>
+                <th class="modified-column">Modified</th>
+                <th class="actions-column"></th>
             </tr>
-        </thead>
-
-        <tbody>
-            {{ range $index, $object := .Objects }}
-            <tr>
-                <td
-                    {{ if $object.IsFolder }}
-                    onclick="location.href='/buckets/{{ $.BucketName }}/{{ $object.Key }}'"}
-                    style="cursor:pointer;"
-                    {{ end }}>
-                    <i class="material-icons">{{ $object.Icon }}</i> {{ $object.DisplayName }}
-                </td>
-                <td>{{ $object.Size }} bytes</td>
-                <td>{{ $object.Owner }}</td>
-                <td>{{ $object.LastModified }}</td>
-                <td>
-                    {{ if not $object.IsFolder }}
-                        <button class="dropdown-trigger waves-effect waves-teal btn" data-target="actions-dropdown-{{ $index }}">
-                            Actions <i class="material-icons right">arrow_drop_down</i>
-                        </button>
-                        <!-- Dropdown Structure -->
-                        <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
-                            <li><a target="_blank" href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
-                            <li><a onclick="handleOpenDownloadLinkModal({{ $object.Key }})">Download link</a></li>
-                            {{- if $.AllowDelete }}
-                            <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
-                            {{- end }}
-                        </ul>
-                    {{ end }}
-                </td>
-            </tr>
-            {{ end }}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {{ range $index, $object := .Objects }}
+                <tr>
+                    <td
+                        {{ if $object.IsFolder }}
+                        onclick="location.href='/buckets/{{ $.BucketName }}/{{ $object.Key }}'"
+                        class="clickable-row"
+                        {{ end }}>
+                        <div class="file-item">
+                            <i class="material-icons file-icon {{ if $object.IsFolder }}folder-icon{{ end }}">{{ $object.Icon }}</i>
+                            <span class="file-name">{{ $object.DisplayName }}</span>
+                        </div>
+                    </td>
+                    <td class="size-column">{{ $object.Size }} bytes</td>
+                    <td class="owner-column" title="{{ $object.Owner }}">{{ $object.Owner }}</td>
+                    <td class="modified-column" title="{{ $object.LastModified }}">{{ $object.LastModified }}</td>
+                    <td>
+                        {{ if not $object.IsFolder }}
+                            <button class="dropdown-trigger waves-effect waves-teal btn s3-button" data-target="actions-dropdown-{{ $index }}">
+                                Actions <i class="material-icons right">arrow_drop_down</i>
+                            </button>
+                            <!-- Dropdown Structure -->
+                            <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
+                                <li><a target="_blank" href="/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
+                                <li><a onclick="handleOpenDownloadLinkModal({{ $object.Key }})">Download link</a></li>
+                                {{- if $.AllowDelete }}
+                                <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
+                                {{- end }}
+                            </ul>
+                        {{ end }}
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
     {{ end }}
 
     {{ if not .Objects }}
-    <p style="text-align:center;margin-top:2em;color:gray;">No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet</p>
+    <p class="no-objects-message">No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet</p>
     {{ end }}
 
     <div id="notifications">
-        <div id="notification-template" class="card" style="display: none;">
-            <div class="card-content" style="padding: 12px">
+        <div id="notification-template" class="card notification-template">
+            <div class="card-content notification-content">
                 <span class="card-title">Uploading</span>
                 <p> I am a very simple card </p>
                 <div class="progress">
@@ -103,21 +151,20 @@
 </div>
 
 <div class="fixed-action-btn">
-    <button type="button" class="btn-floating btn-large red tooltipped" id="upload-file-btn" data-position="top" data-tooltip="Upload files">
-        <i class="large material-icons">add</i>
+    <button type="button" class="btn-floating btn-large tooltipped s3-button" id="upload-file-btn" data-position="top" data-tooltip="Upload files">
+        <i class="material-icons large">add</i>
     </button>
 
-    <button type="button" class="btn-floating btn-large red tooltipped" id="upload-folder-btn" data-position="top" data-tooltip="Upload folder">
-        <i class="large material-icons">create_new_folder</i>
+    <button type="button" class="btn-floating btn-large tooltipped s3-button" id="upload-folder-btn" data-position="top" data-tooltip="Upload folder">
+        <i class="material-icons large">folder</i>
     </button>
 
-     <button type="button" class="btn-floating btn-large red modal-trigger tooltipped" data-target="modal-change-path" data-position="top" data-tooltip="Change path">
-        <i class="large material-icons">create</i>
+     <button type="button" class="btn-floating btn-large modal-trigger tooltipped s3-button" data-target="modal-change-path" data-position="top" data-tooltip="Change path">
+        <i class="material-icons large">folder_open</i>
     </button>
-</div>
 
-<input type="file" id="upload-folder-input" webkitdirectory multiple style="display: none;">
-<input type="file" id="upload-file-input" name="file" multiple style="display: none;">
+<input type="file" id="upload-folder-input" webkitdirectory multiple class="hidden-file-input">
+<input type="file" id="upload-file-input" name="file" multiple class="hidden-file-input">
 
 <div id="modal-change-path" class="modal">
     <form id="change-path-form" enctype="multipart/form-data">
@@ -135,7 +182,7 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="submit" class="modal-close waves-effect waves-green btn">Change path</button>
+            <button type="submit" class="modal-close waves-effect waves-green btn s3-button">Change path</button>
         </div>
     </form>
 </div>
@@ -172,14 +219,14 @@
             </div>
             <div class="row">
                 <div class="col s3">
-                    <button id="create-link-btn" class="waves-effect waves-green btn">Create link</button>
+                    <button id="create-link-btn" class="waves-effect waves-green btn s3-button">Create link</button>
                 </div>
                 <div class="col s9 red-text text-darken-2" id="gen-url-error"></div>
             </div>
             <div class="row">
                 <div class="col s11">
                     <div class="input-field">
-                        <i class="material-icons prefix" onclick="handleCopyLink()" style="cursor:pointer;">content_copy</i>
+                        <i class="material-icons prefix copy-icon" onclick="handleCopyLink()">content_copy</i>
                         <input name="generated-link" id="generated-link" type="text" readonly>
                     </div>
                 </div>
@@ -336,6 +383,14 @@ window.onload = (event) => {
 
     $(document).ready(function(){
         $('.tooltipped').tooltip();
+        
+        // Initialize dropdowns with built-in Materialize positioning
+        $('.dropdown-trigger').dropdown({
+            constrainWidth: false,
+            coverTrigger: false,  // Show dropdown below button
+            alignment: 'left',    // Align to left edge of button
+            closeOnClick: true
+        });
     });
 };
 </script>
