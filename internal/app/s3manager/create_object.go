@@ -35,7 +35,11 @@ func HandleCreateObject(s3 S3, sseInfo SSEType) http.HandlerFunc {
 		opts := minio.PutObjectOptions{ContentType: "application/octet-stream"}
 
 		if sseInfo.Type == "KMS" {
-			opts.ServerSideEncryption, _ = encrypt.NewSSEKMS(sseInfo.Key, nil)
+			opts.ServerSideEncryption, err = encrypt.NewSSEKMS(sseInfo.Key, nil)
+			if err != nil {
+				handleHTTPError(w, fmt.Errorf("error setting SSE-KMS key: %w", err))
+				return
+			}
 		}
 
 		if sseInfo.Type == "SSE" {

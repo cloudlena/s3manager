@@ -14,7 +14,7 @@ import (
 )
 
 // HandleBucketView shows the details page of a bucket.
-func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootUrl string) http.HandlerFunc {
+func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string) http.HandlerFunc {
 	type objectWithIcon struct {
 		Key          string
 		Size         int64
@@ -26,7 +26,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 	}
 
 	type pageData struct {
-		RootUrl     string
+		RootURL     string
 		BucketName  string
 		Objects     []objectWithIcon
 		AllowDelete bool
@@ -41,8 +41,6 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		path := matches[2]
 
 		var objs []objectWithIcon
-		doneCh := make(chan struct{})
-		defer close(doneCh)
 		opts := minio.ListObjectsOptions{
 			Recursive: listRecursive,
 			Prefix:    path,
@@ -66,7 +64,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			objs = append(objs, obj)
 		}
 		data := pageData{
-			RootUrl:     rootUrl,
+			RootURL:     rootURL,
 			BucketName:  bucketName,
 			Objects:     objs,
 			AllowDelete: allowDelete,
@@ -107,11 +105,12 @@ func icon(fileName string) string {
 }
 
 func removeEmptyStrings(input []string) []string {
-	var result []string
+	result := make([]string, 0, len(input))
 	for _, str := range input {
-		if str != "" {
-			result = append(result, str)
+		if str == "" {
+			continue
 		}
+		result = append(result, str)
 	}
 	return result
 }

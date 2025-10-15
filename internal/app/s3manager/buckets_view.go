@@ -10,9 +10,9 @@ import (
 )
 
 // HandleBucketsView renders all buckets on an HTML page.
-func HandleBucketsView(s3 S3, templates fs.FS, allowDelete bool, rootUrl string) http.HandlerFunc {
+func HandleBucketsView(s3 S3, templates fs.FS, allowDelete bool, rootURL string) http.HandlerFunc {
 	type pageData struct {
-		RootUrl     string
+		RootURL     string
 		Buckets     []minio.BucketInfo
 		AllowDelete bool
 	}
@@ -26,7 +26,7 @@ func HandleBucketsView(s3 S3, templates fs.FS, allowDelete bool, rootUrl string)
 		}
 
 		data := pageData{
-			RootUrl:     rootUrl,
+			RootURL:     rootURL,
 			Buckets:     buckets,
 			AllowDelete: allowDelete,
 		}

@@ -9,8 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <link rel="stylesheet" href="{{$.RootUrl}}/static/css/material-fonts.css" />
-    <link rel="stylesheet" href="{{$.RootUrl}}/static/css/materialize.min.css" />
+    <link rel="stylesheet" href="{{$.RootURL}}/static/css/material-fonts.css" />
+    <link rel="stylesheet" href="{{$.RootURL}}/static/css/materialize.min.css" />
 </head>
 
 <body>
@@ -18,9 +18,9 @@
     {{ template "content" . }}
 
     <script
-      src="{{$.RootUrl}}/static/js/jquery-3.6.0.min.js"
+      src="{{$.RootURL}}/static/js/jquery-3.6.0.min.js"
     ></script>
-    <script src="{{$.RootUrl}}/static/js/materialize.min.js"></script>
+    <script src="{{$.RootURL}}/static/js/materialize.min.js"></script>
     <script>
         $(document).ready(function(){
             $('.dropdown-trigger').dropdown();

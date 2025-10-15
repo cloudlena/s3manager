@@ -20,7 +20,7 @@ func HandleGenerateURL(s3 S3) http.HandlerFunc {
 
 		parsedExpiry, err := strconv.ParseInt(expiry, 10, 0)
 		if err != nil {
-			handleHTTPError(w, fmt.Errorf("error when converting expiry: %w", err))
+			handleHTTPError(w, fmt.Errorf("error converting expiry: %w", err))
 			return
 		}
 
@@ -29,11 +29,11 @@ func HandleGenerateURL(s3 S3) http.HandlerFunc {
 			return
 		}
 
-		expirySecond := time.Duration(parsedExpiry * 1e9)
+		expiryDuration := time.Duration(parsedExpiry) * time.Second
 		reqParams := make(url.Values)
-		url, err := s3.PresignedGetObject(r.Context(), bucketName, objectName, expirySecond, reqParams)
+		url, err := s3.PresignedGetObject(r.Context(), bucketName, objectName, expiryDuration, reqParams)
 		if err != nil {
-			handleHTTPError(w, fmt.Errorf("error when generate url: %w", err))
+			handleHTTPError(w, fmt.Errorf("error generating url: %w", err))
 			return
 		}
 

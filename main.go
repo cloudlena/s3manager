@@ -58,12 +58,12 @@ func parseConfiguration() configuration {
 		iamEndpoint = viper.GetString("IAM_ENDPOINT")
 	} else {
 		accessKeyID = viper.GetString("ACCESS_KEY_ID")
-		if len(accessKeyID) == 0 {
+		if accessKeyID == "" {
 			log.Fatal("please provide ACCESS_KEY_ID")
 		}
 
 		secretAccessKey = viper.GetString("SECRET_ACCESS_KEY")
-		if len(secretAccessKey) == 0 {
+		if secretAccessKey == "" {
 			log.Fatal("please provide SECRET_ACCESS_KEY")
 		}
 	}
@@ -171,18 +171,18 @@ func main() {
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
 	}
-	// Check for a root Url to insert into HTML templates in case of reverse proxying
-	rootUrl, rootSet := os.LookupEnv("ROOT_URL")
-	if rootSet && !strings.HasPrefix(rootUrl, "/") {
-		rootUrl = "/" + rootUrl
+	// Check for a root URL to insert into HTML templates in case of reverse proxying
+	rootURL, rootSet := os.LookupEnv("ROOT_URL")
+	if rootSet && !strings.HasPrefix(rootURL, "/") {
+		rootURL = "/" + rootURL
 	}
 
 	// Set up router
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
-	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, configuration.AllowDelete, rootUrl)).Methods(http.MethodGet)
-	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, configuration.AllowDelete, configuration.ListRecursive, rootUrl)).Methods(http.MethodGet)
+	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, configuration.AllowDelete, rootURL)).Methods(http.MethodGet)
+	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL)).Methods(http.MethodGet)
 	r.Handle("/api/buckets", s3manager.HandleCreateBucket(s3)).Methods(http.MethodPost)
 	if configuration.AllowDelete {
 		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucket(s3)).Methods(http.MethodDelete)
