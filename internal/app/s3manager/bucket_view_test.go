@@ -25,6 +25,7 @@ func TestHandleBucketView(t *testing.T) {
 		it                   string
 		listObjectsFunc      func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo
 		bucketName           string
+		rootUrl              string
 		path                 string
 		expectedStatusCode   int
 		expectedBodyContains string
@@ -150,6 +151,31 @@ func TestHandleBucketView(t *testing.T) {
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: "def",
 		},
+		{
+			it: "renders a bucket with path",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo)
+				close(objCh)
+				return objCh
+			},
+			bucketName:           "BUCKET-NAME",
+			path:                 "abc/def",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "def",
+		},
+		{
+			it: "setting rootUrl works",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo)
+				close(objCh)
+				return objCh
+			},
+			bucketName:           "BUCKET-NAME",
+			path:                 "abc/def",
+			rootUrl:              "rootTest",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "def",
+		},
 	}
 
 	for _, tc := range cases {
@@ -163,7 +189,7 @@ func TestHandleBucketView(t *testing.T) {
 
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 			r := mux.NewRouter()
-			r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, true, true)).Methods(http.MethodGet)
+			r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, true, true, tc.rootUrl)).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
@@ -179,6 +205,12 @@ func TestHandleBucketView(t *testing.T) {
 
 			is.Equal(tc.expectedStatusCode, resp.StatusCode)                 // status code
 			is.True(strings.Contains(string(body), tc.expectedBodyContains)) // body
+
+			// fmt.Println(string(body))
+			if tc.expectedStatusCode == http.StatusOK {
+				hyperlink := fmt.Sprintf("<a href=\"%s/buckets\" class=\"breadcrumb\"><i class=\"material-icons\">arrow_back</i> buckets </a>", tc.rootUrl)
+				is.True(strings.Contains(string(body), hyperlink))
+			}
 		})
 	}
 }
