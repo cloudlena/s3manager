@@ -179,7 +179,6 @@ func TestHandleBucketView(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.it, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
@@ -197,7 +196,10 @@ func TestHandleBucketView(t *testing.T) {
 
 			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s/%s", ts.URL, tc.bucketName, tc.path))
 			is.NoErr(err)
-			defer resp.Body.Close()
+			defer func() {
+				err = resp.Body.Close()
+				is.NoErr(err)
+			}()
 			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 

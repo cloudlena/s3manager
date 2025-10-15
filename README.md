@@ -29,13 +29,13 @@ The application can be configured with the following environment variables:
 - `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
 - `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
 - `SIGNATURE_TYPE`: The signature type to be used (defaults to `V4`; valid values are `V2, V4, V4Streaming, Anonymous`)
-- `PORT`: The port the s3manager app should listen on (defaults to `8080`)
+- `PORT`: The port the app should listen on (defaults to `8080`)
 - `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
 - `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
 - `LIST_RECURSIVE`: List all objects in buckets recursively (defaults to `false`)
 - `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)
 - `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
-- `SSE_TYPE`: Specified server side encrpytion (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
+- `SSE_TYPE`: Specified server side encryption (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
 - `SSE_KEY`: The key needed for SSE method (only for `KMS` and `SSE-C`)
 - `TIMEOUT`: The read and write timout in seconds (default to `600` - 10 minutes)
 - `ROOT_URL`: A root url prefix if running behind a reverse proxy (defaults to unset)
@@ -51,7 +51,7 @@ The application can be configured with the following environment variables:
 
 ### Deploy to Kubernetes
 
-You can deploy s3manager to a Kubernetes cluster using the [Helm chart](https://github.com/sergeyshevch/s3manager-helm).
+You can deploy S3 Manager to a Kubernetes cluster using the [Helm chart](https://github.com/sergeyshevch/s3manager-helm).
 
 #### Running behind a reverse proxy
 
@@ -94,8 +94,12 @@ The image is available on [Docker Hub](https://hub.docker.com/r/cloudlena/s3mana
 
 ### Run Locally for Testing
 
-There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/main/docker-compose.yml) file that spins up an S3 service and the s3manager. You can try it by issuing the following command:
+There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/main/docker-compose.yml) file that spins up a S3 service and the S3 Manager. You can try it by issuing the following command:
 
 ```shell
 $ docker-compose up
 ```
+
+## GitHub Stars
+
+[![GitHub stars over time](https://starchart.cc/cloudlena/s3manager.svg?variant=adaptive)](https://starchart.cc/cloudlena/s3manager)

@@ -52,7 +52,6 @@ func TestHandleBucketsView(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.it, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
@@ -71,7 +70,10 @@ func TestHandleBucketsView(t *testing.T) {
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
-			defer resp.Body.Close()
+			defer func() {
+				err = resp.Body.Close()
+				is.NoErr(err)
+			}()
 			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 

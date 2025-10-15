@@ -32,7 +32,7 @@ func TestHandleCreateBucket(t *testing.T) {
 			},
 			body:                 `{"name":"BUCKET-NAME"}`,
 			expectedStatusCode:   http.StatusCreated,
-			expectedBodyContains: `{"name":"BUCKET-NAME","creationDate":"0001-01-01T00:00:00Z"}`,
+			expectedBodyContains: `{"name":"BUCKET-NAME","creationDate":"0001-01-01T00:00:00Z","bucketRegion":""}`,
 		},
 		{
 			it: "returns error for empty request",
@@ -64,7 +64,6 @@ func TestHandleCreateBucket(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.it, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
@@ -81,7 +80,10 @@ func TestHandleCreateBucket(t *testing.T) {
 
 			handler.ServeHTTP(rr, req)
 			resp := rr.Result()
-			defer resp.Body.Close()
+			defer func() {
+				err = resp.Body.Close()
+				is.NoErr(err)
+			}()
 			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 
