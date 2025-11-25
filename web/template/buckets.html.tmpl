@@ -2,6 +2,11 @@
 <nav>
     <div class="nav-wrapper container">
         <a href="{{$.RootURL}}" class="brand-logo">S3 Manager</a>
+        {{ if .CurrentS3 }}
+        <span class="right">
+            <i class="material-icons left">storage</i>{{ .CurrentS3.Name }}
+        </span>
+        {{ end }}
     </div>
 </nav>
 
@@ -9,7 +14,26 @@
     <div class="section">
         <div class="row">
 
-            {{ if .Buckets }}
+            {{ if .HasError }}
+            <div class="col s12">
+                <div class="card red lighten-4">
+                    <div class="card-content">
+                        <div class="row">
+                            <div class="col s2">
+                                <i class="material-icons large red-text">error</i>
+                            </div>
+                            <div class="col s10">
+                                <span class="card-title red-text text-darken-2">Connection Error</span>
+                                <p>{{ .ErrorMessage }}</p>
+                                {{ if gt (len .S3Instances) 1 }}
+                                <p><strong>Tip:</strong> Use the instance switcher button (bottom-left) to try a different S3 instance.</p>
+                                {{ end }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{ else if .Buckets }}
             {{ range $bucket := .Buckets }}
             <div class="col l6 m12">
                 <a href="{{$.RootURL}}/buckets/{{ $bucket.Name }}" style="color:black;">
@@ -31,9 +55,7 @@
                 </a>
             </div>
             {{ end }}
-            {{ end }}
-
-            {{ if not .Buckets }}
+            {{ else }}
             <p style="text-align:center;margin-top:2em;color:gray;">No buckets yet</p>
             {{ end }}
 
@@ -41,11 +63,13 @@
     </div>
 </div>
 
+{{ if not .HasError }}
 <div class="fixed-action-btn">
     <button type="button" class="btn-floating btn-large red modal-trigger" data-target="modal-create-bucket">
         <i class="material-icons large">add</i>
     </button>
 </div>
+{{ end }}
 
 <div id="modal-create-bucket" class="modal">
     <form id="create-bucket-form">

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -14,8 +13,6 @@ import (
 	"github.com/cloudlena/adapters/logging"
 	"github.com/cloudlena/s3manager/internal/app/s3manager"
 	"github.com/gorilla/mux"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/viper"
 )
 
@@ -25,65 +22,92 @@ var templateFS embed.FS
 //go:embed web/static
 var staticFS embed.FS
 
-type configuration struct {
+type s3InstanceConfig struct {
+	Name                string
 	Endpoint            string
 	UseIam              bool
 	IamEndpoint         string
 	AccessKeyID         string
 	SecretAccessKey     string
 	Region              string
-	AllowDelete         bool
-	ForceDownload       bool
 	UseSSL              bool
 	SkipSSLVerification bool
 	SignatureType       string
-	ListRecursive       bool
-	Port                string
-	Timeout             int32
-	SseType             string
-	SseKey              string
+}
+
+type configuration struct {
+	S3Instances     []s3InstanceConfig
+	AllowDelete     bool
+	ForceDownload   bool
+	ListRecursive   bool
+	Port            string
+	Timeout         int32
+	SseType         string
+	SseKey          string
 }
 
 func parseConfiguration() configuration {
-	var accessKeyID, secretAccessKey, iamEndpoint string
-
 	viper.AutomaticEnv()
 
-	viper.SetDefault("ENDPOINT", "s3.amazonaws.com")
-	endpoint := viper.GetString("ENDPOINT")
-
-	useIam := viper.GetBool("USE_IAM")
-
-	if useIam {
-		iamEndpoint = viper.GetString("IAM_ENDPOINT")
-	} else {
-		accessKeyID = viper.GetString("ACCESS_KEY_ID")
-		if accessKeyID == "" {
-			log.Fatal("please provide ACCESS_KEY_ID")
+	// Parse S3 instances from numbered environment variables
+	var s3Instances []s3InstanceConfig
+	for i := 1; ; i++ {
+		prefix := fmt.Sprintf("%d_", i)
+		name := viper.GetString(prefix + "NAME")
+		endpoint := viper.GetString(prefix + "ENDPOINT")
+		
+		// If NAME or ENDPOINT is not found, stop parsing
+		if name == "" || endpoint == "" {
+			break
 		}
 
-		secretAccessKey = viper.GetString("SECRET_ACCESS_KEY")
-		if secretAccessKey == "" {
-			log.Fatal("please provide SECRET_ACCESS_KEY")
+		accessKeyID := viper.GetString(prefix + "ACCESS_KEY_ID")
+		secretAccessKey := viper.GetString(prefix + "SECRET_ACCESS_KEY")
+		useIam := viper.GetBool(prefix + "USE_IAM")
+		iamEndpoint := viper.GetString(prefix + "IAM_ENDPOINT")
+		region := viper.GetString(prefix + "REGION")
+		
+		viper.SetDefault(prefix+"USE_SSL", true)
+		useSSL := viper.GetBool(prefix + "USE_SSL")
+		
+		viper.SetDefault(prefix+"SKIP_SSL_VERIFICATION", false)
+		skipSSLVerification := viper.GetBool(prefix + "SKIP_SSL_VERIFICATION")
+		
+		viper.SetDefault(prefix+"SIGNATURE_TYPE", "V4")
+		signatureType := viper.GetString(prefix + "SIGNATURE_TYPE")
+
+		if !useIam {
+			if accessKeyID == "" {
+				log.Fatalf("please provide %sACCESS_KEY_ID for instance %s", prefix, name)
+			}
+			if secretAccessKey == "" {
+				log.Fatalf("please provide %sSECRET_ACCESS_KEY for instance %s", prefix, name)
+			}
 		}
+
+		s3Instances = append(s3Instances, s3InstanceConfig{
+			Name:                name,
+			Endpoint:            endpoint,
+			UseIam:              useIam,
+			IamEndpoint:         iamEndpoint,
+			AccessKeyID:         accessKeyID,
+			SecretAccessKey:     secretAccessKey,
+			Region:              region,
+			UseSSL:              useSSL,
+			SkipSSLVerification: skipSSLVerification,
+			SignatureType:       signatureType,
+		})
 	}
 
-	region := viper.GetString("REGION")
+	if len(s3Instances) == 0 {
+		log.Fatal("no S3 instances configured. Please provide numbered environment variables like 1_NAME, 1_ENDPOINT, etc.")
+	}
 
 	viper.SetDefault("ALLOW_DELETE", true)
 	allowDelete := viper.GetBool("ALLOW_DELETE")
 
 	viper.SetDefault("FORCE_DOWNLOAD", true)
 	forceDownload := viper.GetBool("FORCE_DOWNLOAD")
-
-	viper.SetDefault("USE_SSL", true)
-	useSSL := viper.GetBool("USE_SSL")
-
-	viper.SetDefault("SKIP_SSL_VERIFICATION", false)
-	skipSSLVerification := viper.GetBool("SKIP_SSL_VERIFICATION")
-
-	viper.SetDefault("SIGNATURE_TYPE", "V4")
-	signatureType := viper.GetString("SIGNATURE_TYPE")
 
 	listRecursive := viper.GetBool("LIST_RECURSIVE")
 
@@ -100,22 +124,14 @@ func parseConfiguration() configuration {
 	sseKey := viper.GetString("SSE_KEY")
 
 	return configuration{
-		Endpoint:            endpoint,
-		UseIam:              useIam,
-		IamEndpoint:         iamEndpoint,
-		AccessKeyID:         accessKeyID,
-		SecretAccessKey:     secretAccessKey,
-		Region:              region,
-		AllowDelete:         allowDelete,
-		ForceDownload:       forceDownload,
-		UseSSL:              useSSL,
-		SkipSSLVerification: skipSSLVerification,
-		SignatureType:       signatureType,
-		ListRecursive:       listRecursive,
-		Port:                port,
-		Timeout:             timeout,
-		SseType:             sseType,
-		SseKey:              sseKey,
+		S3Instances:   s3Instances,
+		AllowDelete:   allowDelete,
+		ForceDownload: forceDownload,
+		ListRecursive: listRecursive,
+		Port:          port,
+		Timeout:       timeout,
+		SseType:       sseType,
+		SseKey:        sseKey,
 	}
 }
 
@@ -136,41 +152,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Set up S3 client
-	opts := &minio.Options{
-		Secure: configuration.UseSSL,
-	}
-	if configuration.UseIam {
-		opts.Creds = credentials.NewIAM(configuration.IamEndpoint)
-	} else {
-		var signatureType credentials.SignatureType
-
-		switch configuration.SignatureType {
-		case "V2":
-			signatureType = credentials.SignatureV2
-		case "V4":
-			signatureType = credentials.SignatureV4
-		case "V4Streaming":
-			signatureType = credentials.SignatureV4Streaming
-		case "Anonymous":
-			signatureType = credentials.SignatureAnonymous
-		default:
-			log.Fatalf("Invalid SIGNATURE_TYPE: %s", configuration.SignatureType)
-		}
-
-		opts.Creds = credentials.NewStatic(configuration.AccessKeyID, configuration.SecretAccessKey, "", signatureType)
+	// Convert configuration to s3manager format
+	var s3Configs []s3manager.S3InstanceConfig
+	for _, instance := range configuration.S3Instances {
+		s3Configs = append(s3Configs, s3manager.S3InstanceConfig{
+			Name:                instance.Name,
+			Endpoint:            instance.Endpoint,
+			UseIam:              instance.UseIam,
+			IamEndpoint:         instance.IamEndpoint,
+			AccessKeyID:         instance.AccessKeyID,
+			SecretAccessKey:     instance.SecretAccessKey,
+			Region:              instance.Region,
+			UseSSL:              instance.UseSSL,
+			SkipSSLVerification: instance.SkipSSLVerification,
+			SignatureType:       instance.SignatureType,
+		})
 	}
 
-	if configuration.Region != "" {
-		opts.Region = configuration.Region
-	}
-	if configuration.UseSSL && configuration.SkipSSLVerification {
-		opts.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec
-	}
-	s3, err := minio.New(configuration.Endpoint, opts)
+	// Set up Multi S3 Manager
+	s3Manager, err := s3manager.NewMultiS3Manager(s3Configs)
 	if err != nil {
-		log.Fatalln(fmt.Errorf("error creating s3 client: %w", err))
+		log.Fatalln(fmt.Errorf("error creating multi s3 manager: %w", err))
 	}
+
 	// Check for a root URL to insert into HTML templates in case of reverse proxying
 	rootURL, rootSet := os.LookupEnv("ROOT_URL")
 	if rootSet && !strings.HasPrefix(rootURL, "/") {
@@ -181,17 +185,23 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
-	r.Handle("/buckets", s3manager.HandleBucketsView(s3, templates, configuration.AllowDelete, rootURL)).Methods(http.MethodGet)
-	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL)).Methods(http.MethodGet)
-	r.Handle("/api/buckets", s3manager.HandleCreateBucket(s3)).Methods(http.MethodPost)
+	
+	// S3 instance management endpoints
+	r.Handle("/api/s3-instances", s3manager.HandleGetS3Instances(s3Manager)).Methods(http.MethodGet)
+	r.Handle("/api/s3-instances/{instanceId}/switch", s3manager.HandleSwitchS3Instance(s3Manager)).Methods(http.MethodPost)
+	
+	// S3 management endpoints (using current instance)
+	r.Handle("/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL)).Methods(http.MethodGet)
+	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL)).Methods(http.MethodGet)
+	r.Handle("/api/buckets", s3manager.HandleCreateBucketWithManager(s3Manager)).Methods(http.MethodPost)
 	if configuration.AllowDelete {
-		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucket(s3)).Methods(http.MethodDelete)
+		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucketWithManager(s3Manager)).Methods(http.MethodDelete)
 	}
-	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, sseType)).Methods(http.MethodPost)
-	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateURL(s3)).Methods(http.MethodGet)
-	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObject(s3, configuration.ForceDownload)).Methods(http.MethodGet)
+	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObjectWithManager(s3Manager, sseType)).Methods(http.MethodPost)
+	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateURLWithManager(s3Manager)).Methods(http.MethodGet)
+	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObjectWithManager(s3Manager, configuration.ForceDownload)).Methods(http.MethodGet)
 	if configuration.AllowDelete {
-		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObject(s3)).Methods(http.MethodDelete)
+		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObjectWithManager(s3Manager)).Methods(http.MethodDelete)
 	}
 
 	lr := logging.Handler(os.Stdout)(r)

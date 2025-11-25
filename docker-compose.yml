@@ -5,12 +5,21 @@ services:
     ports:
       - 8080:8080
     environment:
-      - ENDPOINT=s3:9000
-      - ACCESS_KEY_ID=s3manager
-      - SECRET_ACCESS_KEY=s3manager
-      - USE_SSL=false
+      # S3 Instance 1: my-first-instance
+      - 1_NAME=my-first-instance
+      - 1_ENDPOINT=s3:9000
+      - 1_ACCESS_KEY_ID=s3manager
+      - 1_SECRET_ACCESS_KEY=s3manager
+      - 1_USE_SSL=false
+      # S3 Instance 2: my-second-instance
+      - 2_NAME=my-second-instance
+      - 2_ENDPOINT=s3-2:9000
+      - 2_ACCESS_KEY_ID=s3manager2
+      - 2_SECRET_ACCESS_KEY=s3manager2
+      - 2_USE_SSL=false
     depends_on:
       - s3
+      - s3-2
   s3:
     container_name: s3
     image: docker.io/minio/minio
@@ -21,5 +30,17 @@ services:
     environment:
       - MINIO_ACCESS_KEY=s3manager
       - MINIO_SECRET_KEY=s3manager
+      - MINIO_ADDRESS=0.0.0.0:9000
+      - MINIO_CONSOLE_ADDRESS=0.0.0.0:9001
+  s3-2:
+    container_name: s3-2
+    image: docker.io/minio/minio
+    command: server /data
+    ports:
+      - 9002:9000
+      - 9003:9001
+    environment:
+      - MINIO_ACCESS_KEY=s3manager2
+      - MINIO_SECRET_KEY=s3manager2
       - MINIO_ADDRESS=0.0.0.0:9000
       - MINIO_CONSOLE_ADDRESS=0.0.0.0:9001
