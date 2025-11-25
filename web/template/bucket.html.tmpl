@@ -14,7 +14,7 @@
 <nav class="nav-extended">
     <div class="nav-wrapper container">
         <a href="{{$.RootURL}}/buckets/{{$.BucketName}}" class="brand-logo center"><i class="material-icons">folder_open</i>{{ .BucketName }}</a>
-        {{ if not .Objects }}
+        {{ if and (not .Objects) (not .HasError) }}
         <ul class="right">
             <li>
                 <a class="waves-effect waves-light btn" href="#" onclick="deleteBucket({{ .BucketName }})">
@@ -23,6 +23,11 @@
             </li>
         </ul>
         {{ end }}
+        <ul class="left">
+            {{ if .CurrentS3 }}
+            <li><span><i class="material-icons left">storage</i>{{ .CurrentS3.Name }}</span></li>
+            {{ end }}
+        </ul>
     </div>
 
     <div class="nav-wrapper container">
@@ -39,7 +44,33 @@
 </nav>
 
 <div class="section" style="margin: 10px; position: relative;">
-    {{ if .Objects }}
+    {{ if .HasError }}
+    <div class="row">
+        <div class="col s12">
+            <div class="card red lighten-4">
+                <div class="card-content">
+                    <div class="row">
+                        <div class="col s1">
+                            <i class="material-icons large red-text">error</i>
+                        </div>
+                        <div class="col s11">
+                            <span class="card-title red-text text-darken-2">Connection Error</span>
+                            <p>{{ .ErrorMessage }}</p>
+                            {{ if gt (len .S3Instances) 1 }}
+                            <p><strong>Tip:</strong> Use the instance switcher button (bottom-left) to try a different S3 instance.</p>
+                            {{ end }}
+                            <div style="margin-top: 20px;">
+                                <a href="{{$.RootURL}}/buckets" class="waves-effect waves-green btn">
+                                    <i class="material-icons left">arrow_back</i>Go back to buckets
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{ else if .Objects }}
     <table class="striped">
         <thead>
             <tr>
@@ -83,9 +114,7 @@
             {{ end }}
         </tbody>
     </table>
-    {{ end }}
-
-    {{ if not .Objects }}
+    {{ else }}
     <p style="text-align:center;margin-top:2em;color:gray;">No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet</p>
     {{ end }}
 
@@ -102,6 +131,7 @@
     </div>
 </div>
 
+{{ if not .HasError }}
 <div class="fixed-action-btn">
     <button type="button" class="btn-floating btn-large red tooltipped" id="upload-file-btn" data-position="top" data-tooltip="Upload files">
         <i class="large material-icons">add</i>
@@ -115,6 +145,7 @@
         <i class="large material-icons">create</i>
     </button>
 </div>
+{{ end }}
 
 <input type="file" id="upload-folder-input" webkitdirectory multiple style="display: none;">
 <input type="file" id="upload-file-input" name="file" multiple style="display: none;">
