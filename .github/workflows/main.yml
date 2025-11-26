@@ -1,6 +1,10 @@
 name: Verify and Push
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   verify:
@@ -13,7 +17,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v5
       - name: Lint code
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
       - name: Run tests
         run: make test
       - name: Log in to Docker Hub
