@@ -142,6 +142,7 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 	type objectWithIcon struct {
 		Key          string
 		Size         int64
+		SizeDisplay  string
 		LastModified time.Time
 		Owner        string
 		Icon         string
@@ -191,9 +192,12 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 				break
 			}
 
+			sizeDisplay := FormatFileSize(object.Size)
+
 			obj := objectWithIcon{
 				Key:          object.Key,
 				Size:         object.Size,
+				SizeDisplay:  sizeDisplay,
 				LastModified: object.LastModified,
 				Owner:        object.Owner.DisplayName,
 				Icon:         icon(object.Key),
