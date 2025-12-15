@@ -36,14 +36,14 @@ type s3InstanceConfig struct {
 }
 
 type configuration struct {
-	S3Instances     []s3InstanceConfig
-	AllowDelete     bool
-	ForceDownload   bool
-	ListRecursive   bool
-	Port            string
-	Timeout         int32
-	SseType         string
-	SseKey          string
+	S3Instances   []s3InstanceConfig
+	AllowDelete   bool
+	ForceDownload bool
+	ListRecursive bool
+	Port          string
+	Timeout       int32
+	SseType       string
+	SseKey        string
 }
 
 func parseConfiguration() configuration {
@@ -55,7 +55,7 @@ func parseConfiguration() configuration {
 		prefix := fmt.Sprintf("%d_", i)
 		name := viper.GetString(prefix + "NAME")
 		endpoint := viper.GetString(prefix + "ENDPOINT")
-		
+
 		// If NAME or ENDPOINT is not found, stop parsing
 		if name == "" || endpoint == "" {
 			break
@@ -66,13 +66,13 @@ func parseConfiguration() configuration {
 		useIam := viper.GetBool(prefix + "USE_IAM")
 		iamEndpoint := viper.GetString(prefix + "IAM_ENDPOINT")
 		region := viper.GetString(prefix + "REGION")
-		
+
 		viper.SetDefault(prefix+"USE_SSL", true)
 		useSSL := viper.GetBool(prefix + "USE_SSL")
-		
+
 		viper.SetDefault(prefix+"SKIP_SSL_VERIFICATION", false)
 		skipSSLVerification := viper.GetBool(prefix + "SKIP_SSL_VERIFICATION")
-		
+
 		viper.SetDefault(prefix+"SIGNATURE_TYPE", "V4")
 		signatureType := viper.GetString(prefix + "SIGNATURE_TYPE")
 
@@ -185,11 +185,11 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
-	
+
 	// S3 instance management endpoints
 	r.Handle("/api/s3-instances", s3manager.HandleGetS3Instances(s3Manager)).Methods(http.MethodGet)
 	r.Handle("/api/s3-instances/{instanceId}/switch", s3manager.HandleSwitchS3Instance(s3Manager)).Methods(http.MethodPost)
-	
+
 	// S3 management endpoints (using current instance)
 	r.Handle("/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL)).Methods(http.MethodGet)
 	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL)).Methods(http.MethodGet)

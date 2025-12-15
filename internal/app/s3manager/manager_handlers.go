@@ -15,13 +15,13 @@ import (
 // HandleBucketsViewWithManager renders all buckets on an HTML page using MultiS3Manager.
 func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, rootURL string) http.HandlerFunc {
 	type pageData struct {
-		RootURL       string
-		Buckets       []interface{}
-		AllowDelete   bool
-		CurrentS3     *S3Instance
-		S3Instances   []*S3Instance
-		HasError      bool
-		ErrorMessage  string
+		RootURL      string
+		Buckets      []interface{}
+		AllowDelete  bool
+		CurrentS3    *S3Instance
+		S3Instances  []*S3Instance
+		HasError     bool
+		ErrorMessage string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +30,7 @@ func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allo
 		instances := manager.GetAllInstances()
 
 		buckets, err := s3.ListBuckets(r.Context())
-		
+
 		data := pageData{
 			RootURL:     rootURL,
 			AllowDelete: allowDelete,
@@ -70,7 +70,7 @@ func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allow
 		s3 := manager.GetCurrentClient()
 		current := manager.GetCurrentInstance()
 		instances := manager.GetAllInstances()
-		
+
 		// Create a modified handler that includes S3 instance data
 		handler := createBucketViewWithS3Data(s3, templates, allowDelete, listRecursive, rootURL, current, instances)
 		handler(w, r)
@@ -150,16 +150,16 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 	}
 
 	type pageData struct {
-		RootURL       string
-		BucketName    string
-		Objects       []objectWithIcon
-		AllowDelete   bool
-		Paths         []string
-		CurrentPath   string
-		CurrentS3     *S3Instance
-		S3Instances   []*S3Instance
-		HasError      bool
-		ErrorMessage  string
+		RootURL      string
+		BucketName   string
+		Objects      []objectWithIcon
+		AllowDelete  bool
+		Paths        []string
+		CurrentPath  string
+		CurrentS3    *S3Instance
+		S3Instances  []*S3Instance
+		HasError     bool
+		ErrorMessage string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +171,7 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 		var objs []objectWithIcon
 		hasError := false
 		errorMessage := ""
-		
+
 		opts := minio.ListObjectsOptions{
 			Recursive: listRecursive,
 			Prefix:    path,
@@ -202,7 +202,7 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 			}
 			objs = append(objs, obj)
 		}
-		
+
 		data := pageData{
 			RootURL:      rootURL,
 			BucketName:   bucketName,
