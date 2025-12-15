@@ -38,6 +38,7 @@ type S3InstanceConfig struct {
 	UseSSL              bool
 	SkipSSLVerification bool
 	SignatureType       string
+	HumanReadableSize   bool
 }
 
 // NewMultiS3Manager creates a new MultiS3Manager with the given configurations
@@ -91,9 +92,10 @@ func NewMultiS3Manager(configs []S3InstanceConfig) (*MultiS3Manager, error) {
 		}
 
 		instance := &S3Instance{
-			ID:     instanceID,
-			Name:   config.Name,
-			Client: s3Client,
+			ID:                instanceID,
+			Name:              config.Name,
+			Client:            s3Client,
+			HumanReadableSize: config.HumanReadableSize,
 		}
 
 		manager.instances[instanceID] = instance

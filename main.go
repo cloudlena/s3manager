@@ -33,6 +33,7 @@ type s3InstanceConfig struct {
 	UseSSL              bool
 	SkipSSLVerification bool
 	SignatureType       string
+	HumanReadableSize   bool
 }
 
 type configuration struct {
@@ -76,6 +77,9 @@ func parseConfiguration() configuration {
 		viper.SetDefault(prefix+"SIGNATURE_TYPE", "V4")
 		signatureType := viper.GetString(prefix + "SIGNATURE_TYPE")
 
+		viper.SetDefault(prefix+"HUMAN_READABLE_SIZE", false)
+		humanReadableSize := viper.GetBool(prefix + "HUMAN_READABLE_SIZE")
+
 		if !useIam {
 			if accessKeyID == "" {
 				log.Fatalf("please provide %sACCESS_KEY_ID for instance %s", prefix, name)
@@ -96,6 +100,7 @@ func parseConfiguration() configuration {
 			UseSSL:              useSSL,
 			SkipSSLVerification: skipSSLVerification,
 			SignatureType:       signatureType,
+			HumanReadableSize:   humanReadableSize,
 		})
 	}
 
@@ -166,6 +171,7 @@ func main() {
 			UseSSL:              instance.UseSSL,
 			SkipSSLVerification: instance.SkipSSLVerification,
 			SignatureType:       instance.SignatureType,
+			HumanReadableSize:   instance.HumanReadableSize,
 		})
 	}
 
