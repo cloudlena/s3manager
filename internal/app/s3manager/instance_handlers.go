@@ -18,7 +18,7 @@ func HandleGetS3Instances(manager *MultiS3Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		instances := manager.GetAllInstances()
 		current := manager.GetCurrentInstance()
-		
+
 		response := struct {
 			Instances []S3InstanceInfo `json:"instances"`
 			Current   string           `json:"current"`
@@ -26,14 +26,14 @@ func HandleGetS3Instances(manager *MultiS3Manager) http.HandlerFunc {
 			Instances: make([]S3InstanceInfo, len(instances)),
 			Current:   current.ID,
 		}
-		
+
 		for i, instance := range instances {
 			response.Instances[i] = S3InstanceInfo{
 				ID:   instance.ID,
 				Name: instance.Name,
 			}
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}
@@ -44,24 +44,24 @@ func HandleSwitchS3Instance(manager *MultiS3Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		instanceID := vars["instanceId"]
-		
+
 		if instanceID == "" {
 			http.Error(w, "instance ID is required", http.StatusBadRequest)
 			return
 		}
-		
+
 		err := manager.SetCurrentInstance(instanceID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		
+
 		current := manager.GetCurrentInstance()
 		response := S3InstanceInfo{
 			ID:   current.ID,
 			Name: current.Name,
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}
