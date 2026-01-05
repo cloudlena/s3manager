@@ -183,7 +183,7 @@ func main() {
 
 	// Set up router
 	r := mux.NewRouter()
-	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
+	r.Handle("/", http.RedirectHandler(rootURL+"/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
 
 	// S3 instance management endpoints
