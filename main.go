@@ -54,6 +54,13 @@ func parseConfiguration() configuration {
 	for i := 1; ; i++ {
 		prefix := fmt.Sprintf("%d_", i)
 		name := viper.GetString(prefix + "NAME")
+
+		// Support unnamed single instance configs
+		if i == 1 && name == "" {
+			prefix = ""
+			name = "Default"
+		}
+
 		endpoint := viper.GetString(prefix + "ENDPOINT")
 
 		// If NAME or ENDPOINT is not found, stop parsing
