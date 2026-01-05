@@ -2,6 +2,7 @@ package s3manager
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -35,7 +36,11 @@ func HandleGetS3Instances(manager *MultiS3Manager) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			handleHTTPError(w, fmt.Errorf("error encoding JSON: %w", err))
+			return
+		}
 	}
 }
 
@@ -63,6 +68,10 @@ func HandleSwitchS3Instance(manager *MultiS3Manager) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		err = json.NewEncoder(w).Encode(response)
+		if err != nil {
+			handleHTTPError(w, fmt.Errorf("error encoding JSON: %w", err))
+			return
+		}
 	}
 }
