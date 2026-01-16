@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"net/url"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -38,8 +39,11 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		regex := regexp.MustCompile(`\/buckets\/([^\/]*)\/?(.*)`)
 		matches := regex.FindStringSubmatch(r.RequestURI)
 		bucketName := matches[1]
-		path := matches[2]
-
+		path, rqerr := url.QueryUnescape(matches[2])
+		if rqerr != nil {
+			handleHTTPError(w, rqerr)
+			return
+		}
 		var objs []objectWithIcon
 		opts := minio.ListObjectsOptions{
 			Recursive: listRecursive,
