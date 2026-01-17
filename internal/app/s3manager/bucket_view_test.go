@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -185,6 +186,10 @@ func TestHandleBucketView(t *testing.T) {
 
 			s3 := &mocks.S3Mock{
 				ListObjectsFunc: tc.listObjectsFunc,
+				EndpointURLFunc: func() *url.URL {
+					u, _ := url.Parse("http://localhost:9000")
+					return u
+				},
 			}
 
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))

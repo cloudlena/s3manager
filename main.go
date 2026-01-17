@@ -206,6 +206,7 @@ func main() {
 	}
 	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObjectWithManager(s3Manager, sseType)).Methods(http.MethodPost)
 	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateURLWithManager(s3Manager)).Methods(http.MethodGet)
+	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}/public-access", s3manager.HandleCheckPublicAccessWithManager(s3Manager)).Methods(http.MethodGet)
 	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObjectWithManager(s3Manager, configuration.ForceDownload)).Methods(http.MethodGet)
 	if configuration.AllowDelete {
 		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObjectWithManager(s3Manager)).Methods(http.MethodDelete)

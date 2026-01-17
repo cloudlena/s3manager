@@ -103,9 +103,10 @@
                         <!-- Dropdown Structure -->
                         <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
                             <li><a target="_blank" href="{{$.RootURL}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
-                            <li><a onclick="handleOpenDownloadLinkModal({{ $object.Key }})">Download link</a></li>
+                            <li><a onclick="handleOpenDownloadLinkModal('{{ $object.Key }}')">Download link</a></li>
+                            <li><a onclick="handleOpenPublicLinkModal('{{ $object.Key }}')">Public link</a></li>
                             {{- if $.AllowDelete }}
-                            <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
+                            <li><a href="#" onclick="deleteObject('{{ $.BucketName }}', '{{ $object.Key }}')">Delete</a></li>
                             {{- end }}
                         </ul>
                     {{ end }}
@@ -217,6 +218,46 @@
             </div>
         </div>
     </form>
+</div>
+
+<div id="modal-create-public-link" class="modal">
+    <div class="modal-content">
+        <div class="row">
+            <h4>Public link for </h4>
+            <input name="objectName" id="public-link-object-name" type="text" readonly>
+        </div>
+
+        <div class="row">
+            <div class="col s12">
+                <label>
+                    <input type="checkbox" id="public-link-confirm" onchange="togglePublicLinkVisibility()" />
+                    <span>I understand that handing out this link is irrevocable, and anyone with the link can access the file for as long as it exists.</span>
+                </label>
+            </div>
+        </div>
+
+        <div id="public-link-container" style="display: none;">
+            <div class="row">
+                <div class="col s12 center-align">
+                    <div id="public-access-status" style="display: inline-block; margin-bottom: 15px; padding: 10px; border-radius: 4px;">
+                        <!-- Status will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col s11">
+                    <div class="input-field">
+                        <i class="material-icons prefix" onclick="handleCopyPublicLink()" style="cursor:pointer;">content_copy</i>
+                        <input name="public-link" id="public-link" type="text" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="modal-close waves-effect waves-green btn-flat">Close</button>
+    </div>
 </div>
 
 <script>
@@ -343,6 +384,91 @@ function handleGenerateDownloadLink(event) {
 
 function handleCopyLink() {
     const url = document.getElementById("generated-link").value;
+
+    if(!!url) {
+        navigator.clipboard.writeText(url).then(function() {
+            M.toast({html: 'Copied to clipboard!'});
+        }, function(err) {
+            console.error('Could not copy:', err);
+        });
+    }
+}
+
+function handleOpenPublicLinkModal(objectName) {
+    const endpoint = "{{ .Endpoint }}";
+    const bucketName = "{{ .BucketName }}";
+    const separator = endpoint.endsWith('/') ? '' : '/';
+    const url = endpoint + separator + bucketName + "/" + objectName;
+
+    document.getElementById('public-link-object-name').value = objectName;
+    document.getElementById('public-link').value = url;
+    
+    // Reset state
+    document.getElementById('public-link-confirm').checked = false;
+    document.getElementById('public-link-container').style.display = 'none';
+
+    // Reset and start public access check
+    const statusDiv = document.getElementById('public-access-status');
+    statusDiv.className = ""; // Reset classes
+    statusDiv.innerHTML = `
+        <div class="blue-text" style="display: flex; align-items: center; justify-content: center;">
+            <div class="preloader-wrapper small active" style="width: 20px; height: 20px; margin-right: 10px;">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left"><div class="circle"></div></div>
+                    <div class="gap-patch"><div class="circle"></div></div>
+                    <div class="circle-clipper right"><div class="circle"></div></div>
+                </div>
+            </div>
+            Verifying public accessibility...
+        </div>`;
+
+    $.ajax({
+        type: 'GET',
+        url: '{{$.RootURL}}/api/buckets/' + bucketName + '/objects/' + objectName + '/public-access',
+        success: function (result) {
+            if (result.accessible) {
+                statusDiv.className = "green lighten-5";
+                statusDiv.innerHTML = `
+                    <div class="green-text text-darken-2" style="display: flex; align-items: center; justify-content: center;">
+                        <i class="material-icons" style="margin-right: 10px;">check_circle</i>
+                        The file seems to be publicly available.
+                    </div>`;
+            } else {
+                statusDiv.className = "red lighten-5";
+                statusDiv.innerHTML = `
+                    <div class="red-text text-darken-2" style="display: flex; align-items: center; justify-content: center;">
+                        <i class="material-icons" style="margin-right: 10px;">error</i>
+                        The file does not seem to be publicly available. Make sure the bucket policy allows public read access.
+                    </div>`;
+            }
+        },
+        error: function() {
+            statusDiv.className = "orange lighten-5";
+            statusDiv.innerHTML = `
+                <div class="orange-text text-darken-4" style="display: flex; align-items: center; justify-content: center;">
+                    <i class="material-icons" style="margin-right: 10px;">warning</i>
+                    Could not verify accessibility.
+                </div>`;
+        }
+    });
+
+    const modalElement = document.getElementById('modal-create-public-link');
+    const modalInstance = M.Modal.init(modalElement);
+    modalInstance.open();
+}
+
+function togglePublicLinkVisibility() {
+    const isChecked = document.getElementById('public-link-confirm').checked;
+    const container = document.getElementById('public-link-container');
+    if (isChecked) {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+function handleCopyPublicLink() {
+    const url = document.getElementById("public-link").value;
 
     if(!!url) {
         navigator.clipboard.writeText(url).then(function() {

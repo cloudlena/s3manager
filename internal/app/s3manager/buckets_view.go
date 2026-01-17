@@ -12,9 +12,12 @@ import (
 // HandleBucketsView renders all buckets on an HTML page.
 func HandleBucketsView(s3 S3, templates fs.FS, allowDelete bool, rootURL string) http.HandlerFunc {
 	type pageData struct {
-		RootURL     string
-		Buckets     []minio.BucketInfo
-		AllowDelete bool
+		RootURL      string
+		Buckets      []minio.BucketInfo
+		AllowDelete  bool
+		CurrentS3    *S3Instance
+		HasError     bool
+		ErrorMessage string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {

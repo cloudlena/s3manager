@@ -23,6 +23,9 @@ var _ s3manager.S3 = &S3Mock{}
 //
 //		// make and configure a mocked s3manager.S3
 //		mockedS3 := &S3Mock{
+//			EndpointURLFunc: func() *url.URL {
+//				panic("mock out the EndpointURL method")
+//			},
 //			GetObjectFunc: func(ctx context.Context, bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error) {
 //				panic("mock out the GetObject method")
 //			},
@@ -54,6 +57,9 @@ var _ s3manager.S3 = &S3Mock{}
 //
 //	}
 type S3Mock struct {
+	// EndpointURLFunc mocks the EndpointURL method.
+	EndpointURLFunc func() *url.URL
+
 	// GetObjectFunc mocks the GetObject method.
 	GetObjectFunc func(ctx context.Context, bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
 
@@ -80,6 +86,9 @@ type S3Mock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// EndpointURL holds details about calls to the EndpointURL method.
+		EndpointURL []struct {
+		}
 		// GetObject holds details about calls to the GetObject method.
 		GetObject []struct {
 			// Ctx is the ctx argument value.
@@ -161,6 +170,7 @@ type S3Mock struct {
 			Opts minio.RemoveObjectOptions
 		}
 	}
+	lockEndpointURL        sync.RWMutex
 	lockGetObject          sync.RWMutex
 	lockListBuckets        sync.RWMutex
 	lockListObjects        sync.RWMutex
@@ -169,6 +179,33 @@ type S3Mock struct {
 	lockPutObject          sync.RWMutex
 	lockRemoveBucket       sync.RWMutex
 	lockRemoveObject       sync.RWMutex
+}
+
+// EndpointURL calls EndpointURLFunc.
+func (mock *S3Mock) EndpointURL() *url.URL {
+	if mock.EndpointURLFunc == nil {
+		panic("S3Mock.EndpointURLFunc: method is nil but S3.EndpointURL was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockEndpointURL.Lock()
+	mock.calls.EndpointURL = append(mock.calls.EndpointURL, callInfo)
+	mock.lockEndpointURL.Unlock()
+	return mock.EndpointURLFunc()
+}
+
+// EndpointURLCalls gets all the calls that were made to EndpointURL.
+// Check the length with:
+//
+//	len(mockedS3.EndpointURLCalls())
+func (mock *S3Mock) EndpointURLCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockEndpointURL.RLock()
+	calls = mock.calls.EndpointURL
+	mock.lockEndpointURL.RUnlock()
+	return calls
 }
 
 // GetObject calls GetObjectFunc.
