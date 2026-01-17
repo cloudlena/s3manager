@@ -21,6 +21,7 @@ type S3 interface {
 	PutObject(ctx context.Context, bucketName, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (minio.UploadInfo, error)
 	RemoveBucket(ctx context.Context, bucketName string) error
 	RemoveObject(ctx context.Context, bucketName, objectName string, opts minio.RemoveObjectOptions) error
+	EndpointURL() *url.URL
 }
 
 // SSEType describes a type of server side encryption.

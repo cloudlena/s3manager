@@ -26,12 +26,16 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 	}
 
 	type pageData struct {
-		RootURL     string
-		BucketName  string
-		Objects     []objectWithIcon
-		AllowDelete bool
-		Paths       []string
-		CurrentPath string
+		RootURL      string
+		BucketName   string
+		Objects      []objectWithIcon
+		AllowDelete  bool
+		Paths        []string
+		CurrentPath  string
+		Endpoint     string
+		CurrentS3    *S3Instance
+		HasError     bool
+		ErrorMessage string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +74,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			AllowDelete: allowDelete,
 			Paths:       removeEmptyStrings(strings.Split(path, "/")),
 			CurrentPath: path,
+			Endpoint:    s3.EndpointURL().String(),
 		}
 
 		t, err := template.ParseFS(templates, "layout.html.tmpl", "bucket.html.tmpl")
