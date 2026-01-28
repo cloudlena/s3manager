@@ -21,7 +21,6 @@ type S3Instance struct {
 // MultiS3Manager manages multiple S3 instances
 type MultiS3Manager struct {
 	instances     map[string]*S3Instance
-	currentID     string
 	instanceOrder []string
 	mu            sync.RWMutex
 }
@@ -98,11 +97,6 @@ func NewMultiS3Manager(configs []S3InstanceConfig) (*MultiS3Manager, error) {
 
 		manager.instances[instanceID] = instance
 		manager.instanceOrder = append(manager.instanceOrder, instanceID)
-
-		// Set the first instance as current
-		if i == 0 {
-			manager.currentID = instanceID
-		}
 	}
 
 	if len(manager.instances) == 0 {
@@ -113,46 +107,56 @@ func NewMultiS3Manager(configs []S3InstanceConfig) (*MultiS3Manager, error) {
 	return manager, nil
 }
 
+// GetInstance returns an S3 instance by its ID or Name
+func (m *MultiS3Manager) GetInstance(identifier string) (*S3Instance, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Try to find by ID first
+	if instance, exists := m.instances[identifier]; exists {
+		return instance, nil
+	}
+
+	// Try to find by Name
+	for _, instance := range m.instances {
+		if instance.Name == identifier {
+			return instance, nil
+		}
+	}
+
+	return nil, fmt.Errorf("S3 instance '%s' not found", identifier)
+}
+
 // GetCurrentClient returns the currently active S3 client
+// Deprecated: Use GetInstance instead
 func (m *MultiS3Manager) GetCurrentClient() S3 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	instance, exists := m.instances[m.currentID]
-	if !exists && len(m.instances) > 0 {
-		// Fallback to first instance if current doesn't exist
-		m.currentID = m.instanceOrder[0]
-		instance = m.instances[m.currentID]
+	// Return first instance as fallback for backwards compatibility
+	if len(m.instanceOrder) > 0 {
+		return m.instances[m.instanceOrder[0]].Client
 	}
-	return instance.Client
+	return nil
 }
 
 // GetCurrentInstance returns the currently active S3 instance info
+// Deprecated: Use GetInstance instead
 func (m *MultiS3Manager) GetCurrentInstance() *S3Instance {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	instance, exists := m.instances[m.currentID]
-	if !exists && len(m.instances) > 0 {
-		// Fallback to first instance if current doesn't exist
-		m.currentID = m.instanceOrder[0]
-		instance = m.instances[m.currentID]
+	// Return first instance as fallback for backwards compatibility
+	if len(m.instanceOrder) > 0 {
+		return m.instances[m.instanceOrder[0]]
 	}
-	return instance
+	return nil
 }
 
 // SetCurrentInstance switches to the specified S3 instance
+// Deprecated: Instance selection is now URL-based
 func (m *MultiS3Manager) SetCurrentInstance(instanceID string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if _, exists := m.instances[instanceID]; !exists {
-		return fmt.Errorf("S3 instance with ID %s not found", instanceID)
-	}
-
-	m.currentID = instanceID
-	log.Printf("Switched to S3 instance: %s (%s)", instanceID, m.instances[instanceID].Name)
-	return nil
+	return fmt.Errorf("instance switching is no longer supported - use URL-based instance selection")
 }
 
 // GetAllInstances returns all available S3 instances

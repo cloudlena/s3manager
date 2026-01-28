@@ -47,6 +47,9 @@ var _ s3manager.S3 = &S3Mock{}
 //			RemoveObjectFunc: func(ctx context.Context, bucketName string, objectName string, opts minio.RemoveObjectOptions) error {
 //				panic("mock out the RemoveObject method")
 //			},
+//			RemoveObjectsFunc: func(ctx context.Context, bucketName string, objectsCh <-chan minio.ObjectInfo, opts minio.RemoveObjectsOptions) <-chan minio.RemoveObjectError {
+//				panic("mock out the RemoveObjects method")
+//			},
 //		}
 //
 //		// use mockedS3 in code that requires s3manager.S3
@@ -77,6 +80,9 @@ type S3Mock struct {
 
 	// RemoveObjectFunc mocks the RemoveObject method.
 	RemoveObjectFunc func(ctx context.Context, bucketName string, objectName string, opts minio.RemoveObjectOptions) error
+
+	// RemoveObjectsFunc mocks the RemoveObjects method.
+	RemoveObjectsFunc func(ctx context.Context, bucketName string, objectsCh <-chan minio.ObjectInfo, opts minio.RemoveObjectsOptions) <-chan minio.RemoveObjectError
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -160,6 +166,17 @@ type S3Mock struct {
 			// Opts is the opts argument value.
 			Opts minio.RemoveObjectOptions
 		}
+		// RemoveObjects holds details about calls to the RemoveObjects method.
+		RemoveObjects []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// BucketName is the bucketName argument value.
+			BucketName string
+			// ObjectsCh is the objectsCh argument value.
+			ObjectsCh <-chan minio.ObjectInfo
+			// Opts is the opts argument value.
+			Opts minio.RemoveObjectsOptions
+		}
 	}
 	lockGetObject          sync.RWMutex
 	lockListBuckets        sync.RWMutex
@@ -169,6 +186,7 @@ type S3Mock struct {
 	lockPutObject          sync.RWMutex
 	lockRemoveBucket       sync.RWMutex
 	lockRemoveObject       sync.RWMutex
+	lockRemoveObjects      sync.RWMutex
 }
 
 // GetObject calls GetObjectFunc.
@@ -504,5 +522,49 @@ func (mock *S3Mock) RemoveObjectCalls() []struct {
 	mock.lockRemoveObject.RLock()
 	calls = mock.calls.RemoveObject
 	mock.lockRemoveObject.RUnlock()
+	return calls
+}
+
+// RemoveObjects calls RemoveObjectsFunc.
+func (mock *S3Mock) RemoveObjects(ctx context.Context, bucketName string, objectsCh <-chan minio.ObjectInfo, opts minio.RemoveObjectsOptions) <-chan minio.RemoveObjectError {
+	if mock.RemoveObjectsFunc == nil {
+		panic("S3Mock.RemoveObjectsFunc: method is nil but S3.RemoveObjects was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		BucketName string
+		ObjectsCh  <-chan minio.ObjectInfo
+		Opts       minio.RemoveObjectsOptions
+	}{
+		Ctx:        ctx,
+		BucketName: bucketName,
+		ObjectsCh:  objectsCh,
+		Opts:       opts,
+	}
+	mock.lockRemoveObjects.Lock()
+	mock.calls.RemoveObjects = append(mock.calls.RemoveObjects, callInfo)
+	mock.lockRemoveObjects.Unlock()
+	return mock.RemoveObjectsFunc(ctx, bucketName, objectsCh, opts)
+}
+
+// RemoveObjectsCalls gets all the calls that were made to RemoveObjects.
+// Check the length with:
+//
+//	len(mockedS3.RemoveObjectsCalls())
+func (mock *S3Mock) RemoveObjectsCalls() []struct {
+	Ctx        context.Context
+	BucketName string
+	ObjectsCh  <-chan minio.ObjectInfo
+	Opts       minio.RemoveObjectsOptions
+} {
+	var calls []struct {
+		Ctx        context.Context
+		BucketName string
+		ObjectsCh  <-chan minio.ObjectInfo
+		Opts       minio.RemoveObjectsOptions
+	}
+	mock.lockRemoveObjects.RLock()
+	calls = mock.calls.RemoveObjects
+	mock.lockRemoveObjects.RUnlock()
 	return calls
 }
