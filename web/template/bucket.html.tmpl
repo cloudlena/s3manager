@@ -1,4 +1,6 @@
 {{ define "content" }}
+{{ $instancePath := "" }}
+{{ if $.CurrentS3 }}{{ $instancePath = printf "/%s" $.CurrentS3.Name }}{{ end }}
 <style>
 .breadcrumb:before {
     content: '/';
@@ -9,11 +11,23 @@
     position: fixed;
     z-index: 2
 }
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+}
+.sortable-header:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+.sort-icon {
+    font-size: 16px;
+    vertical-align: middle;
+    margin-left: 4px;
+}
 </style>
 
 <nav class="nav-extended">
     <div class="nav-wrapper container">
-        <a href="{{$.RootURL}}/buckets/{{$.BucketName}}" class="brand-logo center"><i class="material-icons">folder_open</i>{{ .BucketName }}</a>
+        <a href="{{$.RootURL}}{{$instancePath}}/buckets/{{$.BucketName}}" class="brand-logo center"><i class="material-icons">folder_open</i>{{ .BucketName }}</a>
         {{ if and (not .Objects) (not .HasError) }}
         <ul class="right">
             <li>
@@ -31,8 +45,8 @@
     </div>
 
     <div class="nav-wrapper container">
-        <a href="{{$.RootURL}}/buckets" class="breadcrumb"><i class="material-icons">arrow_back</i> buckets </a>
-        {{ $url := printf "%s/buckets/%s/" $.RootURL $.BucketName }}
+        <a href="{{$.RootURL}}{{$instancePath}}/buckets" class="breadcrumb"><i class="material-icons">arrow_back</i> buckets </a>
+        {{ $url := printf "%s%s/buckets/%s/" $.RootURL $instancePath $.BucketName }}
         <a href="{{ $url }}" class="breadcrumb">{{ $.BucketName }}</a>
 
         {{ range $index, $path := .Paths }}
@@ -43,7 +57,7 @@
   </div>
 </nav>
 
-<div class="section" style="margin: 10px; position: relative;">
+<div class="section" style="margin: 10px; position: relative; padding-bottom: 3rem;">
     {{ if .HasError }}
     <div class="row">
         <div class="col s12">
@@ -57,10 +71,10 @@
                             <span class="card-title red-text text-darken-2">Connection Error</span>
                             <p>{{ .ErrorMessage }}</p>
                             {{ if gt (len .S3Instances) 1 }}
-                            <p><strong>Tip:</strong> Use the instance switcher button (bottom-left) to try a different S3 instance.</p>
+                            <p><strong>Tip:</strong> Try switching to another S3 instance from the list below.</p>
                             {{ end }}
                             <div style="margin-top: 20px;">
-                                <a href="{{$.RootURL}}/buckets" class="waves-effect waves-green btn">
+                                <a href="{{$.RootURL}}{{$instancePath}}/buckets" class="waves-effect waves-green btn">
                                     <i class="material-icons left">arrow_back</i>Go back to buckets
                                 </a>
                             </div>
@@ -70,14 +84,97 @@
             </div>
         </div>
     </div>
-    {{ else if .Objects }}
+    {{ else }}
+    
+    <!-- Search Bar -->
+    <div class="row" style="margin-bottom: 10px;">
+        <div class="col s12 m8 l6">
+            <form id="search-form" onsubmit="return performSearch(event);">
+                <div class="input-field">
+                    <i class="material-icons prefix">search</i>
+                    <input type="text" id="search-input" name="search" value="{{ .Search }}" placeholder="Search objects...">
+                    {{ if .Search }}
+                    <i class="material-icons suffix" onclick="clearSearch()" style="cursor: pointer; position: absolute; right: 0; top: 50%; transform: translateY(-50%);">close</i>
+                    {{ end }}
+                </div>
+            </form>
+        </div>
+        {{ if .Search }}
+        <div class="col s12">
+            <p style="color: #666; margin-top: -10px;">
+                <i class="material-icons tiny" style="vertical-align: middle;">info_outline</i>
+                Showing results for "<strong>{{ .Search }}</strong>"
+                {{ if eq .TotalItems 0 }}
+                - No matches found
+                {{ end }}
+            </p>
+        </div>
+        {{ end }}
+    </div>
+
+    {{ if .Objects }}
+    <!-- Bulk Actions Bar -->
+    <div id="bulk-actions-bar" style="margin-bottom: 15px; display: none;">
+        <button class="waves-effect waves-light btn teal" onclick="bulkDownload()" style="margin-right: 10px;">
+            Download Selected
+        </button>
+        {{- if $.AllowDelete }}
+        <button class="waves-effect waves-light btn red" onclick="bulkDelete()">
+            Delete Selected
+        </button>
+        {{- end }}
+        <span id="selected-count" style="margin-left: 15px; font-weight: bold;"></span>
+    </div>
+
     <table class="striped">
         <thead>
             <tr>
-                <th>Key</th>
-                <th>Size</th>
-                <th>Owner</th>
-                <th>Last Modified</th>
+                <th style="width: 40px;">
+                    <label>
+                        <input type="checkbox" id="select-all" onchange="toggleSelectAll()" />
+                        <span></span>
+                    </label>
+                </th>
+                <th class="sortable-header" onclick="sortBy('key')">
+                    Key
+                    {{ if eq .SortBy "key" }}
+                        {{ if eq .SortOrder "asc" }}
+                            <i class="material-icons sort-icon">arrow_upward</i>
+                        {{ else }}
+                            <i class="material-icons sort-icon">arrow_downward</i>
+                        {{ end }}
+                    {{ end }}
+                </th>
+                <th class="sortable-header" onclick="sortBy('size')">
+                    Size
+                    {{ if eq .SortBy "size" }}
+                        {{ if eq .SortOrder "asc" }}
+                            <i class="material-icons sort-icon">arrow_upward</i>
+                        {{ else }}
+                            <i class="material-icons sort-icon">arrow_downward</i>
+                        {{ end }}
+                    {{ end }}
+                </th>
+                <th class="sortable-header" onclick="sortBy('owner')">
+                    Owner
+                    {{ if eq .SortBy "owner" }}
+                        {{ if eq .SortOrder "asc" }}
+                            <i class="material-icons sort-icon">arrow_upward</i>
+                        {{ else }}
+                            <i class="material-icons sort-icon">arrow_downward</i>
+                        {{ end }}
+                    {{ end }}
+                </th>
+                <th class="sortable-header" onclick="sortBy('lastModified')">
+                    Last Modified
+                    {{ if eq .SortBy "lastModified" }}
+                        {{ if eq .SortOrder "asc" }}
+                            <i class="material-icons sort-icon">arrow_upward</i>
+                        {{ else }}
+                            <i class="material-icons sort-icon">arrow_downward</i>
+                        {{ end }}
+                    {{ end }}
+                </th>
                 <th style="min-width:165px;"></th>
             </tr>
         </thead>
@@ -85,9 +182,17 @@
         <tbody>
             {{ range $index, $object := .Objects }}
             <tr>
+                <td>
+                    {{ if not $object.IsFolder }}
+                    <label>
+                        <input type="checkbox" class="object-checkbox" data-key="{{ $object.Key }}" onchange="updateBulkActions()" />
+                        <span></span>
+                    </label>
+                    {{ end }}
+                </td>
                 <td
                     {{ if $object.IsFolder }}
-                    onclick="location.href='{{$.RootURL}}/buckets/{{ $.BucketName }}/{{ $object.Key }}'"}
+                    onclick="location.href='{{$.RootURL}}{{$instancePath}}/buckets/{{ $.BucketName }}/{{ $object.Key }}'"
                     style="cursor:pointer;"
                     {{ end }}>
                     <i class="material-icons">{{ $object.Icon }}</i> {{ $object.DisplayName }}
@@ -102,7 +207,7 @@
                         </button>
                         <!-- Dropdown Structure -->
                         <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
-                            <li><a target="_blank" href="{{$.RootURL}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
+                            <li><a target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
                             <li><a onclick="handleOpenDownloadLinkModal({{ $object.Key }})">Download link</a></li>
                             {{- if $.AllowDelete }}
                             <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
@@ -114,8 +219,82 @@
             {{ end }}
         </tbody>
     </table>
+
+    <!-- Pagination Controls -->
+    <div class="row" style="margin-top: 20px;">
+        <div class="col s12 m6">
+            <div class="input-field" style="margin-top: 0;">
+                <select id="perPageSelect" onchange="changePerPage()">
+                    <option value="25" {{ if eq .PerPage 25 }}selected{{ end }}>25 per page</option>
+                    <option value="50" {{ if eq .PerPage 50 }}selected{{ end }}>50 per page</option>
+                    <option value="100" {{ if eq .PerPage 100 }}selected{{ end }}>100 per page</option>
+                    <option value="200" {{ if eq .PerPage 200 }}selected{{ end }}>200 per page</option>
+                    <option value="500" {{ if eq .PerPage 500 }}selected{{ end }}>500 per page</option>
+                    <option value="0" {{ if eq .TotalItems .PerPage }}selected{{ end }}>All</option>
+                </select>
+                <label>Items per page</label>
+            </div>
+            <p style="margin-top: -10px; color: #666;">Showing {{ if gt .TotalItems 0 }}{{ add (mul (sub .Page 1) .PerPage) 1 }} - {{ min (mul .Page .PerPage) .TotalItems }}{{ else }}0{{ end }} of {{ .TotalItems }} items</p>
+        </div>
+        <div class="col s12 m6">
+            <ul class="pagination right">
+                {{ if .HasPrevPage }}
+                <li class="waves-effect"><a href="#" onclick="changePage(1)"><i class="material-icons">first_page</i></a></li>
+                <li class="waves-effect"><a href="#" onclick="changePage({{ sub .Page 1 }})"><i class="material-icons">chevron_left</i></a></li>
+                {{ else }}
+                <li class="disabled"><a href="#!"><i class="material-icons">first_page</i></a></li>
+                <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
+                {{ end }}
+                
+                {{ $currentPage := .Page }}
+                {{ $totalPages := .TotalPages }}
+                {{ $startPage := sub $currentPage 2 }}
+                {{ if lt $startPage 1 }}{{ $startPage = 1 }}{{ end }}
+                {{ $endPage := add $currentPage 2 }}
+                {{ if gt $endPage $totalPages }}{{ $endPage = $totalPages }}{{ end }}
+                
+                {{ if gt $startPage 1 }}
+                <li class="waves-effect"><a href="#" onclick="changePage(1)">1</a></li>
+                {{ if gt $startPage 2 }}
+                <li class="disabled"><a href="#!">...</a></li>
+                {{ end }}
+                {{ end }}
+                
+                {{ range $i := iterate $startPage (add $endPage 1) }}
+                {{ if eq $i $currentPage }}
+                <li class="active"><a href="#!">{{ $i }}</a></li>
+                {{ else }}
+                <li class="waves-effect"><a href="#" onclick="changePage({{ $i }})">{{ $i }}</a></li>
+                {{ end }}
+                {{ end }}
+                
+                {{ if lt $endPage $totalPages }}
+                {{ if lt $endPage (sub $totalPages 1) }}
+                <li class="disabled"><a href="#!">...</a></li>
+                {{ end }}
+                <li class="waves-effect"><a href="#" onclick="changePage({{ $totalPages }})">{{ $totalPages }}</a></li>
+                {{ end }}
+                
+                {{ if .HasNextPage }}
+                <li class="waves-effect"><a href="#" onclick="changePage({{ add .Page 1 }})"><i class="material-icons">chevron_right</i></a></li>
+                <li class="waves-effect"><a href="#" onclick="changePage({{ .TotalPages }})"><i class="material-icons">last_page</i></a></li>
+                {{ else }}
+                <li class="disabled"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
+                <li class="disabled"><a href="#!"><i class="material-icons">last_page</i></a></li>
+                {{ end }}
+            </ul>
+        </div>
+    </div>
+
     {{ else }}
-    <p style="text-align:center;margin-top:2em;color:gray;">No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet</p>
+    <p style="text-align:center;margin-top:2em;color:gray;">
+        {{ if .Search }}
+        No objects matching "<strong>{{ .Search }}</strong>" found in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong>
+        {{ else }}
+        No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet
+        {{ end }}
+    </p>
+    {{ end }}
     {{ end }}
 
     <div id="notifications">
@@ -220,10 +399,67 @@
 </div>
 
 <script>
+function performSearch(event) {
+    event.preventDefault();
+    const searchValue = document.getElementById('search-input').value.trim();
+    const url = new URL(window.location.href);
+    
+    if (searchValue) {
+        url.searchParams.set('search', searchValue);
+    } else {
+        url.searchParams.delete('search');
+    }
+    url.searchParams.set('page', '1'); // Reset to first page when searching
+    
+    window.location.href = url.toString();
+    return false;
+}
+
+function clearSearch() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('search');
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+}
+
+function changePage(page) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page);
+    window.location.href = url.toString();
+}
+
+function changePerPage() {
+    const perPage = document.getElementById('perPageSelect').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('perPage', perPage);
+    url.searchParams.set('page', '1'); // Reset to first page when changing items per page
+    window.location.href = url.toString();
+}
+
+function sortBy(field) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSortBy = urlParams.get('sortBy') || 'key';
+    const currentSortOrder = urlParams.get('sortOrder') || 'asc';
+    
+    let newSortOrder = 'asc';
+    if (field === currentSortBy) {
+        // Toggle sort order if clicking the same field
+        newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    }
+    
+    // Build new URL with sort parameters, preserve search and pagination
+    const url = new URL(window.location.href);
+    url.searchParams.set('sortBy', field);
+    url.searchParams.set('sortOrder', newSortOrder);
+    url.searchParams.set('page', '1'); // Reset to first page when sorting
+    
+    window.location.href = url.toString();
+}
+
 function deleteObject(bucketName, objectName) {
     $.ajax({
         type: 'DELETE',
-        url: '{{$.RootURL}}/api/buckets/' + bucketName + '/objects/' + objectName,
+        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/' + bucketName + '/objects/' + objectName,
         success: function () { location.reload(); }
     })
 }
@@ -231,14 +467,14 @@ function deleteObject(bucketName, objectName) {
 function deleteBucket(bucketName) {
     $.ajax({
         type: 'DELETE',
-        url: '{{$.RootURL}}/api/buckets/' + bucketName,
-        success: function () { window.location.replace('/buckets'); }
+        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/' + bucketName,
+        success: function () { window.location.replace('{{$.RootURL}}{{$instancePath}}/buckets'); }
     })
 }
 
 function handleUploadFiles(event) {
     files = event.target.files
-    url = "{{$.RootURL}}/api/buckets/{{ .BucketName }}/objects"
+    url = "{{$.RootURL}}{{$instancePath}}/api/buckets/{{ .BucketName }}/objects"
     uploadFiles(files, url);
 }
 
@@ -330,7 +566,7 @@ function handleGenerateDownloadLink(event) {
 
     $.ajax({
         type: 'GET',
-        url: '{{$.RootURL}}/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectName + "/url?expiry=" + expiryTime,
+        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectName + "/url?expiry=" + expiryTime,
         success: function (result) {
             genUrlMessage.innerHTML = "";
             document.getElementById("generated-link").setAttribute('value', JSON.parse(result).url);
@@ -353,6 +589,87 @@ function handleCopyLink() {
     }
 }
 
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.object-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
+    });
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.object-checkbox');
+    const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+    const count = checkedBoxes.length;
+    
+    const bulkActionsBar = document.getElementById('bulk-actions-bar');
+    const selectedCount = document.getElementById('selected-count');
+    const selectAllCheckbox = document.getElementById('select-all');
+    
+    if (count > 0) {
+        bulkActionsBar.style.display = 'block';
+        selectedCount.textContent = count + ' item' + (count > 1 ? 's' : '') + ' selected';
+    } else {
+        bulkActionsBar.style.display = 'none';
+    }
+    
+    // Update select-all checkbox state
+    selectAllCheckbox.checked = count === checkboxes.length && count > 0;
+    selectAllCheckbox.indeterminate = count > 0 && count < checkboxes.length;
+}
+
+function getSelectedKeys() {
+    const checkboxes = document.querySelectorAll('.object-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.getAttribute('data-key'));
+}
+
+function bulkDelete() {
+    const selectedKeys = getSelectedKeys();
+    if (selectedKeys.length === 0) return;
+    
+    const confirmMsg = 'Are you sure you want to delete ' + selectedKeys.length + ' item' + (selectedKeys.length > 1 ? 's' : '') + '?';
+    if (!confirm(confirmMsg)) return;
+    
+    $.ajax({
+        type: 'POST',
+        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/{{ .BucketName }}/objects/bulk-delete',
+        contentType: 'application/json',
+        data: JSON.stringify({ keys: selectedKeys }),
+        success: function () {
+            // Clear all checkboxes before reload
+            document.querySelectorAll('.object-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('select-all').checked = false;
+            updateBulkActions();
+            // Reload the page
+            location.reload();
+        },
+        error: function(xhr, status, error) {
+            alert('Error deleting objects: ' + error);
+        }
+    });
+}
+
+function bulkDownload() {
+    const selectedKeys = getSelectedKeys();
+    if (selectedKeys.length === 0) return;
+    
+    // Create a form and submit it to trigger download
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{$.RootURL}}{{$instancePath}}/api/buckets/{{ .BucketName }}/objects/bulk-download';
+    
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'keys';
+    input.value = JSON.stringify(selectedKeys);
+    
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
+
 window.onload = (event) => {
     $('#change-path-form').submit(handleChangePath)
     $('#download-link-form').submit(handleGenerateDownloadLink)
@@ -367,6 +684,7 @@ window.onload = (event) => {
 
     $(document).ready(function(){
         $('.tooltipped').tooltip();
+        $('select').formSelect(); // Initialize select dropdowns
     });
 };
 </script>

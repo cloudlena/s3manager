@@ -190,26 +190,37 @@ func main() {
 
 	// Set up router
 	r := mux.NewRouter()
-	r.Handle("/", http.RedirectHandler(rootURL+"/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
+
+	// Root redirects to first instance's buckets page
+	r.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		instances := s3Manager.GetAllInstances()
+		if len(instances) > 0 {
+			http.Redirect(w, r, rootURL+"/"+instances[0].Name+"/buckets", http.StatusPermanentRedirect)
+		} else {
+			http.Error(w, "No S3 instances configured", http.StatusInternalServerError)
+		}
+	})).Methods(http.MethodGet)
+
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
 
 	// S3 instance management endpoints
 	r.Handle("/api/s3-instances", s3manager.HandleGetS3Instances(s3Manager)).Methods(http.MethodGet)
-	r.Handle("/api/s3-instances/{instanceId}/switch", s3manager.HandleSwitchS3Instance(s3Manager)).Methods(http.MethodPost)
 
-	// S3 management endpoints (using current instance)
-	r.Handle("/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL)).Methods(http.MethodGet)
-	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL)).Methods(http.MethodGet)
-	r.Handle("/api/buckets", s3manager.HandleCreateBucketWithManager(s3Manager)).Methods(http.MethodPost)
+	// S3 management endpoints (with instance in URL)
+	r.Handle("/{instance}/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL)).Methods(http.MethodGet)
+	r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets", s3manager.HandleCreateBucketWithManager(s3Manager)).Methods(http.MethodPost)
 	if configuration.AllowDelete {
-		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucketWithManager(s3Manager)).Methods(http.MethodDelete)
+		r.Handle("/{instance}/api/buckets/{bucketName}", s3manager.HandleDeleteBucketWithManager(s3Manager)).Methods(http.MethodDelete)
 	}
-	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObjectWithManager(s3Manager, sseType)).Methods(http.MethodPost)
-	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateURLWithManager(s3Manager)).Methods(http.MethodGet)
-	r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObjectWithManager(s3Manager, configuration.ForceDownload)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects", s3manager.HandleCreateObjectWithManager(s3Manager, sseType)).Methods(http.MethodPost)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateURLWithManager(s3Manager)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObjectWithManager(s3Manager, configuration.ForceDownload)).Methods(http.MethodGet)
 	if configuration.AllowDelete {
-		r.Handle("/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObjectWithManager(s3Manager)).Methods(http.MethodDelete)
+		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObjectWithManager(s3Manager)).Methods(http.MethodDelete)
+		r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-delete", s3manager.HandleBulkDeleteObjectsWithManager(s3Manager)).Methods(http.MethodPost)
 	}
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjectsWithManager(s3Manager)).Methods(http.MethodPost)
 
 	lr := logging.Handler(os.Stdout)(r)
 	srv := &http.Server{

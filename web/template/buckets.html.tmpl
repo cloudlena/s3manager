@@ -1,4 +1,6 @@
 {{ define "content" }}
+{{ $instancePath := "" }}
+{{ if $.CurrentS3 }}{{ $instancePath = printf "/%s" $.CurrentS3.Name }}{{ end }}
 <nav>
     <div class="nav-wrapper container">
         <a href="{{$.RootURL}}" class="brand-logo">S3 Manager</a>
@@ -26,7 +28,7 @@
                                 <span class="card-title red-text text-darken-2">Connection Error</span>
                                 <p>{{ .ErrorMessage }}</p>
                                 {{ if gt (len .S3Instances) 1 }}
-                                <p><strong>Tip:</strong> Use the instance switcher button (bottom-left) to try a different S3 instance.</p>
+                                <p><strong>Tip:</strong> Try switching to another S3 instance from the list below.</p>
                                 {{ end }}
                             </div>
                         </div>
@@ -36,7 +38,7 @@
             {{ else if .Buckets }}
             {{ range $bucket := .Buckets }}
             <div class="col l6 m12">
-                <a href="{{$.RootURL}}/buckets/{{ $bucket.Name }}" style="color:black;">
+                <a href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $bucket.Name }}" style="color:black;">
                     <div class="card">
                         <div class="card-content">
                             <div class="row">
@@ -100,7 +102,7 @@
             });
         $.ajax({
             type: 'POST',
-            url: '/api/buckets',
+            url: '{{$.RootURL}}{{$instancePath}}/api/buckets',
             data: JSON.stringify(formData),
             dataType: 'json',
             contentType: 'application/json; charset=utf-8',
