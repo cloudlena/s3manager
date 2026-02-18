@@ -3,7 +3,9 @@ package s3manager
 import (
 	"fmt"
 	"log"
+	"mime"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
@@ -32,7 +34,14 @@ func HandleCreateObject(s3 S3, sseInfo SSEType) http.HandlerFunc {
 			}
 		}()
 
-		opts := minio.PutObjectOptions{ContentType: "application/octet-stream"}
+		contentType := fileHeader.Header.Get("Content-Type")
+		if contentType == "" || contentType == "application/octet-stream" {
+			contentType = mime.TypeByExtension(filepath.Ext(fileHeader.Filename))
+		}
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		opts := minio.PutObjectOptions{ContentType: contentType}
 
 		if sseInfo.Type == "KMS" {
 			opts.ServerSideEncryption, err = encrypt.NewSSEKMS(sseInfo.Key, nil)
