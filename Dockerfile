@@ -1,9 +1,11 @@
-FROM docker.io/library/golang:1 AS builder
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1 AS builder
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /usr/src/app
 COPY . ./
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -a -installsuffix cgo -o bin/s3manager
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w" -a -installsuffix cgo -o bin/s3manager
 
-FROM docker.io/library/alpine:latest
+FROM --platform=$TARGETPLATFORM docker.io/library/alpine:latest
 WORKDIR /usr/src/app
 RUN addgroup -S s3manager && adduser -S s3manager -G s3manager
 RUN apk add --no-cache \

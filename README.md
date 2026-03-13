@@ -145,6 +145,18 @@ make lint
 make build-image
 ```
 
+### Build & Push Multi-Architecture Image (amd64 + arm64)
+
+```bash
+# Login to Docker Hub first
+docker login
+
+# Build and push for both amd64 and arm64
+make build-multiarch-image
+```
+
+This creates a single image that works on both **x86_64** (Intel/AMD) and **arm64** (Apple Silicon, AWS Graviton) machines.
+
 ### Run with Docker Compose (Local Development)
 
 ```bash
