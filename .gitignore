@@ -20,3 +20,8 @@ bin/
 
 # Go workspace file
 go.work
+/.idea/.gitignore
+/.idea/copilot.data.migration.ask2agent.xml
+/.idea/modules.xml
+/.idea/s3manager.iml
+/.idea/vcs.xml
