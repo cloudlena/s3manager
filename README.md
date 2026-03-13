@@ -27,6 +27,7 @@ docker pull dimuthnc/s3manager:v1.0.0
 | Tag | Description |
 |-----|-------------|
 | `dimuthnc/s3manager:latest` | Latest build |
+| `dimuthnc/s3manager:v1.1.0` | Authentication support (login page, logout) |
 | `dimuthnc/s3manager:v1.0.0` | Initial release with shadcn/ui design |
 
 ## Features
@@ -39,6 +40,7 @@ docker pull dimuthnc/s3manager:v1.0.0
 - Delete objects in a bucket
 - Generate presigned download URLs
 - Switch between multiple S3 instances
+- Optional login page with username/password authentication
 
 ## Quick Start
 
@@ -75,6 +77,40 @@ The application can be configured with the following environment variables:
 | `SSE_KEY` | Key for SSE (only for `KMS` and `SSE-C`) | `""` |
 | `TIMEOUT` | Read and write timeout in seconds | `600` |
 | `ROOT_URL` | Root URL prefix for reverse proxy | `""` |
+| `USERNAME` | Login username (base64 encoded). Authentication is enabled only if both `USERNAME` and `PASSWORD` are set. | `""` |
+| `PASSWORD` | Login password (base64 encoded). Authentication is enabled only if both `USERNAME` and `PASSWORD` are set. | `""` |
+
+## Authentication
+
+S3 Manager supports an optional login page to protect access. Authentication is **opt-in** — if `USERNAME` and `PASSWORD` are not set, the application runs without any login requirement (the original behavior).
+
+### Enabling Authentication
+
+Set the `USERNAME` and `PASSWORD` environment variables with **base64-encoded** values:
+
+```bash
+# Encode your credentials
+echo -n "admin" | base64    # YWRtaW4=
+echo -n "password" | base64 # cGFzc3dvcmQ=
+
+# Run with authentication enabled
+docker run -p 8080:8080 \
+  -e 'USERNAME=YWRtaW4=' \
+  -e 'PASSWORD=cGFzc3dvcmQ=' \
+  -e '1_NAME=my-instance' \
+  -e '1_ENDPOINT=s3.amazonaws.com' \
+  -e '1_ACCESS_KEY_ID=your-access-key' \
+  -e '1_SECRET_ACCESS_KEY=your-secret-key' \
+  dimuthnc/s3manager:latest
+```
+
+### How It Works
+
+- Unauthenticated users accessing any page are redirected to `/login`.
+- After successful login, users are redirected to the page they originally tried to access (or `/buckets` by default).
+- Sessions are managed via an `HttpOnly` HMAC-signed cookie (`s3manager_session`). A random secret is generated at each application startup, meaning sessions are invalidated on restart.
+- A **Logout** button is displayed in the navbar when authentication is enabled.
+- Static assets (`/static/`) are excluded from authentication so the login page renders correctly.
 
 ## Usage Examples
 
@@ -109,9 +145,14 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ENDPOINT=s3.amazonaws.com
-      - ACCESS_KEY_ID=your-access-key
-      - SECRET_ACCESS_KEY=your-secret-key
+      # Optional: enable login (base64 encoded credentials)
+      - USERNAME=YWRtaW4=       # admin
+      - PASSWORD=cGFzc3dvcmQ=   # password
+      # S3 instance configuration
+      - 1_NAME=my-instance
+      - 1_ENDPOINT=s3.amazonaws.com
+      - 1_ACCESS_KEY_ID=your-access-key
+      - 1_SECRET_ACCESS_KEY=your-secret-key
 ```
 
 ### Deploy to Kubernetes

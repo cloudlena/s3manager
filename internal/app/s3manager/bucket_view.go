@@ -36,6 +36,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		S3Instances  []*S3Instance
 		HasError     bool
 		ErrorMessage string
+		AuthEnabled  bool
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {

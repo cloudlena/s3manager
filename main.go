@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"log"
@@ -44,6 +47,8 @@ type configuration struct {
 	Timeout         int32
 	SseType         string
 	SseKey          string
+	Username        string
+	Password        string
 }
 
 func parseConfiguration() configuration {
@@ -123,6 +128,23 @@ func parseConfiguration() configuration {
 	viper.SetDefault("SSE_KEY", "")
 	sseKey := viper.GetString("SSE_KEY")
 
+	// Parse optional authentication credentials (base64 encoded)
+	var username, password string
+	usernameB64 := viper.GetString("USERNAME")
+	passwordB64 := viper.GetString("PASSWORD")
+	if usernameB64 != "" && passwordB64 != "" {
+		usernameBytes, err := base64.StdEncoding.DecodeString(usernameB64)
+		if err != nil {
+			log.Fatalf("USERNAME is not valid base64: %v", err)
+		}
+		passwordBytes, err := base64.StdEncoding.DecodeString(passwordB64)
+		if err != nil {
+			log.Fatalf("PASSWORD is not valid base64: %v", err)
+		}
+		username = string(usernameBytes)
+		password = string(passwordBytes)
+	}
+
 	return configuration{
 		S3Instances:   s3Instances,
 		AllowDelete:   allowDelete,
@@ -132,6 +154,8 @@ func parseConfiguration() configuration {
 		Timeout:       timeout,
 		SseType:       sseType,
 		SseKey:        sseKey,
+		Username:      username,
+		Password:      password,
 	}
 }
 
@@ -183,6 +207,23 @@ func main() {
 
 	// Set up router
 	r := mux.NewRouter()
+
+	// Generate a random session secret for HMAC-signed cookies
+	secretBytes := make([]byte, 32)
+	if _, err := rand.Read(secretBytes); err != nil {
+		log.Fatalf("failed to generate session secret: %v", err)
+	}
+	sessionSecret := hex.EncodeToString(secretBytes)
+
+	// Authentication routes and middleware (opt-in: only if USERNAME and PASSWORD are set)
+	authEnabled := configuration.Username != "" && configuration.Password != ""
+	if authEnabled {
+		r.Handle("/login", s3manager.HandleLoginPage(templates, rootURL)).Methods(http.MethodGet)
+		r.Handle("/api/login", s3manager.HandleLoginSubmit(configuration.Username, configuration.Password, sessionSecret, rootURL)).Methods(http.MethodPost)
+		r.Handle("/logout", s3manager.HandleLogout(rootURL)).Methods(http.MethodGet)
+		r.Use(s3manager.AuthMiddleware(configuration.Username, configuration.Password, sessionSecret, rootURL))
+	}
+
 	r.Handle("/", http.RedirectHandler("/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
 	
@@ -191,8 +232,8 @@ func main() {
 	r.Handle("/api/s3-instances/{instanceId}/switch", s3manager.HandleSwitchS3Instance(s3Manager)).Methods(http.MethodPost)
 	
 	// S3 management endpoints (using current instance)
-	r.Handle("/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL)).Methods(http.MethodGet)
-	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL)).Methods(http.MethodGet)
+	r.Handle("/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL, authEnabled)).Methods(http.MethodGet)
+	r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL, authEnabled)).Methods(http.MethodGet)
 	r.Handle("/api/buckets", s3manager.HandleCreateBucketWithManager(s3Manager)).Methods(http.MethodPost)
 	if configuration.AllowDelete {
 		r.Handle("/api/buckets/{bucketName}", s3manager.HandleDeleteBucketWithManager(s3Manager)).Methods(http.MethodDelete)
