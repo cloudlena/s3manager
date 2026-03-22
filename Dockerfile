@@ -6,6 +6,8 @@ COPY . ./
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w" -a -installsuffix cgo -o bin/s3manager
 
 FROM --platform=$TARGETPLATFORM docker.io/library/alpine:latest
+LABEL version="1.2.0"
+LABEL description="S3 Manager - A Web GUI to manage S3 buckets"
 WORKDIR /usr/src/app
 RUN addgroup -S s3manager && adduser -S s3manager -G s3manager
 RUN apk add --no-cache \
