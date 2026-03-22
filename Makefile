@@ -20,7 +20,7 @@ build-image:
 
 .PHONY: build-multiarch-image
 build-multiarch-image:
-	docker buildx create --name multiarch-builder --use || docker buildx use multiarch-builder
+	docker buildx use multiarch-builder || docker buildx create --name multiarch-builder --use
 	docker buildx build --platform linux/amd64,linux/arm64 -t dimuthnc/s3manager:latest -t dimuthnc/s3manager:v1.2.0 --push .
 
 .PHONY: clean

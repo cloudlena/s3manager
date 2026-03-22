@@ -121,42 +121,107 @@ You can adapt the [Helm chart](https://github.com/sergeyshevch/s3manager-helm) f
 
 ## Development
 
+Two ways to run development commands are available depending on your OS:
+- **Linux / macOS** — use `make`
+- **Windows** — use the PowerShell script at `scripts/build.ps1`
+
 ### Build and Run Locally
 
 ```bash
+# Linux / macOS
 make build
 ./bin/s3manager
+```
+
+```powershell
+# Windows
+.\scripts\build.ps1 build
+.\bin\s3manager.exe
 ```
 
 ### Run Tests
 
 ```bash
+# Linux / macOS
 make test
+```
+
+```powershell
+# Windows
+.\scripts\build.ps1 test
 ```
 
 ### Lint Code
 
 ```bash
+# Linux / macOS
 make lint
+```
+
+```powershell
+# Windows
+.\scripts\build.ps1 lint
 ```
 
 ### Build Container Image
 
 ```bash
+# Linux / macOS
 make build-image
+```
+
+```powershell
+# Windows
+.\scripts\build.ps1 build-image
 ```
 
 ### Build & Push Multi-Architecture Image (amd64 + arm64)
 
 ```bash
-# Login to Docker Hub first
+# Linux / macOS — login to Docker Hub first
 docker login
 
-# Build and push for both amd64 and arm64
 make build-multiarch-image
 ```
 
-This creates a single image that works on both **x86_64** (Intel/AMD) and **arm64** (Apple Silicon, AWS Graviton) machines.
+```powershell
+# Windows — login to Docker Hub first
+docker login
+
+.\scripts\build.ps1 build-multiarch-image
+```
+
+This creates a single image that works on both **x86_64** (Intel/AMD) and **arm64** (Apple Silicon, AWS Graviton) machines and pushes two tags: `latest` and `v1.2.0`.
+
+### Clean Build Artifacts
+
+```bash
+# Linux / macOS
+make clean
+```
+
+```powershell
+# Windows
+.\scripts\build.ps1 clean
+```
+
+### All Available PowerShell Script Commands
+
+| Command | Description |
+|---|---|
+| `.\scripts\build.ps1 build` | Build the Go binary to `bin/s3manager.exe` |
+| `.\scripts\build.ps1 run` | Run the application locally |
+| `.\scripts\build.ps1 test` | Run all tests with race detection and coverage |
+| `.\scripts\build.ps1 lint` | Run golangci-lint |
+| `.\scripts\build.ps1 build-image` | Build a local Docker image tagged as `s3manager` |
+| `.\scripts\build.ps1 build-multiarch-image` | Build and push amd64+arm64 image to Docker Hub |
+| `.\scripts\build.ps1 clean` | Remove the `bin/` directory |
+| `.\scripts\build.ps1 help` | Show all available commands |
+
+> **Note (Windows):** If you get a script execution policy error, run the following once in an elevated PowerShell session:
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+> ```
 
 ### Run with Docker Compose (Local Development)
 
