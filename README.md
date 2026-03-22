@@ -20,13 +20,14 @@ This custom image is available on Docker Hub:
 docker pull dimuthnc/s3manager:latest
 
 # Specific version
-docker pull dimuthnc/s3manager:v1.0.0
+docker pull dimuthnc/s3manager:v1.2.0
 ```
 
 **Available Tags:**
 | Tag | Description |
 |-----|-------------|
 | `dimuthnc/s3manager:latest` | Latest build |
+| `dimuthnc/s3manager:v1.2.0` | Latest release with UI improvements and sample data |
 | `dimuthnc/s3manager:v1.0.0` | Initial release with shadcn/ui design |
 
 ## Features
@@ -47,7 +48,7 @@ docker run -p 8080:8080 \
   -e 'ACCESS_KEY_ID=your-access-key' \
   -e 'SECRET_ACCESS_KEY=your-secret-key' \
   -e 'ENDPOINT=s3.amazonaws.com' \
-  dimuthnc/s3manager:latest
+  dimuthnc/s3manager:v1.2.0
 ```
 
 Then visit <http://localhost:8080>
@@ -85,7 +86,7 @@ docker run -p 8080:8080 \
   -e 'ENDPOINT=play.min.io' \
   -e 'ACCESS_KEY_ID=minioadmin' \
   -e 'SECRET_ACCESS_KEY=minioadmin' \
-  dimuthnc/s3manager:latest
+  dimuthnc/s3manager:v1.2.0
 ```
 
 ### With AWS S3
@@ -96,7 +97,7 @@ docker run -p 8080:8080 \
   -e 'REGION=us-east-1' \
   -e 'ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE' \
   -e 'SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' \
-  dimuthnc/s3manager:latest
+  dimuthnc/s3manager:v1.2.0
 ```
 
 ### Using Docker Compose
@@ -105,7 +106,7 @@ docker run -p 8080:8080 \
 version: '3.8'
 services:
   s3manager:
-    image: dimuthnc/s3manager:latest
+    image: dimuthnc/s3manager:v1.2.0
     ports:
       - "8080:8080"
     environment:

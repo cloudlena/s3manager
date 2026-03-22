@@ -1,10 +1,11 @@
 S3 Manager
 Copyright 2016 Lena Fuhrimann
+Copyright 2025-2026 Dimuth
 
 This product includes software developed by Lena Fuhrimann.
 Original project: https://github.com/cloudlena/s3manager
 
-Modifications by Dimuth - December 2025:
+Modifications by Dimuth (2025-2026):
 - Revamped UI using shadcn/ui design system
 - Replaced Materialize CSS with custom shadcn/ui-based styling
 - Updated templates with modern component patterns

@@ -18,8 +18,10 @@ services:
       - 2_SECRET_ACCESS_KEY=s3manager2
       - 2_USE_SSL=false
     depends_on:
-      - s3
-      - s3-2
+      s3-init:
+        condition: service_completed_successfully
+      s3-2-init:
+        condition: service_completed_successfully
   s3:
     container_name: s3
     image: docker.io/minio/minio
@@ -44,3 +46,64 @@ services:
       - MINIO_SECRET_KEY=s3manager2
       - MINIO_ADDRESS=0.0.0.0:9000
       - MINIO_CONSOLE_ADDRESS=0.0.0.0:9001
+
+  # Init container: creates sample buckets and files in the first MinIO instance
+  s3-init:
+    container_name: s3-init
+    image: docker.io/minio/mc
+    depends_on:
+      - s3
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO (s3) to be ready...';
+      until mc alias set s3 http://s3:9000 s3manager s3manager; do
+        sleep 1;
+      done;
+      echo 'Creating sample buckets...';
+      mc mb --ignore-existing s3/sample-images;
+      mc mb --ignore-existing s3/documents;
+      mc mb --ignore-existing s3/backups;
+      echo 'Uploading sample files...';
+      echo 'Hello from S3 Manager!' > /tmp/welcome.txt;
+      echo '{ \"app\": \"s3manager\", \"version\": \"1.2.0\" }' > /tmp/config.json;
+      echo 'This is a sample README for the documents bucket.' > /tmp/README.md;
+      echo 'id,name,email' > /tmp/users.csv;
+      echo '1,Alice,alice@example.com' >> /tmp/users.csv;
+      echo '2,Bob,bob@example.com' >> /tmp/users.csv;
+      echo '3,Charlie,charlie@example.com' >> /tmp/users.csv;
+      echo 'Log entry 1: Application started' > /tmp/app.log;
+      echo 'Log entry 2: Connected to database' >> /tmp/app.log;
+      echo 'Log entry 3: Ready to serve requests' >> /tmp/app.log;
+      mc cp /tmp/welcome.txt s3/sample-images/welcome.txt;
+      mc cp /tmp/config.json s3/sample-images/config.json;
+      mc cp /tmp/README.md s3/documents/README.md;
+      mc cp /tmp/users.csv s3/documents/data/users.csv;
+      mc cp /tmp/app.log s3/backups/logs/app.log;
+      echo 'Done! Sample data created for s3.';
+      "
+
+  # Init container: creates sample buckets and files in the second MinIO instance
+  s3-2-init:
+    container_name: s3-2-init
+    image: docker.io/minio/mc
+    depends_on:
+      - s3-2
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO (s3-2) to be ready...';
+      until mc alias set s3-2 http://s3-2:9000 s3manager2 s3manager2; do
+        sleep 1;
+      done;
+      echo 'Creating sample buckets...';
+      mc mb --ignore-existing s3-2/media-assets;
+      mc mb --ignore-existing s3-2/reports;
+      echo 'Uploading sample files...';
+      echo 'Welcome to the second S3 instance!' > /tmp/hello.txt;
+      echo '{ \"type\": \"report\", \"quarter\": \"Q1\", \"year\": 2026 }' > /tmp/q1-report.json;
+      echo 'Monthly summary: all systems operational.' > /tmp/summary.txt;
+      mc cp /tmp/hello.txt s3-2/media-assets/hello.txt;
+      mc cp /tmp/q1-report.json s3-2/reports/q1-report.json;
+      mc cp /tmp/summary.txt s3-2/reports/monthly/summary.txt;
+      echo 'Done! Sample data created for s3-2.';
+      "
+

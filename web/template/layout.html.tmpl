@@ -102,6 +102,7 @@
             document.querySelectorAll('.dropdown-menu').forEach(menu => {
                 if (!menu.parentElement.contains(event.target)) {
                     menu.classList.remove('active');
+                    menu.classList.remove('dropdown-menu-up');
                 }
             });
         });

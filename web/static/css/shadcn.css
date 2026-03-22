@@ -446,7 +446,7 @@ body {
 .table-container {
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .table {
@@ -457,6 +457,22 @@ body {
 
 .table thead {
   background-color: hsl(var(--muted) / 0.5);
+}
+
+.table thead tr:first-child th:first-child {
+  border-top-left-radius: var(--radius);
+}
+
+.table thead tr:first-child th:last-child {
+  border-top-right-radius: var(--radius);
+}
+
+.table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--radius);
+}
+
+.table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--radius);
 }
 
 .table th {
@@ -591,6 +607,25 @@ body {
 
 .dropdown-menu.active {
   display: block;
+}
+
+.dropdown-menu.dropdown-menu-up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  animation: slideUp 0.1s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideDown {
