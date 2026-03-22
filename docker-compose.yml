@@ -5,6 +5,9 @@ services:
     ports:
       - 8080:8080
     environment:
+      # Authentication (base64 encoded: admin / password)
+      - USERNAME=YWRtaW4=
+      - PASSWORD=cGFzc3dvcmQ=
       # S3 Instance 1: my-first-instance
       - 1_NAME=my-first-instance
       - 1_ENDPOINT=s3:9000

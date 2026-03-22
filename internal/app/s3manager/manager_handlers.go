@@ -13,7 +13,7 @@ import (
 )
 
 // HandleBucketsViewWithManager renders all buckets on an HTML page using MultiS3Manager.
-func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, rootURL string) http.HandlerFunc {
+func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, rootURL string, authEnabled bool) http.HandlerFunc {
 	type pageData struct {
 		RootURL       string
 		Buckets       []interface{}
@@ -22,6 +22,7 @@ func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allo
 		S3Instances   []*S3Instance
 		HasError      bool
 		ErrorMessage  string
+		AuthEnabled   bool
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +38,7 @@ func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allo
 			CurrentS3:   current,
 			S3Instances: instances,
 			HasError:    false,
+			AuthEnabled: authEnabled,
 		}
 
 		if err != nil {
@@ -65,14 +67,14 @@ func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allo
 }
 
 // HandleBucketViewWithManager shows the details page of a bucket using MultiS3Manager.
-func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string) http.HandlerFunc {
+func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, authEnabled bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s3 := manager.GetCurrentClient()
 		current := manager.GetCurrentInstance()
 		instances := manager.GetAllInstances()
 		
 		// Create a modified handler that includes S3 instance data
-		handler := createBucketViewWithS3Data(s3, templates, allowDelete, listRecursive, rootURL, current, instances)
+		handler := createBucketViewWithS3Data(s3, templates, allowDelete, listRecursive, rootURL, current, instances, authEnabled)
 		handler(w, r)
 	}
 }
@@ -138,7 +140,7 @@ func HandleDeleteObjectWithManager(manager *MultiS3Manager) http.HandlerFunc {
 }
 
 // createBucketViewWithS3Data creates a bucket view handler that includes S3 instance data
-func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, current *S3Instance, instances []*S3Instance) http.HandlerFunc {
+func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, current *S3Instance, instances []*S3Instance, authEnabled bool) http.HandlerFunc {
 	type objectWithIcon struct {
 		Key          string
 		Size         int64
@@ -160,6 +162,7 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 		S3Instances   []*S3Instance
 		HasError      bool
 		ErrorMessage  string
+		AuthEnabled   bool
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +217,7 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 			S3Instances:  instances,
 			HasError:     hasError,
 			ErrorMessage: errorMessage,
+			AuthEnabled:  authEnabled,
 		}
 
 		t, err := template.ParseFS(templates, "layout.html.tmpl", "bucket.html.tmpl")
