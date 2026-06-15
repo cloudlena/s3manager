@@ -166,13 +166,17 @@ func main() {
 	// Set up router
 	r := mux.NewRouter()
 
-	// Root redirects to first instance's buckets page
+	// Root redirects to first instance's buckets page (or directly to the configured bucket)
 	r.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		instances := s3Manager.GetAllInstances()
-		if len(instances) > 0 {
-			http.Redirect(w, r, rootURL+"/"+instances[0].Name+"/buckets", http.StatusPermanentRedirect)
-		} else {
+		if len(instances) == 0 {
 			http.Error(w, "No S3 instances configured", http.StatusInternalServerError)
+			return
+		}
+		if configuration.BucketName != "" {
+			http.Redirect(w, r, rootURL+"/"+instances[0].Name+"/buckets/"+configuration.BucketName, http.StatusPermanentRedirect)
+		} else {
+			http.Redirect(w, r, rootURL+"/"+instances[0].Name+"/buckets", http.StatusPermanentRedirect)
 		}
 	})).Methods(http.MethodGet)
 
