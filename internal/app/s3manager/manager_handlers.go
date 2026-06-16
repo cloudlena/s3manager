@@ -49,6 +49,11 @@ func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allo
 			return
 		}
 
+		if bucketName != "" {
+			http.Redirect(w, r, rootURL+"/"+instanceName+"/buckets/"+bucketName, http.StatusTemporaryRedirect)
+			return
+		}
+
 		s3 := current.Client
 		instances := manager.GetAllInstances()
 
