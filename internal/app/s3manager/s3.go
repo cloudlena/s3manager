@@ -13,6 +13,7 @@ import (
 
 // S3 is a client to interact with S3 storage.
 type S3 interface {
+	CopyObject(ctx context.Context, dst minio.CopyDestOptions, src minio.CopySrcOptions) (minio.UploadInfo, error)
 	GetObject(ctx context.Context, bucketName, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
 	ListBuckets(ctx context.Context) ([]minio.BucketInfo, error)
 	ListObjects(ctx context.Context, bucketName string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo

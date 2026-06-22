@@ -113,6 +113,24 @@ func NewMultiS3Manager(configs []S3InstanceConfig) (*MultiS3Manager, error) {
 	return manager, nil
 }
 
+// NewMultiS3ManagerWithInstances creates a manager from already-constructed
+// instances. The first instance becomes the active one. This is useful for
+// programmatic setup and tests where clients are injected directly.
+func NewMultiS3ManagerWithInstances(instances []*S3Instance) *MultiS3Manager {
+	manager := &MultiS3Manager{
+		instances:     make(map[string]*S3Instance, len(instances)),
+		instanceOrder: make([]string, 0, len(instances)),
+	}
+	for i, inst := range instances {
+		manager.instances[inst.ID] = inst
+		manager.instanceOrder = append(manager.instanceOrder, inst.ID)
+		if i == 0 {
+			manager.currentID = inst.ID
+		}
+	}
+	return manager
+}
+
 // GetCurrentClient returns the currently active S3 client
 func (m *MultiS3Manager) GetCurrentClient() S3 {
 	m.mu.RLock()
@@ -125,6 +143,26 @@ func (m *MultiS3Manager) GetCurrentClient() S3 {
 		instance = m.instances[m.currentID]
 	}
 	return instance.Client
+}
+
+// GetCurrentID returns the ID of the currently active S3 instance.
+func (m *MultiS3Manager) GetCurrentID() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return m.currentID
+}
+
+// GetClientByID returns the S3 client for the given instance ID.
+func (m *MultiS3Manager) GetClientByID(instanceID string) (S3, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	instance, exists := m.instances[instanceID]
+	if !exists {
+		return nil, fmt.Errorf("S3 instance with ID %s not found", instanceID)
+	}
+	return instance.Client, nil
 }
 
 // GetCurrentInstance returns the currently active S3 instance info

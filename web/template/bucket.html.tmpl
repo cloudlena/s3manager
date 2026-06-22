@@ -194,7 +194,26 @@
                                     </svg>
                                     Get Link
                                 </div>
+                                <div class="dropdown-separator"></div>
+                                <div class="dropdown-item" onclick="openMoveModal('{{ $object.Key }}', 'copy')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                    Copy to…
+                                </div>
                                 {{- if $.AllowDelete }}
+                                <div class="dropdown-item" onclick="openMoveModal('{{ $object.Key }}', 'move')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="5 9 2 12 5 15"/>
+                                        <polyline points="9 5 12 2 15 5"/>
+                                        <polyline points="15 19 12 22 9 19"/>
+                                        <polyline points="19 9 22 12 19 15"/>
+                                        <line x1="2" y1="12" x2="22" y2="12"/>
+                                        <line x1="12" y1="2" x2="12" y2="22"/>
+                                    </svg>
+                                    Move to…
+                                </div>
                                 <div class="dropdown-separator"></div>
                                 <div class="dropdown-item dropdown-item-destructive" onclick="deleteObject('{{ $.BucketName }}', '{{ $object.Key }}')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -203,6 +222,38 @@
                                         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                                     </svg>
                                     Delete
+                                </div>
+                                {{- end }}
+                            </div>
+                        </div>
+                        {{ else }}
+                        <div class="dropdown" onclick="event.stopPropagation()">
+                            <button class="btn btn-ghost btn-icon btn-sm" onclick="toggleDropdown(event, 'dropdown-{{ $index }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="1"/>
+                                    <circle cx="12" cy="5" r="1"/>
+                                    <circle cx="12" cy="19" r="1"/>
+                                </svg>
+                            </button>
+                            <div id="dropdown-{{ $index }}" class="dropdown-menu">
+                                <div class="dropdown-item" onclick="openMoveModal('{{ $object.Key }}', 'copy')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                    Copy to…
+                                </div>
+                                {{- if $.AllowDelete }}
+                                <div class="dropdown-item" onclick="openMoveModal('{{ $object.Key }}', 'move')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="5 9 2 12 5 15"/>
+                                        <polyline points="9 5 12 2 15 5"/>
+                                        <polyline points="15 19 12 22 9 19"/>
+                                        <polyline points="19 9 22 12 19 15"/>
+                                        <line x1="2" y1="12" x2="22" y2="12"/>
+                                        <line x1="12" y1="2" x2="12" y2="22"/>
+                                    </svg>
+                                    Move to…
                                 </div>
                                 {{- end }}
                             </div>
@@ -318,6 +369,48 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeModal('modal-download-link')">Close</button>
                 <button type="submit" class="btn btn-primary">Generate Link</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Move / Copy Modal -->
+<div id="modal-move-object" class="modal-overlay">
+    <div class="modal">
+        <form id="move-object-form">
+            <div class="modal-header">
+                <h2 class="modal-title" id="move-modal-title">Move object</h2>
+                <p class="modal-description">Choose a destination for <strong id="move-source-name"></strong>.</p>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="move-source-key" name="sourceKey">
+                <input type="hidden" id="move-operation" name="operation" value="move">
+
+                <div class="form-group">
+                    <label class="label" for="move-dest-instance">Destination instance</label>
+                    <select id="move-dest-instance" name="destInstance" class="input">
+                        {{ range $.S3Instances }}
+                        <option value="{{ .ID }}"{{ if and $.CurrentS3 (eq .ID $.CurrentS3.ID) }} selected{{ end }}>{{ .Name }}</option>
+                        {{ end }}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="label" for="move-dest-bucket">Destination bucket</label>
+                    <input type="text" id="move-dest-bucket" name="destBucket" class="input" placeholder="bucket-name" value="{{ .BucketName }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="label" for="move-dest-path">Destination folder</label>
+                    <input type="text" id="move-dest-path" name="destPath" class="input" placeholder="folder/subfolder (leave empty for bucket root)" value="{{ .CurrentPath }}">
+                    <p class="text-xs text-muted mt-1">The item keeps its original name and is placed under this folder.</p>
+                </div>
+
+                <div id="move-error" class="form-error"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-move-object')">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="move-submit-btn">Move</button>
             </div>
         </form>
     </div>
@@ -501,6 +594,73 @@ function handleGenerateDownloadLink(event) {
     });
 }
 
+function openMoveModal(objectKey, operation) {
+    document.getElementById('move-source-key').value = objectKey;
+    document.getElementById('move-operation').value = operation;
+    document.getElementById('move-error').innerHTML = '';
+
+    // Strip a trailing slash for folders before deriving the display name.
+    const trimmed = objectKey.replace(/\/$/, '');
+    const name = trimmed.split('/').pop();
+    document.getElementById('move-source-name').textContent = name;
+
+    const isCopy = operation === 'copy';
+    document.getElementById('move-modal-title').textContent = isCopy ? 'Copy object' : 'Move object';
+    document.getElementById('move-submit-btn').textContent = isCopy ? 'Copy' : 'Move';
+
+    // Close any open action dropdown.
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.remove('active'));
+
+    openModal('modal-move-object');
+}
+
+function handleMoveSubmit(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+    const sourceKey = formData.get('sourceKey');
+    const operation = formData.get('operation');
+    const destBucket = formData.get('destBucket').trim();
+    const errorEl = document.getElementById('move-error');
+
+    if (!destBucket) {
+        errorEl.innerHTML = 'Destination bucket is required';
+        return;
+    }
+
+    const payload = {
+        destInstanceId: formData.get('destInstance'),
+        destBucket: destBucket,
+        destPath: formData.get('destPath').trim(),
+        operation: operation
+    };
+
+    const submitBtn = document.getElementById('move-submit-btn');
+    submitBtn.disabled = true;
+    errorEl.innerHTML = '';
+
+    fetch('{{$.RootURL}}/api/buckets/{{ .BucketName }}/objects/' + sourceKey + '/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).then(response => {
+        if (!response.ok) {
+            return response.text().then(text => { throw new Error(text || 'Request failed'); });
+        }
+        return response.json();
+    }).then(result => {
+        closeModal('modal-move-object');
+        const verb = operation === 'copy' ? 'Copied' : 'Moved';
+        showToast('Success', verb + ' ' + result.count + ' object(s)');
+        setTimeout(() => location.reload(), 600);
+    }).catch(err => {
+        errorEl.innerHTML = (operation === 'copy' ? 'Copy' : 'Move') + ' failed: ' + err.message;
+    }).finally(() => {
+        submitBtn.disabled = false;
+    });
+}
+
 function handleCopyLink() {
     const url = document.getElementById("generated-link").value;
 
@@ -516,6 +676,7 @@ function handleCopyLink() {
 window.onload = function() {
     document.getElementById('change-path-form').addEventListener('submit', handleChangePath);
     document.getElementById('download-link-form').addEventListener('submit', handleGenerateDownloadLink);
+    document.getElementById('move-object-form').addEventListener('submit', handleMoveSubmit);
 
     const uploadFolderInput = document.getElementById('upload-folder-input');
     const uploadFileInput = document.getElementById('upload-file-input');

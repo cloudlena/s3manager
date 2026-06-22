@@ -54,6 +54,9 @@ var _ s3manager.S3 = &S3Mock{}
 //
 //	}
 type S3Mock struct {
+	// CopyObjectFunc mocks the CopyObject method.
+	CopyObjectFunc func(ctx context.Context, dst minio.CopyDestOptions, src minio.CopySrcOptions) (minio.UploadInfo, error)
+
 	// GetObjectFunc mocks the GetObject method.
 	GetObjectFunc func(ctx context.Context, bucketName string, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
 
@@ -80,6 +83,15 @@ type S3Mock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// CopyObject holds details about calls to the CopyObject method.
+		CopyObject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Dst is the dst argument value.
+			Dst minio.CopyDestOptions
+			// Src is the src argument value.
+			Src minio.CopySrcOptions
+		}
 		// GetObject holds details about calls to the GetObject method.
 		GetObject []struct {
 			// Ctx is the ctx argument value.
@@ -161,6 +173,7 @@ type S3Mock struct {
 			Opts minio.RemoveObjectOptions
 		}
 	}
+	lockCopyObject         sync.RWMutex
 	lockGetObject          sync.RWMutex
 	lockListBuckets        sync.RWMutex
 	lockListObjects        sync.RWMutex
@@ -169,6 +182,46 @@ type S3Mock struct {
 	lockPutObject          sync.RWMutex
 	lockRemoveBucket       sync.RWMutex
 	lockRemoveObject       sync.RWMutex
+}
+
+// CopyObject calls CopyObjectFunc.
+func (mock *S3Mock) CopyObject(ctx context.Context, dst minio.CopyDestOptions, src minio.CopySrcOptions) (minio.UploadInfo, error) {
+	if mock.CopyObjectFunc == nil {
+		panic("S3Mock.CopyObjectFunc: method is nil but S3.CopyObject was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		Dst minio.CopyDestOptions
+		Src minio.CopySrcOptions
+	}{
+		Ctx: ctx,
+		Dst: dst,
+		Src: src,
+	}
+	mock.lockCopyObject.Lock()
+	mock.calls.CopyObject = append(mock.calls.CopyObject, callInfo)
+	mock.lockCopyObject.Unlock()
+	return mock.CopyObjectFunc(ctx, dst, src)
+}
+
+// CopyObjectCalls gets all the calls that were made to CopyObject.
+// Check the length with:
+//
+//	len(mockedS3.CopyObjectCalls())
+func (mock *S3Mock) CopyObjectCalls() []struct {
+	Ctx context.Context
+	Dst minio.CopyDestOptions
+	Src minio.CopySrcOptions
+} {
+	var calls []struct {
+		Ctx context.Context
+		Dst minio.CopyDestOptions
+		Src minio.CopySrcOptions
+	}
+	mock.lockCopyObject.RLock()
+	calls = mock.calls.CopyObject
+	mock.lockCopyObject.RUnlock()
+	return calls
 }
 
 // GetObject calls GetObjectFunc.

@@ -15,6 +15,10 @@ const (
 	ErrKeyDoesNotExist    = "The specified key does not exist"
 )
 
+// errInvalidMove is returned when a move/copy request is malformed. It maps to
+// an HTTP 400 response.
+var errInvalidMove = errors.New("invalid move request")
+
 // handleHTTPError handles HTTP errors.
 func handleHTTPError(w http.ResponseWriter, err error) {
 	code := http.StatusInternalServerError
@@ -26,6 +30,8 @@ func handleHTTPError(w http.ResponseWriter, err error) {
 	}
 
 	switch {
+	case errors.Is(err, errInvalidMove):
+		code = http.StatusBadRequest
 	case errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF):
 		code = http.StatusUnprocessableEntity
 	case strings.Contains(err.Error(), ErrBucketDoesNotExist) || strings.Contains(err.Error(), ErrKeyDoesNotExist):

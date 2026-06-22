@@ -37,6 +37,7 @@ docker pull dimuthnc/s3manager:v1.2.0
 - List all objects in a bucket
 - Upload new objects to a bucket
 - Download objects from a bucket
+- Move or copy files and folders between buckets and folders (including across S3 instances)
 - Delete objects in a bucket
 - Generate presigned download URLs
 - Switch between multiple S3 instances
