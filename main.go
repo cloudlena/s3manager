@@ -28,6 +28,7 @@ type configuration struct {
 	AllowDelete   bool
 	ForceDownload bool
 	ListRecursive bool
+	ShowVersions  bool
 	Port          string
 	Timeout       int32
 	SseType       string
@@ -107,6 +108,9 @@ func parseConfiguration() configuration {
 
 	listRecursive := viper.GetBool("LIST_RECURSIVE")
 
+	viper.SetDefault("SHOW_VERSIONS", false)
+	showVersions := viper.GetBool("SHOW_VERSIONS")
+
 	viper.SetDefault("PORT", "8080")
 	port := viper.GetString("PORT")
 
@@ -127,6 +131,7 @@ func parseConfiguration() configuration {
 		AllowDelete:   allowDelete,
 		ForceDownload: forceDownload,
 		ListRecursive: listRecursive,
+		ShowVersions:  showVersions,
 		Port:          port,
 		Timeout:       timeout,
 		SseType:       sseType,
@@ -184,7 +189,7 @@ func main() {
 
 	// S3 management endpoints (with instance in URL)
 	r.Handle("/{instance}/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL, configuration.BucketName)).Methods(http.MethodGet)
-	r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL)).Methods(http.MethodGet)
+	r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL, configuration.ShowVersions)).Methods(http.MethodGet)
 	r.Handle("/{instance}/api/buckets", s3manager.HandleCreateBucketWithManager(s3Manager)).Methods(http.MethodPost)
 	if configuration.AllowDelete {
 		r.Handle("/{instance}/api/buckets/{bucketName}", s3manager.HandleDeleteBucketWithManager(s3Manager)).Methods(http.MethodDelete)

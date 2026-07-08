@@ -24,6 +24,7 @@ func TestHandleGetObject(t *testing.T) {
 		getObjectFunc        func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error)
 		bucketName           string
 		objectName           string
+		queryString          string
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
@@ -34,6 +35,33 @@ func TestHandleGetObject(t *testing.T) {
 			},
 			bucketName:           "BUCKET-NAME",
 			objectName:           "OBJECT-NAME",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "mocked s3 error",
+		},
+		{
+			it: "leaves VersionID empty when no versionId query param is given",
+			getObjectFunc: func(_ context.Context, _, _ string, opts minio.GetObjectOptions) (*minio.Object, error) {
+				if opts.VersionID != "" {
+					return nil, fmt.Errorf("expected empty VersionID, got %q", opts.VersionID)
+				}
+				return nil, errS3
+			},
+			bucketName:           "BUCKET-NAME",
+			objectName:           "OBJECT-NAME",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "mocked s3 error",
+		},
+		{
+			it: "passes the versionId query param through to GetObjectOptions",
+			getObjectFunc: func(_ context.Context, _, _ string, opts minio.GetObjectOptions) (*minio.Object, error) {
+				if opts.VersionID != "VERSION-123" {
+					return nil, fmt.Errorf("expected VersionID %q, got %q", "VERSION-123", opts.VersionID)
+				}
+				return nil, errS3
+			},
+			bucketName:           "BUCKET-NAME",
+			objectName:           "OBJECT-NAME",
+			queryString:          "?versionId=VERSION-123",
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: "mocked s3 error",
 		},
@@ -54,7 +82,7 @@ func TestHandleGetObject(t *testing.T) {
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
-			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s/objects/%s", ts.URL, tc.bucketName, tc.objectName))
+			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s/objects/%s%s", ts.URL, tc.bucketName, tc.objectName, tc.queryString))
 			is.NoErr(err)
 			defer func() {
 				err = resp.Body.Close()

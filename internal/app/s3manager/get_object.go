@@ -14,8 +14,9 @@ func HandleGetObject(s3 S3, forceDownload bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 		objectName := mux.Vars(r)["objectName"]
+		versionID := r.URL.Query().Get("versionId")
 
-		object, err := s3.GetObject(r.Context(), bucketName, objectName, minio.GetObjectOptions{})
+		object, err := s3.GetObject(r.Context(), bucketName, objectName, minio.GetObjectOptions{VersionID: versionID})
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error getting object: %w", err))
 			return
