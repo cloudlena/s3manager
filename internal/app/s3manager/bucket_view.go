@@ -1,6 +1,7 @@
 package s3manager
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -20,39 +21,160 @@ const defaultPerPage = 25
 
 // objectWithIcon represents an S3 object with additional display properties
 type objectWithIcon struct {
-	Key          string
-	Size         int64
-	SizeDisplay  string
-	LastModified time.Time
-	Owner        string
-	Icon         string
-	IsFolder     bool
-	DisplayName  string
+	Key              string
+	Size             int64
+	SizeDisplay      string
+	LastModified     time.Time
+	Owner            string
+	Icon             string
+	IsFolder         bool
+	DisplayName      string
+	VersionID        string
+	IsLatest         bool
+	IsDeleteMarker   bool
+	VersionCount     int
+	GroupIndex       int
+	IsPrimaryVersion bool
+}
+
+// annotateVersionGroups sets VersionCount, GroupIndex and IsPrimaryVersion on
+// each object so the template can collapse older versions under their latest
+// version by default. IsPrimaryVersion picks exactly one visible row per key:
+// the one the provider marked IsLatest, or (since some S3-compatible providers
+// leave IsLatest unset — notably folder entries synthesized from
+// CommonPrefixes, which are never version-aware) the first entry seen for that
+// key. Relying on the raw IsLatest flag alone would hide every row in a group
+// where no entry has it set, making the bucket appear empty.
+func annotateVersionGroups(objs []objectWithIcon) {
+	counts := make(map[string]int, len(objs))
+	groupIndex := make(map[string]int, len(objs))
+	primaryIndex := make(map[string]int, len(objs))
+	nextIndex := 0
+
+	for i, obj := range objs {
+		counts[obj.Key]++
+		if _, ok := groupIndex[obj.Key]; !ok {
+			groupIndex[obj.Key] = nextIndex
+			nextIndex++
+			primaryIndex[obj.Key] = i
+		} else if obj.IsLatest {
+			primaryIndex[obj.Key] = i
+		}
+	}
+
+	for i := range objs {
+		key := objs[i].Key
+		objs[i].VersionCount = counts[key]
+		objs[i].GroupIndex = groupIndex[key]
+		objs[i].IsPrimaryVersion = primaryIndex[key] == i
+	}
+}
+
+// listObjectsOptions builds the minio.ListObjectsOptions used to list a bucket's objects.
+func listObjectsOptions(listRecursive, showVersions bool, prefix string) minio.ListObjectsOptions {
+	return minio.ListObjectsOptions{
+		Recursive:    listRecursive,
+		Prefix:       prefix,
+		WithVersions: showVersions,
+	}
+}
+
+// listObjectsForBucketView lists a bucket's objects, converting each minio.ObjectInfo
+// into an objectWithIcon. If showVersions is set but the versioned listing fails, or
+// comes back empty (some S3-compatible providers don't support listing object
+// versions and either reject the request outright or silently return nothing
+// instead of erroring), it transparently falls back to a normal listing so the
+// bucket can still be browsed. The returned bool reports whether version
+// information is actually present in the result.
+func listObjectsForBucketView(ctx context.Context, s3 S3, bucketName, path string, listRecursive, showVersions bool) ([]objectWithIcon, bool, error) {
+	if !showVersions {
+		objs, err := collectObjects(ctx, s3, bucketName, path, listObjectsOptions(listRecursive, false, path))
+		return objs, false, err
+	}
+
+	objs, err := collectObjects(ctx, s3, bucketName, path, listObjectsOptions(listRecursive, true, path))
+	if err == nil && len(objs) > 0 {
+		return objs, true, nil
+	}
+
+	fallbackObjs, fallbackErr := collectObjects(ctx, s3, bucketName, path, listObjectsOptions(listRecursive, false, path))
+	if fallbackErr != nil {
+		return nil, false, fallbackErr
+	}
+	return fallbackObjs, false, nil
+}
+
+// collectObjects drains an S3 ListObjects channel into a slice, returning the
+// first error encountered (if any) instead of a partial, half-listed result.
+func collectObjects(ctx context.Context, s3 S3, bucketName, path string, opts minio.ListObjectsOptions) ([]objectWithIcon, error) {
+	var objs []objectWithIcon
+	objectCh := s3.ListObjects(ctx, bucketName, opts)
+	for object := range objectCh {
+		if object.Err != nil {
+			return nil, object.Err
+		}
+		objs = append(objs, toObjectWithIcon(object, path))
+	}
+	return objs, nil
+}
+
+// friendlyListObjectsErrorMessage turns a raw S3 listing error into an
+// actionable, user-facing message for the bucket view's error banner.
+func friendlyListObjectsErrorMessage(err error, bucketName, instanceName string) string {
+	msg := err.Error()
+
+	switch {
+	case strings.Contains(msg, "AccessDenied") || strings.Contains(msg, "InvalidAccessKeyId") || strings.Contains(msg, "SignatureDoesNotMatch"):
+		return fmt.Sprintf("Unable to access bucket '%s' on S3 instance '%s'. Please check the credentials and try switching to another instance.", bucketName, instanceName)
+	case strings.Contains(msg, ErrBucketDoesNotExist):
+		return fmt.Sprintf("Bucket '%s' does not exist on S3 instance '%s'. Please try switching to another instance or go back to the buckets list.", bucketName, instanceName)
+	default:
+		return fmt.Sprintf("Unable to list objects in bucket '%s' on S3 instance '%s': %s", bucketName, instanceName, msg)
+	}
+}
+
+// toObjectWithIcon converts a minio.ObjectInfo into the template-facing objectWithIcon.
+func toObjectWithIcon(object minio.ObjectInfo, path string) objectWithIcon {
+	return objectWithIcon{
+		Key:            object.Key,
+		Size:           object.Size,
+		SizeDisplay:    FormatFileSize(object.Size),
+		LastModified:   object.LastModified,
+		Owner:          object.Owner.DisplayName,
+		Icon:           icon(object.Key),
+		IsFolder:       strings.HasSuffix(object.Key, "/"),
+		DisplayName:    strings.TrimSuffix(strings.TrimPrefix(object.Key, path), "/"),
+		VersionID:      object.VersionID,
+		IsLatest:       object.IsLatest,
+		IsDeleteMarker: object.IsDeleteMarker,
+	}
 }
 
 // HandleBucketView shows the details page of a bucket.
-func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string) http.HandlerFunc {
+func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, showVersions bool) http.HandlerFunc {
 	type pageData struct {
-		RootURL      string
-		BucketName   string
-		Objects      []objectWithIcon
-		AllowDelete  bool
-		Paths        []string
-		CurrentPath  string
-		Endpoint     string
-		CurrentS3    *S3Instance
-		S3Instances  []*S3Instance
-		HasError     bool
-		ErrorMessage string
-		SortBy       string
-		SortOrder    string
-		Page         int
-		PerPage      int
-		TotalItems   int
-		TotalPages   int
-		HasPrevPage  bool
-		HasNextPage  bool
-		Search       string
+		RootURL             string
+		BucketName          string
+		Objects             []objectWithIcon
+		AllowDelete         bool
+		Paths               []string
+		CurrentPath         string
+		Endpoint            string
+		CurrentS3           *S3Instance
+		S3Instances         []*S3Instance
+		HasError            bool
+		ErrorMessage        string
+		SortBy              string
+		SortOrder           string
+		Page                int
+		PerPage             int
+		TotalItems          int
+		TotalPages          int
+		HasPrevPage         bool
+		HasNextPage         bool
+		Search              string
+		ShowVersions        bool
+		VersionsUnavailable bool
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -95,29 +217,14 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		// Get search parameter
 		search := strings.TrimSpace(r.URL.Query().Get("search"))
 
-		var objs []objectWithIcon
-		opts := minio.ListObjectsOptions{
-			Recursive: listRecursive,
-			Prefix:    path,
+		objs, versionsShown, err := listObjectsForBucketView(r.Context(), s3, bucketName, path, listRecursive, showVersions)
+		if err != nil {
+			handleHTTPError(w, fmt.Errorf("error listing objects: %w", err))
+			return
 		}
-		objectCh := s3.ListObjects(r.Context(), bucketName, opts)
-		for object := range objectCh {
-			if object.Err != nil {
-				handleHTTPError(w, fmt.Errorf("error listing objects: %w", object.Err))
-				return
-			}
 
-			obj := objectWithIcon{
-				Key:          object.Key,
-				Size:         object.Size,
-				SizeDisplay:  FormatFileSize(object.Size),
-				LastModified: object.LastModified,
-				Owner:        object.Owner.DisplayName,
-				Icon:         icon(object.Key),
-				IsFolder:     strings.HasSuffix(object.Key, "/"),
-				DisplayName:  strings.TrimSuffix(strings.TrimPrefix(object.Key, path), "/"),
-			}
-			objs = append(objs, obj)
+		if versionsShown {
+			annotateVersionGroups(objs)
 		}
 
 		// Filter objects based on search query
@@ -163,26 +270,28 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		}
 
 		data := pageData{
-			RootURL:      rootURL,
-			BucketName:   bucketName,
-			Objects:      objs,
-			AllowDelete:  allowDelete,
-			Paths:        removeEmptyStrings(strings.Split(path, "/")),
-			CurrentPath:  path,
-			Endpoint:     s3.EndpointURL().String(),
-			CurrentS3:    nil,
-			S3Instances:  nil,
-			HasError:     false,
-			ErrorMessage: "",
-			SortBy:       sortBy,
-			SortOrder:    sortOrder,
-			Page:         page,
-			PerPage:      perPage,
-			TotalItems:   totalItems,
-			TotalPages:   totalPages,
-			HasPrevPage:  page > 1,
-			HasNextPage:  page < totalPages,
-			Search:       search,
+			RootURL:             rootURL,
+			BucketName:          bucketName,
+			Objects:             objs,
+			AllowDelete:         allowDelete,
+			Paths:               removeEmptyStrings(strings.Split(path, "/")),
+			CurrentPath:         path,
+			Endpoint:            s3.EndpointURL().String(),
+			CurrentS3:           nil,
+			S3Instances:         nil,
+			HasError:            false,
+			ErrorMessage:        "",
+			SortBy:              sortBy,
+			SortOrder:           sortOrder,
+			Page:                page,
+			PerPage:             perPage,
+			TotalItems:          totalItems,
+			TotalPages:          totalPages,
+			HasPrevPage:         page > 1,
+			HasNextPage:         page < totalPages,
+			Search:              search,
+			ShowVersions:        versionsShown,
+			VersionsUnavailable: showVersions && !versionsShown,
 		}
 
 		funcMap := template.FuncMap{

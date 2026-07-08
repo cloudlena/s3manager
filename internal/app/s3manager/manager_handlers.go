@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/minio/minio-go/v7"
 )
 
 // withInstance extracts the instance from the request, looks it up in the manager,
@@ -98,7 +97,7 @@ func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allo
 }
 
 // HandleBucketViewWithManager shows the details page of a bucket using MultiS3Manager.
-func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string) http.HandlerFunc {
+func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, showVersions bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		instanceName := vars["instance"]
@@ -113,7 +112,7 @@ func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allow
 		instances := manager.GetAllInstances()
 
 		// Create a modified handler that includes S3 instance data
-		handler := createBucketViewWithS3Data(s3, templates, allowDelete, listRecursive, rootURL, current, instances)
+		handler := createBucketViewWithS3Data(s3, templates, allowDelete, listRecursive, rootURL, current, instances, showVersions)
 		handler(w, r)
 	}
 }
@@ -154,28 +153,30 @@ func HandleCheckPublicAccessWithManager(manager *MultiS3Manager) http.HandlerFun
 }
 
 // createBucketViewWithS3Data creates a bucket view handler that includes S3 instance data
-func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, current *S3Instance, instances []*S3Instance) http.HandlerFunc {
+func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, current *S3Instance, instances []*S3Instance, showVersions bool) http.HandlerFunc {
 	type pageData struct {
-		RootURL      string
-		BucketName   string
-		Objects      []objectWithIcon
-		AllowDelete  bool
-		Paths        []string
-		CurrentPath  string
-		Endpoint     string
-		CurrentS3    *S3Instance
-		S3Instances  []*S3Instance
-		HasError     bool
-		ErrorMessage string
-		SortBy       string
-		SortOrder    string
-		Page         int
-		PerPage      int
-		TotalItems   int
-		TotalPages   int
-		HasPrevPage  bool
-		HasNextPage  bool
-		Search       string
+		RootURL             string
+		BucketName          string
+		Objects             []objectWithIcon
+		AllowDelete         bool
+		Paths               []string
+		CurrentPath         string
+		Endpoint            string
+		CurrentS3           *S3Instance
+		S3Instances         []*S3Instance
+		HasError            bool
+		ErrorMessage        string
+		SortBy              string
+		SortOrder           string
+		Page                int
+		PerPage             int
+		TotalItems          int
+		TotalPages          int
+		HasPrevPage         bool
+		HasNextPage         bool
+		Search              string
+		ShowVersions        bool
+		VersionsUnavailable bool
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -227,42 +228,16 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 		// Get search parameter
 		search := strings.TrimSpace(r.URL.Query().Get("search"))
 
-		var objs []objectWithIcon
 		hasError := false
 		errorMessage := ""
 
-		opts := minio.ListObjectsOptions{
-			Recursive: listRecursive,
-			Prefix:    path,
-		}
-		objectCh := s3.ListObjects(r.Context(), bucketName, opts)
-		for object := range objectCh {
-			if object.Err != nil {
-				// Instead of returning HTTP error, show user-friendly message
-				hasError = true
-				if strings.Contains(object.Err.Error(), "AccessDenied") || strings.Contains(object.Err.Error(), "InvalidAccessKeyId") || strings.Contains(object.Err.Error(), "SignatureDoesNotMatch") {
-					errorMessage = fmt.Sprintf("Unable to access bucket '%s' on S3 instance '%s'. Please check the credentials and try switching to another instance.", bucketName, current.Name)
-				} else if strings.Contains(object.Err.Error(), ErrBucketDoesNotExist) {
-					errorMessage = fmt.Sprintf("Bucket '%s' does not exist on S3 instance '%s'. Please try switching to another instance or go back to the buckets list.", bucketName, current.Name)
-				} else {
-					errorMessage = fmt.Sprintf("Unable to list objects in bucket '%s' on S3 instance '%s'. Please try switching to another instance.", bucketName, current.Name)
-				}
-				break
-			}
-
-			sizeDisplay := FormatFileSize(object.Size)
-
-			obj := objectWithIcon{
-				Key:          object.Key,
-				Size:         object.Size,
-				SizeDisplay:  sizeDisplay,
-				LastModified: object.LastModified,
-				Owner:        object.Owner.DisplayName,
-				Icon:         icon(object.Key),
-				IsFolder:     strings.HasSuffix(object.Key, "/"),
-				DisplayName:  strings.TrimSuffix(strings.TrimPrefix(object.Key, path), "/"),
-			}
-			objs = append(objs, obj)
+		objs, versionsShown, listErr := listObjectsForBucketView(r.Context(), s3, bucketName, path, listRecursive, showVersions)
+		if listErr != nil {
+			// Instead of returning HTTP error, show user-friendly message
+			hasError = true
+			errorMessage = friendlyListObjectsErrorMessage(listErr, bucketName, current.Name)
+		} else if versionsShown {
+			annotateVersionGroups(objs)
 		}
 
 		// Filter objects based on search query
@@ -323,26 +298,28 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 		}
 
 		data := pageData{
-			RootURL:      rootURL,
-			BucketName:   bucketName,
-			Objects:      objs,
-			AllowDelete:  allowDelete,
-			Paths:        removeEmptyStrings(strings.Split(path, "/")),
-			CurrentPath:  path,
-			Endpoint:     s3.EndpointURL().String(),
-			CurrentS3:    current,
-			S3Instances:  instances,
-			HasError:     hasError,
-			ErrorMessage: errorMessage,
-			SortBy:       sortBy,
-			SortOrder:    sortOrder,
-			Page:         page,
-			PerPage:      perPage,
-			TotalItems:   totalItems,
-			TotalPages:   totalPages,
-			HasPrevPage:  page > 1,
-			HasNextPage:  page < totalPages,
-			Search:       search,
+			RootURL:             rootURL,
+			BucketName:          bucketName,
+			Objects:             objs,
+			AllowDelete:         allowDelete,
+			Paths:               removeEmptyStrings(strings.Split(path, "/")),
+			CurrentPath:         path,
+			Endpoint:            s3.EndpointURL().String(),
+			CurrentS3:           current,
+			S3Instances:         instances,
+			HasError:            hasError,
+			ErrorMessage:        errorMessage,
+			SortBy:              sortBy,
+			SortOrder:           sortOrder,
+			Page:                page,
+			PerPage:             perPage,
+			TotalItems:          totalItems,
+			TotalPages:          totalPages,
+			HasPrevPage:         page > 1,
+			HasNextPage:         page < totalPages,
+			Search:              search,
+			ShowVersions:        versionsShown,
+			VersionsUnavailable: showVersions && !versionsShown && !hasError,
 		}
 
 		funcMap := template.FuncMap{

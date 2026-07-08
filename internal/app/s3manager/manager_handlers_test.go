@@ -765,29 +765,181 @@ func TestHandleCreateObjectWithManager(t *testing.T) {
 
 func TestHandleBucketViewWithManager(t *testing.T) {
 	t.Parallel()
-	is := is.New(t)
 
-	templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
+	versionedListObjects := func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+		ch := make(chan minio.ObjectInfo)
+		go func() {
+			defer close(ch)
+			if !opts.WithVersions {
+				return
+			}
+			ch <- minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v2-abcdefghijk", IsLatest: true}
+			ch <- minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v1-abcdefghijk", IsLatest: false}
+		}()
+		return ch
+	}
 
-	manager := newTestMultiS3Manager([]*S3Instance{
-		{ID: "1", Name: "primary", Client: &stubS3{}},
-	})
+	cases := []struct {
+		it                   string
+		path                 string
+		client               S3
+		showVersions         bool
+		expectedStatusCode   int
+		expectedBodyContains []string
+		unexpectedInBody     []string
+	}{
+		{
+			it:                 "returns not found for an unknown instance",
+			path:               "/unknown/buckets/test-bucket/",
+			client:             &stubS3{},
+			expectedStatusCode: http.StatusNotFound,
+			expectedBodyContains: []string{
+				"Instance not found",
+			},
+		},
+		{
+			it:   "does not show version columns when ShowVersions is disabled",
+			path: "/primary/buckets/test-bucket/",
+			client: &stubS3{
+				listObjects: versionedListObjects,
+				endpointURL: func() *url.URL { u, _ := url.Parse("http://localhost:9000"); return u },
+			},
+			showVersions:       false,
+			expectedStatusCode: http.StatusOK,
+			unexpectedInBody: []string{
+				"Version ID",
+				"v1-abcdef",
+				"v2-abcdef",
+			},
+		},
+		{
+			it:   "renders multiple versions when ShowVersions is enabled",
+			path: "/primary/buckets/test-bucket/",
+			client: &stubS3{
+				listObjects: versionedListObjects,
+				endpointURL: func() *url.URL { u, _ := url.Parse("http://localhost:9000"); return u },
+			},
+			showVersions:       true,
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				"Version ID",
+				"v1-abcdef",
+				"v2-abcdef",
+				"Latest",
+			},
+		},
+		{
+			it:   "falls back to a normal listing and shows a notice when the provider rejects listing versions",
+			path: "/primary/buckets/test-bucket/",
+			client: &stubS3{
+				listObjects: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+					ch := make(chan minio.ObjectInfo)
+					go func() {
+						defer close(ch)
+						if opts.WithVersions {
+							ch <- minio.ObjectInfo{Err: errManagerTest}
+							return
+						}
+						ch <- minio.ObjectInfo{Key: "FILE-NAME"}
+					}()
+					return ch
+				},
+				endpointURL: func() *url.URL { u, _ := url.Parse("http://localhost:9000"); return u },
+			},
+			showVersions:       true,
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				"FILE-NAME",
+				"Object versions unavailable",
+			},
+			unexpectedInBody: []string{
+				"Version ID",
+			},
+		},
+		{
+			it:   "surfaces the underlying S3 error when listing fails for a reason other than versioning",
+			path: "/primary/buckets/test-bucket/",
+			client: &stubS3{
+				listObjects: func(_ context.Context, _ string, _ minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+					ch := make(chan minio.ObjectInfo)
+					go func() {
+						defer close(ch)
+						ch <- minio.ObjectInfo{Err: errManagerTest}
+					}()
+					return ch
+				},
+				endpointURL: func() *url.URL { u, _ := url.Parse("http://localhost:9000"); return u },
+			},
+			showVersions:       false,
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				errManagerTest.Error(),
+			},
+		},
+		{
+			it:   "falls back to a normal listing when the versioned listing succeeds but returns nothing",
+			path: "/primary/buckets/test-bucket/",
+			client: &stubS3{
+				listObjects: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+					ch := make(chan minio.ObjectInfo)
+					go func() {
+						defer close(ch)
+						if opts.WithVersions {
+							// Some S3-compatible providers silently return an
+							// empty result instead of erroring when versioned
+							// listing isn't supported.
+							return
+						}
+						ch <- minio.ObjectInfo{Key: "FILE-NAME"}
+					}()
+					return ch
+				},
+				endpointURL: func() *url.URL { u, _ := url.Parse("http://localhost:9000"); return u },
+			},
+			showVersions:       true,
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				"FILE-NAME",
+			},
+			unexpectedInBody: []string{
+				"Version ID",
+			},
+		},
+	}
 
-	r := mux.NewRouter()
-	r.PathPrefix("/{instance}/buckets/").Handler(HandleBucketViewWithManager(manager, templates, true, true, "")).Methods(http.MethodGet)
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
+			t.Parallel()
+			is := is.New(t)
 
-	ts := httptest.NewServer(r)
-	defer ts.Close()
+			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 
-	resp, err := http.Get(ts.URL + "/unknown/buckets/test-bucket/")
-	is.NoErr(err)
-	defer func() {
-		err = resp.Body.Close()
-		is.NoErr(err)
-	}()
-	body, err := io.ReadAll(resp.Body)
-	is.NoErr(err)
+			manager := newTestMultiS3Manager([]*S3Instance{
+				{ID: "1", Name: "primary", Client: tc.client},
+			})
 
-	is.Equal(http.StatusNotFound, resp.StatusCode)
-	is.True(strings.Contains(string(body), "Instance not found"))
+			r := mux.NewRouter()
+			r.PathPrefix("/{instance}/buckets/").Handler(HandleBucketViewWithManager(manager, templates, true, true, "", tc.showVersions)).Methods(http.MethodGet)
+
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			resp, err := http.Get(ts.URL + tc.path)
+			is.NoErr(err)
+			defer func() {
+				err = resp.Body.Close()
+				is.NoErr(err)
+			}()
+			body, err := io.ReadAll(resp.Body)
+			is.NoErr(err)
+
+			is.Equal(tc.expectedStatusCode, resp.StatusCode)
+			for _, expected := range tc.expectedBodyContains {
+				is.True(strings.Contains(string(body), expected))
+			}
+			for _, unexpected := range tc.unexpectedInBody {
+				is.True(!strings.Contains(string(body), unexpected))
+			}
+		})
+	}
 }

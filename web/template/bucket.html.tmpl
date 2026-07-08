@@ -102,7 +102,20 @@
         </div>
     </div>
     {{ else }}
-    
+
+    {{ if .VersionsUnavailable }}
+    <div class="row">
+        <div class="col s12">
+            <div class="card amber lighten-4">
+                <div class="card-content">
+                    <span class="card-title">Object versions unavailable</span>
+                    <p>This bucket does not support listing object versions (it may not have versioning enabled). Showing the latest version of each object instead.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{ end }}
+
     <!-- Search Bar -->
     <div class="row" style="margin-bottom: 10px;">
         <div class="col s12 m8 l6">
@@ -192,13 +205,22 @@
                         {{ end }}
                     {{ end }}
                 </th>
+                {{ if $.ShowVersions }}
+                <th>Version ID</th>
+                <th>Latest</th>
+                {{ end }}
                 <th style="min-width:165px;"></th>
             </tr>
         </thead>
 
         <tbody>
             {{ range $index, $object := .Objects }}
-            <tr>
+            {{ $isCollapsedVersion := and $.ShowVersions (not $object.IsPrimaryVersion) }}
+            <tr
+                data-version-group="{{ $object.GroupIndex }}"
+                {{ if $isCollapsedVersion }}class="version-row" style="display: none;{{ if $object.IsDeleteMarker }} opacity: 0.5;{{ end }}"
+                {{ else if $object.IsDeleteMarker }}style="opacity: 0.5;"
+                {{ end }}>
                 <td>
                     {{ if not $object.IsFolder }}
                     <label>
@@ -217,20 +239,35 @@
                 <td>{{ $object.SizeDisplay }}</td>
                 <td>{{ $object.Owner }}</td>
                 <td>{{ $object.LastModified.Local.Format "2006-01-02 15:04:05 MST" }}</td>
+                {{ if $.ShowVersions }}
+                <td title="{{ $object.VersionID }}">{{ printf "%.8s" $object.VersionID }}</td>
                 <td>
-                    {{ if not $object.IsFolder }}
+                    {{ if $object.IsLatest }}
+                    <span class="new badge teal" data-badge-caption="">Latest</span>
+                    {{ end }}
+                    {{ if and $object.IsPrimaryVersion (gt $object.VersionCount 1) }}
+                    <a href="#" class="version-toggle" style="cursor:pointer;" onclick="toggleVersions({{ $object.GroupIndex }}, this); return false;" aria-expanded="false">
+                        <i class="material-icons" style="vertical-align: middle;">expand_more</i> {{ sub $object.VersionCount 1 }} older version{{ if gt $object.VersionCount 2 }}s{{ end }}
+                    </a>
+                    {{ end }}
+                </td>
+                {{ end }}
+                <td>
+                    {{ if and (not $object.IsFolder) (not $object.IsDeleteMarker) }}
                         <button class="dropdown-trigger waves-effect waves-teal btn" data-target="actions-dropdown-{{ $index }}">
                             Actions <i class="material-icons right">arrow_drop_down</i>
                         </button>
                         <!-- Dropdown Structure -->
                         <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
-                            <li><a target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
+                            <li><a target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">Download</a></li>
                             <li><a onclick="handleOpenDownloadLinkModal('{{ $object.Key }}')">Download link</a></li>
                             <li><a onclick="handleOpenPublicLinkModal('{{ $object.Key }}')">Public link</a></li>
                             {{- if $.AllowDelete }}
                             <li><a href="#" onclick="deleteObject('{{ $.BucketName }}', '{{ $object.Key }}')">Delete</a></li>
                             {{- end }}
                         </ul>
+                    {{ else if $object.IsDeleteMarker }}
+                        <em>Delete marker</em>
                     {{ end }}
                 </td>
             </tr>
@@ -833,6 +870,19 @@ function handleCopyLink() {
         }, function(err) {
             console.error('Could not copy:', err);
         });
+    }
+}
+
+function toggleVersions(groupIndex, link) {
+    const rows = document.querySelectorAll('tr.version-row[data-version-group="' + groupIndex + '"]');
+    const expanded = link.getAttribute('aria-expanded') === 'true';
+    rows.forEach(row => {
+        row.style.display = expanded ? 'none' : 'table-row';
+    });
+    link.setAttribute('aria-expanded', String(!expanded));
+    const icon = link.querySelector('i');
+    if (icon) {
+        icon.textContent = expanded ? 'expand_more' : 'expand_less';
     }
 }
 
