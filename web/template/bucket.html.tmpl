@@ -262,6 +262,7 @@
                             <li><a target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">Download</a></li>
                             <li><a onclick="handleOpenDownloadLinkModal('{{ $object.Key }}')">Download link</a></li>
                             <li><a onclick="handleOpenPublicLinkModal('{{ $object.Key }}')">Public link</a></li>
+                            <li><a onclick="handleOpenMetadataModal('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">Metadata</a></li>
                             {{- if $.AllowDelete }}
                             <li><a href="#" onclick="deleteObject('{{ $.BucketName }}', '{{ $object.Key }}')">Delete</a></li>
                             {{- end }}
@@ -487,6 +488,39 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="modal-close waves-effect waves-green btn-flat">Close</button>
+    </div>
+</div>
+
+<div id="modal-object-metadata" class="modal">
+    <div class="modal-content">
+        <h4>Metadata for <span id="metadata-object-name"></span></h4>
+        <div id="metadata-loading" class="center-align" style="padding: 20px;">
+            <div class="preloader-wrapper small active" style="width: 20px; height: 20px;">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left"><div class="circle"></div></div>
+                    <div class="gap-patch"><div class="circle"></div></div>
+                    <div class="circle-clipper right"><div class="circle"></div></div>
+                </div>
+            </div>
+        </div>
+        <div id="metadata-error" class="red-text"></div>
+        <table id="metadata-table" class="striped" style="display: none;">
+            <tbody>
+                <tr><th>Size</th><td id="metadata-size"></td></tr>
+                <tr><th>Content type</th><td id="metadata-content-type"></td></tr>
+                <tr><th>Last modified</th><td id="metadata-last-modified"></td></tr>
+                <tr><th>ETag</th><td id="metadata-etag"></td></tr>
+                <tr id="metadata-storage-class-row"><th>Storage class</th><td id="metadata-storage-class"></td></tr>
+                <tr id="metadata-version-row"><th>Version</th><td id="metadata-version-id"></td></tr>
+            </tbody>
+        </table>
+        <h5 id="metadata-user-heading" style="display: none;">User metadata</h5>
+        <table id="metadata-user-table" class="striped" style="display: none;">
+            <tbody id="metadata-user-body"></tbody>
+        </table>
     </div>
     <div class="modal-footer">
         <button type="button" class="modal-close waves-effect waves-green btn-flat">Close</button>
@@ -1027,6 +1061,79 @@ function handleOpenPublicLinkModal(objectName) {
     });
 
     const modalElement = document.getElementById('modal-create-public-link');
+    const modalInstance = M.Modal.init(modalElement);
+    modalInstance.open();
+}
+
+function handleOpenMetadataModal(objectName, versionId) {
+    const bucketName = "{{ .BucketName }}";
+    const instancePath = "{{ if .CurrentS3 }}/{{ .CurrentS3.Name }}{{ end }}";
+
+    document.getElementById('metadata-object-name').textContent = objectName;
+    document.getElementById('metadata-loading').style.display = 'block';
+    document.getElementById('metadata-error').textContent = '';
+    document.getElementById('metadata-table').style.display = 'none';
+    document.getElementById('metadata-user-heading').style.display = 'none';
+    document.getElementById('metadata-user-table').style.display = 'none';
+    document.getElementById('metadata-user-body').innerHTML = '';
+
+    let url = '{{$.RootURL}}' + instancePath + '/api/buckets/' + bucketName + '/objects/' + objectName + '/metadata';
+    if (versionId) {
+        url += '?versionId=' + encodeURIComponent(versionId);
+    }
+
+    $.ajax({
+        type: 'GET',
+        url: url,
+        success: function (result) {
+            document.getElementById('metadata-loading').style.display = 'none';
+            document.getElementById('metadata-size').textContent = result.size + ' bytes';
+            document.getElementById('metadata-content-type').textContent = result.contentType || '-';
+            document.getElementById('metadata-last-modified').textContent = result.lastModified || '-';
+            document.getElementById('metadata-etag').textContent = result.etag || '-';
+
+            const storageClassRow = document.getElementById('metadata-storage-class-row');
+            if (result.storageClass) {
+                storageClassRow.style.display = '';
+                document.getElementById('metadata-storage-class').textContent = result.storageClass;
+            } else {
+                storageClassRow.style.display = 'none';
+            }
+
+            const versionRow = document.getElementById('metadata-version-row');
+            if (result.versionId) {
+                versionRow.style.display = '';
+                document.getElementById('metadata-version-id').textContent = result.versionId + (result.isLatest ? ' (latest)' : '');
+            } else {
+                versionRow.style.display = 'none';
+            }
+
+            document.getElementById('metadata-table').style.display = '';
+
+            const userMetadataKeys = result.userMetadata ? Object.keys(result.userMetadata) : [];
+            if (userMetadataKeys.length > 0) {
+                const body = document.getElementById('metadata-user-body');
+                userMetadataKeys.forEach(key => {
+                    const row = document.createElement('tr');
+                    const keyCell = document.createElement('th');
+                    keyCell.textContent = key;
+                    const valueCell = document.createElement('td');
+                    valueCell.textContent = result.userMetadata[key];
+                    row.appendChild(keyCell);
+                    row.appendChild(valueCell);
+                    body.appendChild(row);
+                });
+                document.getElementById('metadata-user-heading').style.display = '';
+                document.getElementById('metadata-user-table').style.display = '';
+            }
+        },
+        error: function (request) {
+            document.getElementById('metadata-loading').style.display = 'none';
+            document.getElementById('metadata-error').textContent = 'Error loading metadata: ' + request.responseText;
+        }
+    });
+
+    const modalElement = document.getElementById('modal-object-metadata');
     const modalInstance = M.Modal.init(modalElement);
     modalInstance.open();
 }

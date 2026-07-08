@@ -59,6 +59,9 @@ var _ s3manager.S3 = &S3Mock{}
 //			SetBucketPolicyFunc: func(ctx context.Context, bucketName string, policy string) error {
 //				panic("mock out the SetBucketPolicy method")
 //			},
+//			StatObjectFunc: func(ctx context.Context, bucketName string, objectName string, opts minio.StatObjectOptions) (minio.ObjectInfo, error) {
+//				panic("mock out the StatObject method")
+//			},
 //		}
 //
 //		// use mockedS3 in code that requires s3manager.S3
@@ -101,6 +104,9 @@ type S3Mock struct {
 
 	// SetBucketPolicyFunc mocks the SetBucketPolicy method.
 	SetBucketPolicyFunc func(ctx context.Context, bucketName string, policy string) error
+
+	// StatObjectFunc mocks the StatObject method.
+	StatObjectFunc func(ctx context.Context, bucketName string, objectName string, opts minio.StatObjectOptions) (minio.ObjectInfo, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -214,6 +220,17 @@ type S3Mock struct {
 			// Policy is the policy argument value.
 			Policy string
 		}
+		// StatObject holds details about calls to the StatObject method.
+		StatObject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// BucketName is the bucketName argument value.
+			BucketName string
+			// ObjectName is the objectName argument value.
+			ObjectName string
+			// Opts is the opts argument value.
+			Opts minio.StatObjectOptions
+		}
 	}
 	lockEndpointURL        sync.RWMutex
 	lockGetBucketPolicy    sync.RWMutex
@@ -227,6 +244,7 @@ type S3Mock struct {
 	lockRemoveObject       sync.RWMutex
 	lockRemoveObjects      sync.RWMutex
 	lockSetBucketPolicy    sync.RWMutex
+	lockStatObject         sync.RWMutex
 }
 
 // EndpointURL calls EndpointURLFunc.
@@ -709,5 +727,49 @@ func (mock *S3Mock) SetBucketPolicyCalls() []struct {
 	mock.lockSetBucketPolicy.RLock()
 	calls = mock.calls.SetBucketPolicy
 	mock.lockSetBucketPolicy.RUnlock()
+	return calls
+}
+
+// StatObject calls StatObjectFunc.
+func (mock *S3Mock) StatObject(ctx context.Context, bucketName string, objectName string, opts minio.StatObjectOptions) (minio.ObjectInfo, error) {
+	if mock.StatObjectFunc == nil {
+		panic("S3Mock.StatObjectFunc: method is nil but S3.StatObject was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		BucketName string
+		ObjectName string
+		Opts       minio.StatObjectOptions
+	}{
+		Ctx:        ctx,
+		BucketName: bucketName,
+		ObjectName: objectName,
+		Opts:       opts,
+	}
+	mock.lockStatObject.Lock()
+	mock.calls.StatObject = append(mock.calls.StatObject, callInfo)
+	mock.lockStatObject.Unlock()
+	return mock.StatObjectFunc(ctx, bucketName, objectName, opts)
+}
+
+// StatObjectCalls gets all the calls that were made to StatObject.
+// Check the length with:
+//
+//	len(mockedS3.StatObjectCalls())
+func (mock *S3Mock) StatObjectCalls() []struct {
+	Ctx        context.Context
+	BucketName string
+	ObjectName string
+	Opts       minio.StatObjectOptions
+} {
+	var calls []struct {
+		Ctx        context.Context
+		BucketName string
+		ObjectName string
+		Opts       minio.StatObjectOptions
+	}
+	mock.lockStatObject.RLock()
+	calls = mock.calls.StatObject
+	mock.lockStatObject.RUnlock()
 	return calls
 }

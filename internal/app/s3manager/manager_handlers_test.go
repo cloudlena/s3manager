@@ -87,6 +87,9 @@ func (s *stubS3) PresignedGetObject(ctx context.Context, bucket, object string, 
 func (s *stubS3) PutObject(_ context.Context, _, _ string, _ io.Reader, _ int64, _ minio.PutObjectOptions) (minio.UploadInfo, error) {
 	panic("PutObject not expected in this test")
 }
+func (s *stubS3) StatObject(_ context.Context, _, _ string, _ minio.StatObjectOptions) (minio.ObjectInfo, error) {
+	panic("StatObject not expected in this test")
+}
 
 var errManagerTest = errors.New("manager test error")
 
@@ -692,6 +695,59 @@ func TestHandleCheckPublicAccessWithManager(t *testing.T) {
 			defer ts.Close()
 
 			resp, err := http.Get(ts.URL + "/" + tc.instanceName + "/api/buckets/test-bucket/objects/test-object/public-access")
+			is.NoErr(err)
+			defer func() {
+				err = resp.Body.Close()
+				is.NoErr(err)
+			}()
+			body, err := io.ReadAll(resp.Body)
+			is.NoErr(err)
+
+			is.Equal(tc.expectedStatusCode, resp.StatusCode)
+			is.True(strings.Contains(string(body), tc.expectedBodyContains))
+		})
+	}
+}
+
+func TestHandleGetObjectMetadataWithManager(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		it                   string
+		instanceName         string
+		expectedStatusCode   int
+		expectedBodyContains string
+	}{
+		{
+			it:                   "returns 404 for unknown instance",
+			instanceName:         "unknown",
+			expectedStatusCode:   http.StatusNotFound,
+			expectedBodyContains: "Instance not found",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
+			t.Parallel()
+			is := is.New(t)
+
+			s3mock := &stubS3{
+				endpointURL: func() *url.URL {
+					u, _ := url.Parse("http://localhost:9000")
+					return u
+				},
+			}
+			manager := newTestMultiS3Manager([]*S3Instance{
+				{ID: "1", Name: "primary", Client: s3mock},
+			})
+
+			r := mux.NewRouter()
+			r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", HandleGetObjectMetadataWithManager(manager))
+
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			resp, err := http.Get(ts.URL + "/" + tc.instanceName + "/api/buckets/test-bucket/objects/test-object/metadata")
 			is.NoErr(err)
 			defer func() {
 				err = resp.Body.Close()
