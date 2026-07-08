@@ -152,6 +152,11 @@ func HandleCheckPublicAccessWithManager(manager *MultiS3Manager) http.HandlerFun
 	return withInstance(manager, HandleCheckPublicAccess)
 }
 
+// HandleGetObjectMetadataWithManager retrieves object metadata using MultiS3Manager.
+func HandleGetObjectMetadataWithManager(manager *MultiS3Manager) http.HandlerFunc {
+	return withInstance(manager, HandleGetObjectMetadata)
+}
+
 // createBucketViewWithS3Data creates a bucket view handler that includes S3 instance data
 func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, current *S3Instance, instances []*S3Instance, showVersions bool) http.HandlerFunc {
 	type pageData struct {
