@@ -222,7 +222,9 @@
                 {{ else if $object.IsDeleteMarker }}style="opacity: 0.5;"
                 {{ end }}>
                 <td>
-                    {{ if not $object.IsFolder }}
+                    {{- /* Bulk actions operate on the object key, so only the
+                        primary row of a version group gets a checkbox. */}}
+                    {{ if and (not $object.IsFolder) (not $isCollapsedVersion) }}
                     <label>
                         <input type="checkbox" class="object-checkbox" data-key="{{ $object.Key }}" onchange="updateBulkActions()" />
                         <span></span>
@@ -260,11 +262,15 @@
                         <!-- Dropdown Structure -->
                         <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
                             <li><a target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">Download</a></li>
+                            <li><a onclick="handleOpenMetadataModal('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">Metadata</a></li>
+                            {{- /* The remaining actions operate on the object key (i.e. the
+                                latest version), so hide them on old-version rows. */}}
+                            {{- if not $isCollapsedVersion }}
                             <li><a onclick="handleOpenDownloadLinkModal('{{ $object.Key }}')">Download link</a></li>
                             <li><a onclick="handleOpenPublicLinkModal('{{ $object.Key }}')">Public link</a></li>
-                            <li><a onclick="handleOpenMetadataModal('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">Metadata</a></li>
                             {{- if $.AllowDelete }}
                             <li><a href="#" onclick="deleteObject('{{ $.BucketName }}', '{{ $object.Key }}')">Delete</a></li>
+                            {{- end }}
                             {{- end }}
                         </ul>
                     {{ else if $object.IsDeleteMarker }}
@@ -1089,7 +1095,7 @@ function handleOpenMetadataModal(objectName, versionId) {
             document.getElementById('metadata-loading').style.display = 'none';
             document.getElementById('metadata-size').textContent = result.size + ' bytes';
             document.getElementById('metadata-content-type').textContent = result.contentType || '-';
-            document.getElementById('metadata-last-modified').textContent = result.lastModified || '-';
+            document.getElementById('metadata-last-modified').textContent = result.lastModified ? new Date(result.lastModified).toLocaleString() : '-';
             document.getElementById('metadata-etag').textContent = result.etag || '-';
 
             const storageClassRow = document.getElementById('metadata-storage-class-row');

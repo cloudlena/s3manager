@@ -198,7 +198,7 @@ func main() {
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateURLWithManager(s3Manager)).Methods(http.MethodGet)
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/public-access", s3manager.HandleCheckPublicAccessWithManager(s3Manager)).Methods(http.MethodGet)
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", s3manager.HandleGetObjectMetadataWithManager(s3Manager)).Methods(http.MethodGet)
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObjectWithManager(s3Manager, configuration.ForceDownload)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObjectWithManager(s3Manager, configuration.ForceDownload, configuration.ShowVersions)).Methods(http.MethodGet)
 	if configuration.AllowDelete {
 		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObjectWithManager(s3Manager)).Methods(http.MethodDelete)
 		r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-delete", s3manager.HandleBulkDeleteObjectsWithManager(s3Manager)).Methods(http.MethodPost)

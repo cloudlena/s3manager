@@ -15,6 +15,7 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 - Upload new objects to a bucket
 - Download object from a bucket
 - Delete an object in a bucket
+- Show object metadata (including user metadata) and object versions
 
 ## Usage
 

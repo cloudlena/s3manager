@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
@@ -56,7 +57,7 @@ func HandleGetObjectMetadata(s3 S3) http.HandlerFunc {
 			Size:         info.Size,
 			ContentType:  info.ContentType,
 			ETag:         info.ETag,
-			LastModified: info.LastModified.Format("2006-01-02 15:04:05 MST"),
+			LastModified: info.LastModified.Format(time.RFC3339),
 			StorageClass: info.StorageClass,
 			IsLatest:     info.IsLatest,
 			UserMetadata: userMetadata,

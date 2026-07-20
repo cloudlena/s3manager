@@ -138,8 +138,8 @@ func HandleGenerateURLWithManager(manager *MultiS3Manager) http.HandlerFunc {
 }
 
 // HandleGetObjectWithManager downloads an object to the client using MultiS3Manager.
-func HandleGetObjectWithManager(manager *MultiS3Manager, forceDownload bool) http.HandlerFunc {
-	return withInstance(manager, func(s3 S3) http.HandlerFunc { return HandleGetObject(s3, forceDownload) })
+func HandleGetObjectWithManager(manager *MultiS3Manager, forceDownload, showVersions bool) http.HandlerFunc {
+	return withInstance(manager, func(s3 S3) http.HandlerFunc { return HandleGetObject(s3, forceDownload, showVersions) })
 }
 
 // HandleDeleteObjectWithManager deletes an object using MultiS3Manager.
@@ -245,6 +245,10 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 			annotateVersionGroups(objs)
 		}
 
+		// Only warn about unavailable versions when there is content to show;
+		// an empty bucket legitimately produces an empty versioned listing.
+		versionsUnavailable := showVersions && !versionsShown && !hasError && len(objs) > 0
+
 		// Filter objects based on search query
 		if search != "" && !hasError {
 			searchLower := strings.ToLower(search)
@@ -259,25 +263,14 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 			objs = filteredObjs
 		}
 
-		// Sort objects based on sortBy and sortOrder
-		if !hasError {
-			sortObjects(objs, sortBy, sortOrder)
-		}
-
-		// Calculate pagination
-		totalItems := len(objs)
+		// Sort and paginate; versions of the same object stay together
+		totalItems := 0
 		totalPages := 1
-		if !showAll {
-			totalPages = (totalItems + perPage - 1) / perPage
-			if totalPages == 0 {
-				totalPages = 1
-			}
-			if page > totalPages {
-				page = totalPages
-			}
+		if !hasError {
+			objs, totalItems, totalPages, page = sortAndPaginateObjects(objs, sortBy, sortOrder, page, perPage, showAll, versionsShown)
+		} else {
+			page = 1
 		}
-
-		// Paginate objects
 		if showAll {
 			// Show all items - no pagination
 			perPage = totalItems
@@ -285,21 +278,6 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 				perPage = 1 // Avoid division by zero
 			}
 			page = 1
-		} else {
-			// Apply pagination
-			start := (page - 1) * perPage
-			end := start + perPage
-			if start < 0 {
-				start = 0
-			}
-			if end > totalItems {
-				end = totalItems
-			}
-			if start < totalItems && !hasError {
-				objs = objs[start:end]
-			} else if !hasError {
-				objs = []objectWithIcon{}
-			}
 		}
 
 		data := pageData{
@@ -324,7 +302,7 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 			HasNextPage:         page < totalPages,
 			Search:              search,
 			ShowVersions:        versionsShown,
-			VersionsUnavailable: showVersions && !versionsShown && !hasError,
+			VersionsUnavailable: versionsUnavailable,
 		}
 
 		funcMap := template.FuncMap{
