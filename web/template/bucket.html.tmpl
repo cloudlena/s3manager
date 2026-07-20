@@ -262,7 +262,9 @@
                         <!-- Dropdown Structure -->
                         <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
                             <li><a target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">Download</a></li>
+                            {{- if $.ShowMetadata }}
                             <li><a onclick="handleOpenMetadataModal('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">Metadata</a></li>
+                            {{- end }}
                             {{- /* The remaining actions operate on the object key (i.e. the
                                 latest version), so hide them on old-version rows. */}}
                             {{- if not $isCollapsedVersion }}

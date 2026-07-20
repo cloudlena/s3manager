@@ -29,6 +29,7 @@ type configuration struct {
 	ForceDownload bool
 	ListRecursive bool
 	ShowVersions  bool
+	ShowMetadata  bool
 	Port          string
 	Timeout       int32
 	SseType       string
@@ -111,6 +112,9 @@ func parseConfiguration() configuration {
 	viper.SetDefault("SHOW_VERSIONS", false)
 	showVersions := viper.GetBool("SHOW_VERSIONS")
 
+	viper.SetDefault("SHOW_METADATA", true)
+	showMetadata := viper.GetBool("SHOW_METADATA")
+
 	viper.SetDefault("PORT", "8080")
 	port := viper.GetString("PORT")
 
@@ -132,6 +136,7 @@ func parseConfiguration() configuration {
 		ForceDownload: forceDownload,
 		ListRecursive: listRecursive,
 		ShowVersions:  showVersions,
+		ShowMetadata:  showMetadata,
 		Port:          port,
 		Timeout:       timeout,
 		SseType:       sseType,
@@ -189,7 +194,7 @@ func main() {
 
 	// S3 management endpoints (with instance in URL)
 	r.Handle("/{instance}/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL, configuration.BucketName)).Methods(http.MethodGet)
-	r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL, configuration.ShowVersions)).Methods(http.MethodGet)
+	r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL, configuration.ShowVersions, configuration.ShowMetadata)).Methods(http.MethodGet)
 	r.Handle("/{instance}/api/buckets", s3manager.HandleCreateBucketWithManager(s3Manager)).Methods(http.MethodPost)
 	if configuration.AllowDelete {
 		r.Handle("/{instance}/api/buckets/{bucketName}", s3manager.HandleDeleteBucketWithManager(s3Manager)).Methods(http.MethodDelete)
@@ -197,7 +202,9 @@ func main() {
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects", s3manager.HandleCreateObjectWithManager(s3Manager, sseType)).Methods(http.MethodPost)
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateURLWithManager(s3Manager)).Methods(http.MethodGet)
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/public-access", s3manager.HandleCheckPublicAccessWithManager(s3Manager)).Methods(http.MethodGet)
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", s3manager.HandleGetObjectMetadataWithManager(s3Manager)).Methods(http.MethodGet)
+	if configuration.ShowMetadata {
+		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", s3manager.HandleGetObjectMetadataWithManager(s3Manager)).Methods(http.MethodGet)
+	}
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObjectWithManager(s3Manager, configuration.ForceDownload, configuration.ShowVersions)).Methods(http.MethodGet)
 	if configuration.AllowDelete {
 		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObjectWithManager(s3Manager)).Methods(http.MethodDelete)

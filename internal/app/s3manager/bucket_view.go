@@ -151,7 +151,7 @@ func toObjectWithIcon(object minio.ObjectInfo, path string) objectWithIcon {
 }
 
 // HandleBucketView shows the details page of a bucket.
-func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, showVersions bool) http.HandlerFunc {
+func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, showVersions bool, showMetadata bool) http.HandlerFunc {
 	type pageData struct {
 		RootURL             string
 		BucketName          string
@@ -175,6 +175,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 		Search              string
 		ShowVersions        bool
 		VersionsUnavailable bool
+		ShowMetadata        bool
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -272,6 +273,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			Search:              search,
 			ShowVersions:        versionsShown,
 			VersionsUnavailable: versionsUnavailable,
+			ShowMetadata:        showMetadata,
 		}
 
 		funcMap := template.FuncMap{
