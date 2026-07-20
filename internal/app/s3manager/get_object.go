@@ -10,11 +10,16 @@ import (
 )
 
 // HandleGetObject downloads an object to the client.
-func HandleGetObject(s3 S3, forceDownload bool) http.HandlerFunc {
+func HandleGetObject(s3 S3, forceDownload, showVersions bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 		objectName := mux.Vars(r)["objectName"]
-		versionID := r.URL.Query().Get("versionId")
+		// Ignore versionId unless the versions feature is enabled, so
+		// disabling SHOW_VERSIONS also prevents access to old versions.
+		versionID := ""
+		if showVersions {
+			versionID = r.URL.Query().Get("versionId")
+		}
 
 		object, err := s3.GetObject(r.Context(), bucketName, objectName, minio.GetObjectOptions{VersionID: versionID})
 		if err != nil {

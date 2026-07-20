@@ -25,6 +25,7 @@ func TestHandleGetObject(t *testing.T) {
 		bucketName           string
 		objectName           string
 		queryString          string
+		showVersions         bool
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
@@ -62,6 +63,22 @@ func TestHandleGetObject(t *testing.T) {
 			bucketName:           "BUCKET-NAME",
 			objectName:           "OBJECT-NAME",
 			queryString:          "?versionId=VERSION-123",
+			showVersions:         true,
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "mocked s3 error",
+		},
+		{
+			it: "ignores the versionId query param when showVersions is disabled",
+			getObjectFunc: func(_ context.Context, _, _ string, opts minio.GetObjectOptions) (*minio.Object, error) {
+				if opts.VersionID != "" {
+					return nil, fmt.Errorf("expected empty VersionID, got %q", opts.VersionID)
+				}
+				return nil, errS3
+			},
+			bucketName:           "BUCKET-NAME",
+			objectName:           "OBJECT-NAME",
+			queryString:          "?versionId=VERSION-123",
+			showVersions:         false,
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: "mocked s3 error",
 		},
@@ -77,7 +94,7 @@ func TestHandleGetObject(t *testing.T) {
 			}
 
 			r := mux.NewRouter()
-			r.Handle("/buckets/{bucketName}/objects/{objectName}", s3manager.HandleGetObject(s3, true)).Methods(http.MethodGet)
+			r.Handle("/buckets/{bucketName}/objects/{objectName}", s3manager.HandleGetObject(s3, true, tc.showVersions)).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

@@ -227,6 +227,10 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			annotateVersionGroups(objs)
 		}
 
+		// Only warn about unavailable versions when there is content to show;
+		// an empty bucket legitimately produces an empty versioned listing.
+		versionsUnavailable := showVersions && !versionsShown && len(objs) > 0
+
 		// Filter objects based on search query
 		if search != "" {
 			searchLower := strings.ToLower(search)
@@ -241,33 +245,9 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			objs = filteredObjs
 		}
 
-		// Sort objects based on sortBy and sortOrder
-		sortObjects(objs, sortBy, sortOrder)
-
-		// Calculate pagination
-		totalItems := len(objs)
-		totalPages := (totalItems + perPage - 1) / perPage
-		if totalPages == 0 {
-			totalPages = 1
-		}
-		if page > totalPages {
-			page = totalPages
-		}
-
-		// Paginate objects
-		start := (page - 1) * perPage
-		end := start + perPage
-		if start < 0 {
-			start = 0
-		}
-		if end > totalItems {
-			end = totalItems
-		}
-		if start < totalItems {
-			objs = objs[start:end]
-		} else {
-			objs = []objectWithIcon{}
-		}
+		// Sort and paginate; versions of the same object stay together
+		var totalItems, totalPages int
+		objs, totalItems, totalPages, page = sortAndPaginateObjects(objs, sortBy, sortOrder, page, perPage, false, versionsShown)
 
 		data := pageData{
 			RootURL:             rootURL,
@@ -291,7 +271,7 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 			HasNextPage:         page < totalPages,
 			Search:              search,
 			ShowVersions:        versionsShown,
-			VersionsUnavailable: showVersions && !versionsShown,
+			VersionsUnavailable: versionsUnavailable,
 		}
 
 		funcMap := template.FuncMap{
@@ -356,21 +336,63 @@ func removeEmptyStrings(input []string) []string {
 	return result
 }
 
-// sortObjects sorts the objects based on the specified field and order
-func sortObjects(objs []objectWithIcon, sortBy, sortOrder string) {
-	sort.Slice(objs, func(i, j int) bool {
+// groupObjects splits objs into version groups that move as one unit through
+// sorting and pagination. Objects keep their listing order within a group.
+// Without version grouping every object is its own group.
+func groupObjects(objs []objectWithIcon, grouped bool) [][]objectWithIcon {
+	if !grouped {
+		groups := make([][]objectWithIcon, len(objs))
+		for i := range objs {
+			groups[i] = objs[i : i+1 : i+1]
+		}
+		return groups
+	}
+
+	positions := make(map[int]int, len(objs))
+	var groups [][]objectWithIcon
+	for _, obj := range objs {
+		pos, ok := positions[obj.GroupIndex]
+		if !ok {
+			pos = len(groups)
+			positions[obj.GroupIndex] = pos
+			groups = append(groups, nil)
+		}
+		groups[pos] = append(groups[pos], obj)
+	}
+	return groups
+}
+
+// primaryObject returns the row that represents a group when sorting: the one
+// marked IsPrimaryVersion by annotateVersionGroups, or the first row otherwise.
+func primaryObject(group []objectWithIcon) objectWithIcon {
+	for _, obj := range group {
+		if obj.IsPrimaryVersion {
+			return obj
+		}
+	}
+	return group[0]
+}
+
+// sortObjectGroups sorts version groups based on the specified field and order,
+// comparing groups by their primary row so all versions of a key move as one
+// unit. The stable sort preserves the S3 listing order between equal groups.
+func sortObjectGroups(groups [][]objectWithIcon, sortBy, sortOrder string) {
+	sort.SliceStable(groups, func(i, j int) bool {
+		a := primaryObject(groups[i])
+		b := primaryObject(groups[j])
+
 		var less bool
 		switch sortBy {
 		case "size":
-			less = objs[i].Size < objs[j].Size
+			less = a.Size < b.Size
 		case "owner":
-			less = strings.ToLower(objs[i].Owner) < strings.ToLower(objs[j].Owner)
+			less = strings.ToLower(a.Owner) < strings.ToLower(b.Owner)
 		case "lastModified":
-			less = objs[i].LastModified.Before(objs[j].LastModified)
+			less = a.LastModified.Before(b.LastModified)
 		case "key":
 			fallthrough
 		default:
-			less = strings.ToLower(objs[i].DisplayName) < strings.ToLower(objs[j].DisplayName)
+			less = strings.ToLower(a.DisplayName) < strings.ToLower(b.DisplayName)
 		}
 
 		if sortOrder == "desc" {
@@ -378,4 +400,46 @@ func sortObjects(objs []objectWithIcon, sortBy, sortOrder string) {
 		}
 		return less
 	})
+}
+
+func flattenGroups(groups [][]objectWithIcon) []objectWithIcon {
+	objs := make([]objectWithIcon, 0, len(groups))
+	for _, group := range groups {
+		objs = append(objs, group...)
+	}
+	return objs
+}
+
+// sortAndPaginateObjects sorts objects and slices out the requested page. When
+// grouped is set (versioned listing), all versions of a key travel together:
+// groups are ordered by their primary row and are never split across page
+// boundaries, and totalItems counts objects, not individual versions. showAll
+// disables pagination. It returns the page's objects, the total item count,
+// the total page count, and the page number clamped to the valid range.
+func sortAndPaginateObjects(objs []objectWithIcon, sortBy, sortOrder string, page, perPage int, showAll, grouped bool) ([]objectWithIcon, int, int, int) {
+	groups := groupObjects(objs, grouped)
+	sortObjectGroups(groups, sortBy, sortOrder)
+
+	totalItems := len(groups)
+	if showAll {
+		return flattenGroups(groups), totalItems, 1, 1
+	}
+
+	totalPages := (totalItems + perPage - 1) / perPage
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	start := (page - 1) * perPage
+	end := start + perPage
+	if end > totalItems {
+		end = totalItems
+	}
+	if start >= totalItems {
+		return []objectWithIcon{}, totalItems, totalPages, page
+	}
+	return flattenGroups(groups[start:end]), totalItems, totalPages, page
 }

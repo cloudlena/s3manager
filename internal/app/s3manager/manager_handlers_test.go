@@ -46,6 +46,7 @@ type stubS3 struct {
 	listObjects        func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo
 	endpointURL        func() *url.URL
 	presignedGetObject func(context.Context, string, string, time.Duration, url.Values) (*url.URL, error)
+	statObject         func(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error)
 }
 
 func (s *stubS3) ListBuckets(ctx context.Context) ([]minio.BucketInfo, error) {
@@ -87,7 +88,10 @@ func (s *stubS3) PresignedGetObject(ctx context.Context, bucket, object string, 
 func (s *stubS3) PutObject(_ context.Context, _, _ string, _ io.Reader, _ int64, _ minio.PutObjectOptions) (minio.UploadInfo, error) {
 	panic("PutObject not expected in this test")
 }
-func (s *stubS3) StatObject(_ context.Context, _, _ string, _ minio.StatObjectOptions) (minio.ObjectInfo, error) {
+func (s *stubS3) StatObject(ctx context.Context, bucket, object string, opts minio.StatObjectOptions) (minio.ObjectInfo, error) {
+	if s.statObject != nil {
+		return s.statObject(ctx, bucket, object, opts)
+	}
 	panic("StatObject not expected in this test")
 }
 
@@ -724,6 +728,12 @@ func TestHandleGetObjectMetadataWithManager(t *testing.T) {
 			expectedStatusCode:   http.StatusNotFound,
 			expectedBodyContains: "Instance not found",
 		},
+		{
+			it:                   "returns metadata through the resolved instance",
+			instanceName:         "primary",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: `"contentType":"text/plain"`,
+		},
 	}
 
 	for _, tc := range cases {
@@ -735,6 +745,13 @@ func TestHandleGetObjectMetadataWithManager(t *testing.T) {
 				endpointURL: func() *url.URL {
 					u, _ := url.Parse("http://localhost:9000")
 					return u
+				},
+				statObject: func(_ context.Context, _, _ string, _ minio.StatObjectOptions) (minio.ObjectInfo, error) {
+					return minio.ObjectInfo{
+						Key:         "test-object",
+						Size:        42,
+						ContentType: "text/plain",
+					}, nil
 				},
 			}
 			manager := newTestMultiS3Manager([]*S3Instance{
@@ -771,7 +788,7 @@ func TestHandleGetObjectWithManager(t *testing.T) {
 	})
 
 	r := mux.NewRouter()
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName}", HandleGetObjectWithManager(manager, true)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName}", HandleGetObjectWithManager(manager, true, false)).Methods(http.MethodGet)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -959,6 +976,23 @@ func TestHandleBucketViewWithManager(t *testing.T) {
 			},
 			unexpectedInBody: []string{
 				"Version ID",
+			},
+		},
+		{
+			it:   "does not warn about unavailable versions for an empty bucket",
+			path: "/primary/buckets/test-bucket/",
+			client: &stubS3{
+				listObjects: func(_ context.Context, _ string, _ minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+					ch := make(chan minio.ObjectInfo)
+					close(ch)
+					return ch
+				},
+				endpointURL: func() *url.URL { u, _ := url.Parse("http://localhost:9000"); return u },
+			},
+			showVersions:       true,
+			expectedStatusCode: http.StatusOK,
+			unexpectedInBody: []string{
+				"Object versions unavailable",
 			},
 		},
 	}
