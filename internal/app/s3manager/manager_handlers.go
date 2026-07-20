@@ -97,7 +97,7 @@ func HandleBucketsViewWithManager(manager *MultiS3Manager, templates fs.FS, allo
 }
 
 // HandleBucketViewWithManager shows the details page of a bucket using MultiS3Manager.
-func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, showVersions bool) http.HandlerFunc {
+func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, showVersions bool, showMetadata bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		instanceName := vars["instance"]
@@ -112,7 +112,7 @@ func HandleBucketViewWithManager(manager *MultiS3Manager, templates fs.FS, allow
 		instances := manager.GetAllInstances()
 
 		// Create a modified handler that includes S3 instance data
-		handler := createBucketViewWithS3Data(s3, templates, allowDelete, listRecursive, rootURL, current, instances, showVersions)
+		handler := createBucketViewWithS3Data(s3, templates, allowDelete, listRecursive, rootURL, current, instances, showVersions, showMetadata)
 		handler(w, r)
 	}
 }
@@ -158,7 +158,7 @@ func HandleGetObjectMetadataWithManager(manager *MultiS3Manager) http.HandlerFun
 }
 
 // createBucketViewWithS3Data creates a bucket view handler that includes S3 instance data
-func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, current *S3Instance, instances []*S3Instance, showVersions bool) http.HandlerFunc {
+func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRecursive bool, rootURL string, current *S3Instance, instances []*S3Instance, showVersions bool, showMetadata bool) http.HandlerFunc {
 	type pageData struct {
 		RootURL             string
 		BucketName          string
@@ -182,6 +182,7 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 		Search              string
 		ShowVersions        bool
 		VersionsUnavailable bool
+		ShowMetadata        bool
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -303,6 +304,7 @@ func createBucketViewWithS3Data(s3 S3, templates fs.FS, allowDelete bool, listRe
 			Search:              search,
 			ShowVersions:        versionsShown,
 			VersionsUnavailable: versionsUnavailable,
+			ShowMetadata:        showMetadata,
 		}
 
 		funcMap := template.FuncMap{

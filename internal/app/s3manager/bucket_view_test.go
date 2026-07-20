@@ -29,6 +29,7 @@ func TestHandleBucketView(t *testing.T) {
 		rootUrl              string
 		path                 string
 		showVersions         bool
+		showMetadata         bool
 		expectedStatusCode   int
 		expectedBodyContains string
 		unexpectedInBody     []string
@@ -293,6 +294,37 @@ func TestHandleBucketView(t *testing.T) {
 			expectedBodyContains: "AFolder",
 			unexpectedInBody:     []string{`class="version-row" style="display: none;`},
 		},
+		{
+			it: "shows the metadata action when ShowMetadata is enabled",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Key: "FILE-NAME"}
+					close(objCh)
+				}()
+				return objCh
+			},
+			bucketName:           "BUCKET-NAME",
+			showMetadata:         true,
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: `onclick="handleOpenMetadataModal(`,
+		},
+		{
+			it: "hides the metadata action when ShowMetadata is disabled",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				objCh := make(chan minio.ObjectInfo)
+				go func() {
+					objCh <- minio.ObjectInfo{Key: "FILE-NAME"}
+					close(objCh)
+				}()
+				return objCh
+			},
+			bucketName:           "BUCKET-NAME",
+			showMetadata:         false,
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "FILE-NAME",
+			unexpectedInBody:     []string{`onclick="handleOpenMetadataModal(`},
+		},
 	}
 
 	for _, tc := range cases {
@@ -310,7 +342,7 @@ func TestHandleBucketView(t *testing.T) {
 
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 			r := mux.NewRouter()
-			r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, true, true, tc.rootUrl, tc.showVersions)).Methods(http.MethodGet)
+			r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, true, true, tc.rootUrl, tc.showVersions, tc.showMetadata)).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

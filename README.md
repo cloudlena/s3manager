@@ -35,6 +35,7 @@ The application can be configured with the following environment variables:
 - `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
 - `LIST_RECURSIVE`: List all objects in buckets recursively (defaults to `false`)
 - `SHOW_VERSIONS`: Show all object versions in bucket view and enable version-specific downloads (defaults to `false`; bucket must have versioning enabled)
+- `SHOW_METADATA`: Show the object metadata action and enable the metadata endpoint (defaults to `true`)
 - `TZ`: IANA timezone used when displaying object Last Modified times (defaults to UTC; for example `Europe/Berlin`)
 - `BUCKET_NAME`: Restrict the buckets view to a single named bucket (defaults to unset, showing all buckets)
 - `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)

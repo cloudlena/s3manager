@@ -857,6 +857,7 @@ func TestHandleBucketViewWithManager(t *testing.T) {
 		path                 string
 		client               S3
 		showVersions         bool
+		showMetadata         bool
 		expectedStatusCode   int
 		expectedBodyContains []string
 		unexpectedInBody     []string
@@ -995,6 +996,49 @@ func TestHandleBucketViewWithManager(t *testing.T) {
 				"Object versions unavailable",
 			},
 		},
+		{
+			it:   "shows the metadata action when ShowMetadata is enabled",
+			path: "/primary/buckets/test-bucket/",
+			client: &stubS3{
+				listObjects: func(_ context.Context, _ string, _ minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+					ch := make(chan minio.ObjectInfo)
+					go func() {
+						defer close(ch)
+						ch <- minio.ObjectInfo{Key: "FILE-NAME"}
+					}()
+					return ch
+				},
+				endpointURL: func() *url.URL { u, _ := url.Parse("http://localhost:9000"); return u },
+			},
+			showMetadata:       true,
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				`onclick="handleOpenMetadataModal(`,
+			},
+		},
+		{
+			it:   "hides the metadata action when ShowMetadata is disabled",
+			path: "/primary/buckets/test-bucket/",
+			client: &stubS3{
+				listObjects: func(_ context.Context, _ string, _ minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+					ch := make(chan minio.ObjectInfo)
+					go func() {
+						defer close(ch)
+						ch <- minio.ObjectInfo{Key: "FILE-NAME"}
+					}()
+					return ch
+				},
+				endpointURL: func() *url.URL { u, _ := url.Parse("http://localhost:9000"); return u },
+			},
+			showMetadata:       false,
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				"FILE-NAME",
+			},
+			unexpectedInBody: []string{
+				`onclick="handleOpenMetadataModal(`,
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -1009,7 +1053,7 @@ func TestHandleBucketViewWithManager(t *testing.T) {
 			})
 
 			r := mux.NewRouter()
-			r.PathPrefix("/{instance}/buckets/").Handler(HandleBucketViewWithManager(manager, templates, true, true, "", tc.showVersions)).Methods(http.MethodGet)
+			r.PathPrefix("/{instance}/buckets/").Handler(HandleBucketViewWithManager(manager, templates, true, true, "", tc.showVersions, tc.showMetadata)).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
