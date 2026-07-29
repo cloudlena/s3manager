@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/cloudlena/adapters/logging"
 	"github.com/cloudlena/s3manager/internal/app/s3manager"

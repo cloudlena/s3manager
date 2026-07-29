@@ -216,7 +216,7 @@
                 </td>
                 <td>{{ $object.SizeDisplay }}</td>
                 <td>{{ $object.Owner }}</td>
-                <td>{{ $object.LastModified }}</td>
+                <td>{{ $object.LastModified.Local.Format "2006-01-02 15:04:05 MST" }}</td>
                 <td>
                     {{ if not $object.IsFolder }}
                         <button class="dropdown-trigger waves-effect waves-teal btn" data-target="actions-dropdown-{{ $index }}">

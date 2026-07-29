@@ -33,6 +33,7 @@ The application can be configured with the following environment variables:
 - `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
 - `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
 - `LIST_RECURSIVE`: List all objects in buckets recursively (defaults to `false`)
+- `TZ`: IANA timezone used when displaying object Last Modified times (defaults to UTC; for example `Europe/Berlin`)
 - `BUCKET_NAME`: Restrict the buckets view to a single named bucket (defaults to unset, showing all buckets)
 - `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)
 - `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
