@@ -8,7 +8,8 @@ WORKDIR /usr/src/app
 RUN addgroup -S s3manager && adduser -S s3manager -G s3manager
 RUN apk add --no-cache \
   ca-certificates \
-  dumb-init
+  dumb-init \
+  tzdata
 COPY --from=builder --chown=s3manager:s3manager /usr/src/app/bin/s3manager ./
 USER s3manager
 EXPOSE 8080
