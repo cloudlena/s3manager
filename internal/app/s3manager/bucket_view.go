@@ -436,10 +436,7 @@ func sortAndPaginateObjects(objs []objectWithIcon, sortBy, sortOrder string, pag
 	}
 
 	start := (page - 1) * perPage
-	end := start + perPage
-	if end > totalItems {
-		end = totalItems
-	}
+	end := min(start+perPage, totalItems)
 	if start >= totalItems {
 		return []objectWithIcon{}, totalItems, totalPages, page
 	}
