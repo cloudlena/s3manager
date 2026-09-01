@@ -2,6 +2,7 @@ package s3manager_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,6 +23,7 @@ func TestHandleGetObject(t *testing.T) {
 	cases := []struct {
 		it                   string
 		getObjectFunc        func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error)
+		statObjectFunc       func(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error)
 		bucketName           string
 		objectName           string
 		queryString          string
@@ -82,6 +84,51 @@ func TestHandleGetObject(t *testing.T) {
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: "mocked s3 error",
 		},
+		{
+			it: "returns error if the metadata of an object to be opened inline can't be read",
+			getObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
+				return nil, nil
+			},
+			statObjectFunc: func(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error) {
+				return minio.ObjectInfo{}, errS3
+			},
+			bucketName:           "BUCKET-NAME",
+			objectName:           "OBJECT-NAME",
+			queryString:          "?inline=true",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "mocked s3 error",
+		},
+		{
+			it: "passes the versionId query param through to StatObjectOptions when opening inline",
+			getObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
+				return nil, errS3
+			},
+			statObjectFunc: func(_ context.Context, _, _ string, opts minio.StatObjectOptions) (minio.ObjectInfo, error) {
+				if opts.VersionID != "VERSION-123" {
+					return minio.ObjectInfo{}, fmt.Errorf("expected VersionID %q, got %q", "VERSION-123", opts.VersionID)
+				}
+				return minio.ObjectInfo{ContentType: "application/pdf"}, nil
+			},
+			bucketName:           "BUCKET-NAME",
+			objectName:           "OBJECT-NAME",
+			queryString:          "?inline=true&versionId=VERSION-123",
+			showVersions:         true,
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "mocked s3 error",
+		},
+		{
+			it: "doesn't look up the object metadata when not opening inline",
+			getObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
+				return nil, errS3
+			},
+			statObjectFunc: func(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error) {
+				return minio.ObjectInfo{}, errors.New("StatObject should not be called")
+			},
+			bucketName:           "BUCKET-NAME",
+			objectName:           "OBJECT-NAME",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "mocked s3 error",
+		},
 	}
 
 	for _, tc := range cases {
@@ -90,7 +137,8 @@ func TestHandleGetObject(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{
-				GetObjectFunc: tc.getObjectFunc,
+				GetObjectFunc:  tc.getObjectFunc,
+				StatObjectFunc: tc.statObjectFunc,
 			}
 
 			r := mux.NewRouter()

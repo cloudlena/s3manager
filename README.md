@@ -14,6 +14,7 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 - List all objects in a bucket
 - Upload new objects to a bucket
 - Download object from a bucket
+- Open an object in the browser (click its name or use the `Open` action)
 - Delete an object in a bucket
 - Show object metadata (including user metadata) and object versions
 
@@ -32,7 +33,7 @@ The application can be configured with the following environment variables:
 - `SIGNATURE_TYPE`: The signature type to be used (defaults to `V4`; valid values are `V2, V4, V4Streaming, Anonymous`)
 - `PORT`: The port the app should listen on (defaults to `8080`)
 - `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
-- `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
+- `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`; only affects the `Download` action, not `Open`)
 - `LIST_RECURSIVE`: List all objects in buckets recursively (defaults to `false`)
 - `SHOW_VERSIONS`: Show all object versions in bucket view and enable version-specific downloads (defaults to `false`; bucket must have versioning enabled)
 - `SHOW_METADATA`: Show the object metadata action and enable the metadata endpoint (defaults to `true`)

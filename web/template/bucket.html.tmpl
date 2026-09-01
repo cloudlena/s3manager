@@ -236,7 +236,13 @@
                     onclick="location.href='{{$.RootURL}}{{$instancePath}}/buckets/{{ $.BucketName }}/{{ $object.Key }}'"
                     style="cursor:pointer;"
                     {{ end }}>
-                    <i class="material-icons">{{ $object.Icon }}</i> {{ $object.DisplayName }}
+                    <i class="material-icons">{{ $object.Icon }}</i>
+                    {{- if or $object.IsFolder $object.IsDeleteMarker }}
+                    {{ $object.DisplayName }}
+                    {{- else }}
+                    {{- /* Clicking the name opens the object in a new tab. */}}
+                    <a class="black-text" target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">{{ $object.DisplayName }}</a>
+                    {{- end }}
                 </td>
                 <td>{{ $object.SizeDisplay }}</td>
                 <td>{{ $object.Owner }}</td>
@@ -261,6 +267,7 @@
                         </button>
                         <!-- Dropdown Structure -->
                         <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
+                            <li><a target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">Open</a></li>
                             <li><a target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">Download</a></li>
                             {{- if $.ShowMetadata }}
                             <li><a onclick="handleOpenMetadataModal('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">Metadata</a></li>
