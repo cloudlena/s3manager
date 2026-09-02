@@ -33,3 +33,24 @@ type SSEType struct {
 	Type string
 	Key  string
 }
+
+// Options holds the features and presentation settings the handlers share.
+type Options struct {
+	// RootURL is the path prefix the app is served under, for reverse proxying.
+	RootURL string
+	// BucketName restricts the bucket list to a single bucket if set.
+	BucketName string
+	// AllowDelete enables the delete actions.
+	AllowDelete bool
+	// ForceDownload serves objects as attachments instead of letting the
+	// browser decide.
+	ForceDownload bool
+	// ListRecursive lists a bucket's objects across all its prefixes.
+	ListRecursive bool
+	// ShowVersions lists and serves all versions of an object.
+	ShowVersions bool
+	// ShowMetadata enables the object metadata endpoint and action.
+	ShowMetadata bool
+	// SSE is the server side encryption applied to uploads.
+	SSE SSEType
+}

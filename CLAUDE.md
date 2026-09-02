@@ -26,7 +26,7 @@ docker compose up   # Starts MinIO at localhost:9000; app at localhost:8080
 
 S3 Manager is a stateless Go web app for managing S3-compatible storage (AWS S3, MinIO, etc.). There is no database; S3 is the sole source of truth.
 
-**Backend** (`main.go` + `internal/app/s3manager/`): Gorilla mux routes requests to handler factory functions. Each handler receives its dependencies (S3 client, templates, config flags) via closure, not global state. The `MultiS3Manager` wraps multiple S3 instances; instance selection happens via a `{instance}` URL prefix, enabling concurrent multi-instance sessions.
+**Backend** (`main.go` + `internal/app/s3manager/`): Gorilla mux routes requests to handler factory functions. Each handler receives its dependencies (S3 client, templates, `Options`) via closure, not global state. `S3Instances` is the ordered, immutable list of configured S3 instances; instance selection happens via a `{instance}` URL prefix, enabling concurrent multi-instance sessions. `WithInstance` resolves that prefix and hands the matching client to a single-instance handler, so most handlers never see the instance list.
 
 **Frontend** (`web/`): Server-rendered HTML using three Go templates (`layout.html.tmpl`, `buckets.html.tmpl`, `bucket.html.tmpl`) styled with [BeerCSS](https://www.beercss.com/) 5.0.3 (Material Design 3). No JS framework and no jQuery — plain `fetch` plus BeerCSS's `ui()` helper for dialogs, menus and snackbars. `layout.html.tmpl` owns the page shell, the shared `appbar-actions` template (instance switcher, light/dark toggle) and the shared `toast`/`request` helpers; each page template renders its own `<header>` and `<main>`.
 
@@ -40,7 +40,7 @@ Static assets and templates are embedded into the binary via `//go:embed`, and B
 HTTP request
   → Gorilla mux (main.go)
   → Handler factory (e.g. HandleBucketView)
-      → MultiS3Manager.GetS3Instance(instanceName)
+      → S3Instances.Get(instanceName) (via WithInstance for non-view handlers)
       → S3 interface call (minio-go/v7 under the hood)
       → Template render or JSON response
 ```
@@ -54,8 +54,8 @@ HTTP request
 
 ### Configuration
 
-Instances are configured via numbered environment variables (`1_ENDPOINT`, `1_ACCESS_KEY_ID`, …) or a single unnamed set for backward compatibility. Viper is used to read all config. `ROOT_URL` supports reverse-proxy deployments with a path prefix.
+Instances are configured via numbered environment variables (`1_ENDPOINT`, `1_ACCESS_KEY_ID`, …) or a single unnamed set for backward compatibility. Viper is used to read all config. `ROOT_URL` supports reverse-proxy deployments with a path prefix. The feature flags the handlers care about are bundled into a single `s3manager.Options` value that `main.go` fills in and passes down.
 
 ## Testing
 
-Tests live alongside source files. Each handler file has a corresponding `_test.go`. The `S3` mock (`mocks/s3.go`) is generated — regenerate with `go generate ./...` if the interface changes. Tests use `github.com/matryer/is` for assertions.
+Tests live alongside source files: each handler file has a corresponding `_test.go` in package `s3manager_test`, and the few tests of unexported helpers use `*_internal_test.go` in package `s3manager`. The `S3` mock (`mocks/s3.go`) is generated — regenerate with `go generate ./...` if the interface changes. Tests use `github.com/matryer/is` for assertions.

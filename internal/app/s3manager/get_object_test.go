@@ -142,7 +142,7 @@ func TestHandleGetObject(t *testing.T) {
 			}
 
 			r := mux.NewRouter()
-			r.Handle("/buckets/{bucketName}/objects/{objectName}", s3manager.HandleGetObject(s3, true, tc.showVersions)).Methods(http.MethodGet)
+			r.Handle("/buckets/{bucketName}/objects/{objectName}", s3manager.HandleGetObject(s3, s3manager.Options{ForceDownload: true, ShowVersions: tc.showVersions})).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

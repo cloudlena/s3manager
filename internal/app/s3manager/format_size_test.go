@@ -22,9 +22,9 @@ func TestFormatFileSize(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := FormatFileSize(test.bytes)
+		result := formatFileSize(test.bytes)
 		if result != test.expected {
-			t.Errorf("FormatFileSize(%d) = %q; want %q", test.bytes, result, test.expected)
+			t.Errorf("formatFileSize(%d) = %q; want %q", test.bytes, result, test.expected)
 		}
 	}
 }

@@ -39,7 +39,7 @@ func TestHandleBulkDeleteObjects(t *testing.T) {
 			},
 			body:                 `{"keys":["file1.txt","file2.txt"]}`,
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: `"success": true`,
+			expectedBodyContains: `"success":true`,
 		},
 		{
 			it: "returns error for invalid JSON body",

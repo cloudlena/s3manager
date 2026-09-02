@@ -24,12 +24,6 @@ func HandleCreateBucket(s3 S3) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusCreated)
-		err = json.NewEncoder(w).Encode(bucket)
-		if err != nil {
-			handleHTTPError(w, fmt.Errorf("error encoding JSON: %w", err))
-			return
-		}
+		writeJSON(w, http.StatusCreated, bucket)
 	}
 }

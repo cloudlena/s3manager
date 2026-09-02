@@ -18,6 +18,11 @@
         header.wide > nav { max-inline-size: none; }
         main { padding-inline: 1rem; }
 
+        /* BeerCSS rounds every surface to 2rem, which reads as very bubbly on
+           large panels. Buttons and chips keep their own pill radius, since
+           they set --_round with !important. */
+        .round, [class*="-round"] { --_round: 0.75rem; }
+
         .truncate { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
         .clickable { cursor: pointer; }
@@ -114,7 +119,6 @@
 {{/* appbar-actions renders the parts of the top app bar that every page shares:
      the S3 instance switcher and the light/dark mode toggle. */}}
 {{ define "appbar-actions" }}
-    {{ if .CurrentS3 }}
     {{ if gt (len .S3Instances) 1 }}
     <div>
         <button class="chip border" data-ui="#instance-menu">
@@ -126,7 +130,7 @@
             {{ range .S3Instances }}
             <li>
                 <a href="{{$.RootURL}}/{{ .Name }}/buckets">
-                    <i>{{ if and $.CurrentS3 (eq .Name $.CurrentS3.Name) }}check{{ else }}database{{ end }}</i>
+                    <i>{{ if eq .Name $.CurrentS3.Name }}check{{ else }}database{{ end }}</i>
                     <span>{{ .Name }}</span>
                 </a>
             </li>
@@ -138,7 +142,6 @@
         <i>database</i>
         <span>{{ .CurrentS3.Name }}</span>
     </div>
-    {{ end }}
     {{ end }}
 
     <button class="circle transparent" onclick="toggleMode()">

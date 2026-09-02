@@ -1,16 +1,16 @@
 {{ define "content" }}
-{{ $instancePath := "" }}
-{{ if $.CurrentS3 }}{{ $instancePath = printf "/%s" $.CurrentS3.Name }}{{ end }}
+{{ $instancePath := printf "/%s" $.CurrentS3.Name }}
 
 <style>
     #policy { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; tab-size: 2; }
     .breadcrumbs > * { margin-inline-end: 0.25rem; }
     td .row { gap: 0.5rem; }
     th { white-space: nowrap; }
-    /* Keys and owner IDs can be arbitrarily long; cap them instead of
-       letting a single row stretch the whole table. */
-    .key-cell { max-inline-size: 32rem; }
-    .owner-cell { max-inline-size: 12rem; }
+    /* Keys and owner IDs can be arbitrarily long; cap the cell contents
+       instead of letting a single row stretch the whole table. */
+    .key-cell > * { max-inline-size: 22rem; }
+    .key-cell .truncate { flex: 1 1 auto; min-inline-size: 0; }
+    .owner-cell > * { max-inline-size: 10rem; }
     #dialog-edit-policy { inline-size: 90%; max-inline-size: 56rem; }
 </style>
 
@@ -129,7 +129,7 @@
     </nav>
 
     <article class="no-padding round border no-elevate scroll">
-        <table class="border">
+        <table class="border medium-space">
             <thead>
                 <tr>
                     <th class="min">
@@ -138,21 +138,21 @@
                             <span></span>
                         </label>
                     </th>
-                    <th class="clickable" onclick="sortBy('key')">
+                    <th class="min clickable" onclick="sortBy('key')">
                         Key
-                        {{ if eq .SortBy "key" }}<i class="tiny">{{ if eq .SortOrder "asc" }}arrow_upward{{ else }}arrow_downward{{ end }}</i>{{ end }}
+                        {{ with sortIndicator "key" $.SortBy $.SortOrder }}<i class="tiny">{{ . }}</i>{{ end }}
                     </th>
                     <th class="clickable" onclick="sortBy('size')">
                         Size
-                        {{ if eq .SortBy "size" }}<i class="tiny">{{ if eq .SortOrder "asc" }}arrow_upward{{ else }}arrow_downward{{ end }}</i>{{ end }}
+                        {{ with sortIndicator "size" $.SortBy $.SortOrder }}<i class="tiny">{{ . }}</i>{{ end }}
                     </th>
                     <th class="clickable" onclick="sortBy('owner')">
                         Owner
-                        {{ if eq .SortBy "owner" }}<i class="tiny">{{ if eq .SortOrder "asc" }}arrow_upward{{ else }}arrow_downward{{ end }}</i>{{ end }}
+                        {{ with sortIndicator "owner" $.SortBy $.SortOrder }}<i class="tiny">{{ . }}</i>{{ end }}
                     </th>
                     <th class="clickable" onclick="sortBy('lastModified')">
                         Last Modified
-                        {{ if eq .SortBy "lastModified" }}<i class="tiny">{{ if eq .SortOrder "asc" }}arrow_upward{{ else }}arrow_downward{{ end }}</i>{{ end }}
+                        {{ with sortIndicator "lastModified" $.SortBy $.SortOrder }}<i class="tiny">{{ . }}</i>{{ end }}
                     </th>
                     {{ if $.ShowVersions }}
                     <th>Version ID</th>
@@ -180,7 +180,7 @@
                         </label>
                         {{ end }}
                     </td>
-                    <td class="key-cell">
+                    <td class="min key-cell">
                         {{- if $object.IsFolder }}
                         <a class="row" href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $.BucketName }}/{{ $object.Key }}">
                             <i>{{ $object.Icon }}</i>
@@ -215,7 +215,7 @@
                         {{ end }}
                     </td>
                     {{ end }}
-                    <td class="min right-align">
+                    <td class="right-align">
                         {{ if and (not $object.IsFolder) (not $object.IsDeleteMarker) }}
                         <nav class="no-space right-align no-wrap">
                             <a class="button circle transparent" target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">

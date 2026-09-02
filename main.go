@@ -24,202 +24,158 @@ var templateFS embed.FS
 var staticFS embed.FS
 
 type configuration struct {
-	S3Instances   []s3manager.S3InstanceConfig
-	AllowDelete   bool
-	ForceDownload bool
-	ListRecursive bool
-	ShowVersions  bool
-	ShowMetadata  bool
-	Port          string
-	Timeout       int32
-	SseType       string
-	SseKey        string
-	BucketName    string
+	S3Instances []s3manager.S3InstanceConfig
+	Options     s3manager.Options
+	Port        string
+	Timeout     time.Duration
 }
 
 func parseConfiguration() configuration {
 	viper.AutomaticEnv()
 
-	// Parse S3 instances from numbered environment variables
-	var s3Instances []s3manager.S3InstanceConfig
+	viper.SetDefault("ALLOW_DELETE", true)
+	viper.SetDefault("FORCE_DOWNLOAD", true)
+	viper.SetDefault("SHOW_METADATA", true)
+	viper.SetDefault("PORT", "8080")
+	viper.SetDefault("TIMEOUT", 600)
+
+	// A root URL lets the app be served behind a reverse proxy under a path
+	// prefix. It is inserted into every link the templates render.
+	rootURL := viper.GetString("ROOT_URL")
+	if rootURL != "" && !strings.HasPrefix(rootURL, "/") {
+		rootURL = "/" + rootURL
+	}
+
+	return configuration{
+		S3Instances: parseS3Instances(),
+		Options: s3manager.Options{
+			RootURL:       rootURL,
+			BucketName:    viper.GetString("BUCKET_NAME"),
+			AllowDelete:   viper.GetBool("ALLOW_DELETE"),
+			ForceDownload: viper.GetBool("FORCE_DOWNLOAD"),
+			ListRecursive: viper.GetBool("LIST_RECURSIVE"),
+			ShowVersions:  viper.GetBool("SHOW_VERSIONS"),
+			ShowMetadata:  viper.GetBool("SHOW_METADATA"),
+			SSE: s3manager.SSEType{
+				Type: viper.GetString("SSE_TYPE"),
+				Key:  viper.GetString("SSE_KEY"),
+			},
+		},
+		Port:    viper.GetString("PORT"),
+		Timeout: time.Duration(viper.GetInt("TIMEOUT")) * time.Second,
+	}
+}
+
+// parseS3Instances reads the S3 instances from numbered environment variables
+// (1_NAME, 1_ENDPOINT, …), stopping at the first number that isn't configured.
+// A single instance may also be configured without a number, in which case it
+// is named "Default".
+func parseS3Instances() []s3manager.S3InstanceConfig {
+	var instances []s3manager.S3InstanceConfig
+
 	for i := 1; ; i++ {
 		prefix := fmt.Sprintf("%d_", i)
 		name := viper.GetString(prefix + "NAME")
-
-		// Support unnamed single instance configs
 		if i == 1 && name == "" {
-			prefix = ""
-			name = "Default"
+			prefix, name = "", "Default"
 		}
 
 		endpoint := viper.GetString(prefix + "ENDPOINT")
-
-		// If NAME or ENDPOINT is not found, stop parsing
 		if name == "" || endpoint == "" {
-			break
+			return instances
 		}
 
-		accessKeyID := viper.GetString(prefix + "ACCESS_KEY_ID")
-		secretAccessKey := viper.GetString(prefix + "SECRET_ACCESS_KEY")
-		useIam := viper.GetBool(prefix + "USE_IAM")
-		iamEndpoint := viper.GetString(prefix + "IAM_ENDPOINT")
-		region := viper.GetString(prefix + "REGION")
-
 		viper.SetDefault(prefix+"USE_SSL", true)
-		useSSL := viper.GetBool(prefix + "USE_SSL")
-
-		viper.SetDefault(prefix+"SKIP_SSL_VERIFICATION", false)
-		skipSSLVerification := viper.GetBool(prefix + "SKIP_SSL_VERIFICATION")
-
 		viper.SetDefault(prefix+"SIGNATURE_TYPE", "V4")
-		signatureType := viper.GetString(prefix + "SIGNATURE_TYPE")
 
-		if !useIam {
-			if accessKeyID == "" {
+		instance := s3manager.S3InstanceConfig{
+			Name:                name,
+			Endpoint:            endpoint,
+			UseIam:              viper.GetBool(prefix + "USE_IAM"),
+			IamEndpoint:         viper.GetString(prefix + "IAM_ENDPOINT"),
+			AccessKeyID:         viper.GetString(prefix + "ACCESS_KEY_ID"),
+			SecretAccessKey:     viper.GetString(prefix + "SECRET_ACCESS_KEY"),
+			Region:              viper.GetString(prefix + "REGION"),
+			UseSSL:              viper.GetBool(prefix + "USE_SSL"),
+			SkipSSLVerification: viper.GetBool(prefix + "SKIP_SSL_VERIFICATION"),
+			SignatureType:       viper.GetString(prefix + "SIGNATURE_TYPE"),
+		}
+
+		if !instance.UseIam {
+			if instance.AccessKeyID == "" {
 				log.Fatalf("please provide %sACCESS_KEY_ID for instance %s", prefix, name)
 			}
-			if secretAccessKey == "" {
+			if instance.SecretAccessKey == "" {
 				log.Fatalf("please provide %sSECRET_ACCESS_KEY for instance %s", prefix, name)
 			}
 		}
 
-		s3Instances = append(s3Instances, s3manager.S3InstanceConfig{
-			Name:                name,
-			Endpoint:            endpoint,
-			UseIam:              useIam,
-			IamEndpoint:         iamEndpoint,
-			AccessKeyID:         accessKeyID,
-			SecretAccessKey:     secretAccessKey,
-			Region:              region,
-			UseSSL:              useSSL,
-			SkipSSLVerification: skipSSLVerification,
-			SignatureType:       signatureType,
-		})
-	}
-
-	if len(s3Instances) == 0 {
-		log.Fatal("no S3 instances configured. Please provide numbered environment variables like 1_NAME, 1_ENDPOINT, etc.")
-	}
-
-	viper.SetDefault("ALLOW_DELETE", true)
-	allowDelete := viper.GetBool("ALLOW_DELETE")
-
-	viper.SetDefault("FORCE_DOWNLOAD", true)
-	forceDownload := viper.GetBool("FORCE_DOWNLOAD")
-
-	listRecursive := viper.GetBool("LIST_RECURSIVE")
-
-	viper.SetDefault("SHOW_VERSIONS", false)
-	showVersions := viper.GetBool("SHOW_VERSIONS")
-
-	viper.SetDefault("SHOW_METADATA", true)
-	showMetadata := viper.GetBool("SHOW_METADATA")
-
-	viper.SetDefault("PORT", "8080")
-	port := viper.GetString("PORT")
-
-	viper.SetDefault("TIMEOUT", 600)
-	timeout := viper.GetInt32("TIMEOUT")
-
-	viper.SetDefault("SSE_TYPE", "")
-	sseType := viper.GetString("SSE_TYPE")
-
-	viper.SetDefault("SSE_KEY", "")
-	sseKey := viper.GetString("SSE_KEY")
-
-	viper.SetDefault("BUCKET_NAME", "")
-	bucketName := viper.GetString("BUCKET_NAME")
-
-	return configuration{
-		S3Instances:   s3Instances,
-		AllowDelete:   allowDelete,
-		ForceDownload: forceDownload,
-		ListRecursive: listRecursive,
-		ShowVersions:  showVersions,
-		ShowMetadata:  showMetadata,
-		Port:          port,
-		Timeout:       timeout,
-		SseType:       sseType,
-		SseKey:        sseKey,
-		BucketName:    bucketName,
+		instances = append(instances, instance)
 	}
 }
 
 func main() {
 	configuration := parseConfiguration()
+	opts := configuration.Options
 
-	sseType := s3manager.SSEType{Type: configuration.SseType, Key: configuration.SseKey}
-	serverTimeout := time.Duration(configuration.Timeout) * time.Second
-
-	// Set up templates
 	templates, err := fs.Sub(templateFS, "web/template")
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Set up statics
 	statics, err := fs.Sub(staticFS, "web/static")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Set up Multi S3 Manager
-	s3Manager, err := s3manager.NewMultiS3Manager(configuration.S3Instances)
+	instances, err := s3manager.NewS3Instances(configuration.S3Instances)
 	if err != nil {
-		log.Fatalln(fmt.Errorf("error creating multi s3 manager: %w", err))
+		log.Fatal(fmt.Errorf("error creating S3 instances: %w", err))
 	}
 
-	// Check for a root URL to insert into HTML templates in case of reverse proxying
-	rootURL, rootSet := os.LookupEnv("ROOT_URL")
-	if rootSet && !strings.HasPrefix(rootURL, "/") {
-		rootURL = "/" + rootURL
+	// withInstance binds a handler that operates on a single S3 client to the
+	// instance addressed by the request.
+	withInstance := func(handler func(s3manager.S3) http.HandlerFunc) http.Handler {
+		return s3manager.WithInstance(instances, handler)
 	}
 
-	// Set up router
 	r := mux.NewRouter()
 
-	// Root redirects to first instance's buckets page
-	r.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		instances := s3Manager.GetAllInstances()
-		if len(instances) > 0 {
-			http.Redirect(w, r, rootURL+"/"+instances[0].Name+"/buckets", http.StatusPermanentRedirect)
-		} else {
-			http.Error(w, "No S3 instances configured", http.StatusInternalServerError)
-		}
-	})).Methods(http.MethodGet)
-
+	// The root redirects to the first instance's bucket list.
+	r.Handle("/", http.RedirectHandler(opts.RootURL+"/"+instances[0].Name+"/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(statics)))).Methods(http.MethodGet)
+	r.Handle("/api/s3-instances", s3manager.HandleGetS3Instances(instances)).Methods(http.MethodGet)
 
-	// S3 instance management endpoints
-	r.Handle("/api/s3-instances", s3manager.HandleGetS3Instances(s3Manager)).Methods(http.MethodGet)
+	// S3 management endpoints, all scoped to an instance.
+	r.Handle("/{instance}/buckets", s3manager.HandleBucketsView(instances, templates, opts)).Methods(http.MethodGet)
+	r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketView(instances, templates, opts)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets", withInstance(s3manager.HandleCreateBucket)).Methods(http.MethodPost)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects", withInstance(func(s3 s3manager.S3) http.HandlerFunc {
+		return s3manager.HandleCreateObject(s3, opts.SSE)
+	})).Methods(http.MethodPost)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-download", withInstance(s3manager.HandleBulkDownloadObjects)).Methods(http.MethodPost)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/url", withInstance(s3manager.HandleGenerateURL)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/public-access", withInstance(s3manager.HandleCheckPublicAccess)).Methods(http.MethodGet)
+	if opts.ShowMetadata {
+		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", withInstance(s3manager.HandleGetObjectMetadata)).Methods(http.MethodGet)
+	}
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", withInstance(func(s3 s3manager.S3) http.HandlerFunc {
+		return s3manager.HandleGetObject(s3, opts)
+	})).Methods(http.MethodGet)
+	if opts.AllowDelete {
+		r.Handle("/{instance}/api/buckets/{bucketName}", withInstance(s3manager.HandleDeleteBucket)).Methods(http.MethodDelete)
+		r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-delete", withInstance(s3manager.HandleBulkDeleteObjects)).Methods(http.MethodPost)
+		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", withInstance(s3manager.HandleDeleteObject)).Methods(http.MethodDelete)
+	}
+	r.Handle("/{instance}/api/buckets/{bucketName}/policy", withInstance(s3manager.HandleGetBucketPolicy)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets/{bucketName}/policy", withInstance(s3manager.HandlePutBucketPolicy)).Methods(http.MethodPut)
 
-	// S3 management endpoints (with instance in URL)
-	r.Handle("/{instance}/buckets", s3manager.HandleBucketsViewWithManager(s3Manager, templates, configuration.AllowDelete, rootURL, configuration.BucketName)).Methods(http.MethodGet)
-	r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketViewWithManager(s3Manager, templates, configuration.AllowDelete, configuration.ListRecursive, rootURL, configuration.ShowVersions, configuration.ShowMetadata)).Methods(http.MethodGet)
-	r.Handle("/{instance}/api/buckets", s3manager.HandleCreateBucketWithManager(s3Manager)).Methods(http.MethodPost)
-	if configuration.AllowDelete {
-		r.Handle("/{instance}/api/buckets/{bucketName}", s3manager.HandleDeleteBucketWithManager(s3Manager)).Methods(http.MethodDelete)
-	}
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects", s3manager.HandleCreateObjectWithManager(s3Manager, sseType)).Methods(http.MethodPost)
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/url", s3manager.HandleGenerateURLWithManager(s3Manager)).Methods(http.MethodGet)
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/public-access", s3manager.HandleCheckPublicAccessWithManager(s3Manager)).Methods(http.MethodGet)
-	if configuration.ShowMetadata {
-		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", s3manager.HandleGetObjectMetadataWithManager(s3Manager)).Methods(http.MethodGet)
-	}
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleGetObjectWithManager(s3Manager, configuration.ForceDownload, configuration.ShowVersions)).Methods(http.MethodGet)
-	if configuration.AllowDelete {
-		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", s3manager.HandleDeleteObjectWithManager(s3Manager)).Methods(http.MethodDelete)
-		r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-delete", s3manager.HandleBulkDeleteObjectsWithManager(s3Manager)).Methods(http.MethodPost)
-	}
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjectsWithManager(s3Manager)).Methods(http.MethodPost)
-	r.Handle("/{instance}/api/buckets/{bucketName}/policy", s3manager.HandleGetBucketPolicyWithManager(s3Manager)).Methods(http.MethodGet)
-	r.Handle("/{instance}/api/buckets/{bucketName}/policy", s3manager.HandlePutBucketPolicyWithManager(s3Manager)).Methods(http.MethodPut)
-
-	lr := logging.Handler(os.Stdout)(r)
 	srv := &http.Server{
 		Addr:         ":" + configuration.Port,
-		Handler:      lr,
-		ReadTimeout:  serverTimeout,
-		WriteTimeout: serverTimeout,
+		Handler:      logging.Handler(os.Stdout)(r),
+		ReadTimeout:  configuration.Timeout,
+		WriteTimeout: configuration.Timeout,
 	}
+
+	log.Printf("serving %d S3 instance(s) on port %s", len(instances), configuration.Port)
 	log.Fatal(srv.ListenAndServe())
 }

@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,310 +18,235 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
+// objectChan serves the given objects on a ListObjects channel.
+func objectChan(objects ...minio.ObjectInfo) <-chan minio.ObjectInfo {
+	objCh := make(chan minio.ObjectInfo)
+	go func() {
+		defer close(objCh)
+		for _, object := range objects {
+			objCh <- object
+		}
+	}()
+
+	return objCh
+}
+
 func TestHandleBucketView(t *testing.T) {
 	t.Parallel()
 
+	// Two versions of the same object, as a version-aware listing returns them.
+	listVersions := func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+		if !opts.WithVersions {
+			return objectChan()
+		}
+		return objectChan(
+			minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v2-abcdefghijk", IsLatest: true},
+			minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v1-abcdefghijk"},
+		)
+	}
+
 	cases := []struct {
 		it                   string
+		instanceName         string
 		listObjectsFunc      func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo
-		bucketName           string
-		rootUrl              string
 		path                 string
+		rootURL              string
 		showVersions         bool
 		showMetadata         bool
 		expectedStatusCode   int
-		expectedBodyContains string
+		expectedBodyContains []string
 		unexpectedInBody     []string
 	}{
 		{
 			it: "renders a bucket containing a file",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME"}
-					close(objCh)
-				}()
-				return objCh
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME"})
 			},
-			bucketName:           "BUCKET-NAME",
-			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "FILE-NAME",
+			expectedStatusCode: http.StatusOK,
+			// The listing defaults to sorting by key, ascending.
+			expectedBodyContains: []string{"FILE-NAME", "arrow_upward"},
 		},
 		{
 			it: "renders placeholder for an empty bucket",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				close(objCh)
-				return objCh
+				return objectChan()
 			},
-			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "No objects in",
+			expectedBodyContains: []string{"No objects in"},
 		},
 		{
 			it: "renders a bucket containing an archive",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Key: "archive.tar.gz"}
-					close(objCh)
-				}()
-				return objCh
+				return objectChan(minio.ObjectInfo{Key: "archive.tar.gz"})
 			},
-			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "archive",
+			expectedBodyContains: []string{"archive"},
 		},
 		{
 			it: "renders a bucket containing an image",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME.png"}
-					close(objCh)
-				}()
-				return objCh
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME.png"})
 			},
-			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "photo",
+			expectedBodyContains: []string{"photo"},
 		},
 		{
 			it: "renders a bucket containing a sound file",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME.mp3"}
-					close(objCh)
-				}()
-				return objCh
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME.mp3"})
 			},
-			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "music_note",
+			expectedBodyContains: []string{"music_note"},
 		},
 		{
-			it: "returns error if the bucket doesn't exist",
+			it: "renders a bucket with a folder",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Err: errBucketDoesNotExist}
-					close(objCh)
-				}()
-				return objCh
+				return objectChan(minio.ObjectInfo{Key: "AFolder/"})
 			},
-			bucketName:           "BUCKET-NAME",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"folder"},
+		},
+		{
+			it: "renders the path inside the bucket",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan()
+			},
+			path:                 "abc/def",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"def"},
+		},
+		{
+			it: "prefixes all links with the root URL",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan()
+			},
+			path:               "abc/def",
+			rootURL:            "/rootTest",
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				`<a class="link" href="/rootTest/primary/buckets/BUCKET-NAME/">BUCKET-NAME</a>`,
+			},
+		},
+		{
+			it:           "returns not found for an unknown instance",
+			instanceName: "unknown",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan()
+			},
 			expectedStatusCode:   http.StatusNotFound,
-			expectedBodyContains: "bucket does not exist",
+			expectedBodyContains: []string{"Instance not found"},
 		},
 		{
-			it: "returns error if there is an S3 error",
+			it: "shows an error message if the bucket doesn't exist",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Err: errS3}
-					close(objCh)
-				}()
-				return objCh
+				return objectChan(minio.ObjectInfo{Err: errBucketDoesNotExist})
 			},
-			bucketName:           "BUCKET-NAME",
-			expectedStatusCode:   http.StatusInternalServerError,
-			expectedBodyContains: "mocked s3 error",
-		},
-		{
-			it: "renders a bucket with folder",
-			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Key: "AFolder/"}
-					close(objCh)
-				}()
-				return objCh
-			},
-			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "folder",
+			expectedBodyContains: []string{"does not exist on S3 instance"},
 		},
 		{
-			it: "renders a bucket with path",
+			it: "shows an error message if there is an S3 error",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				close(objCh)
-				return objCh
+				return objectChan(minio.ObjectInfo{Err: errS3})
 			},
-			bucketName:           "BUCKET-NAME",
-			path:                 "abc/def",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "def",
+			expectedBodyContains: []string{"Unable to list objects", errS3.Error()},
 		},
 		{
-			it: "renders a bucket with path",
-			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				close(objCh)
-				return objCh
-			},
-			bucketName:           "BUCKET-NAME",
-			path:                 "abc/def",
-			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "def",
-		},
-		{
-			it: "setting rootUrl works",
-			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				close(objCh)
-				return objCh
-			},
-			bucketName:           "BUCKET-NAME",
-			path:                 "abc/def",
-			rootUrl:              "rootTest",
-			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "def",
-		},
-		{
-			it: "does not show version columns when ShowVersions is disabled",
-			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v1-abcdefghijk", IsLatest: true}
-					close(objCh)
-				}()
-				return objCh
-			},
-			bucketName:           "BUCKET-NAME",
+			it:                   "does not show version columns when ShowVersions is disabled",
+			listObjectsFunc:      listVersions,
 			showVersions:         false,
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "FILE-NAME",
-			unexpectedInBody:     []string{"Version ID", "v1-abcdef"},
+			unexpectedInBody:     []string{"Version ID", "v1-abcdef", "v2-abcdef"},
+			expectedBodyContains: []string{"No objects in"},
 		},
 		{
-			it: "renders multiple versions when ShowVersions is enabled",
-			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					if opts.WithVersions {
-						objCh <- minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v2-abcdefghijk", IsLatest: true}
-						objCh <- minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v1-abcdefghijk", IsLatest: false}
-					}
-					close(objCh)
-				}()
-				return objCh
+			it:                 "renders multiple versions when ShowVersions is enabled",
+			listObjectsFunc:    listVersions,
+			showVersions:       true,
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				"Version ID",
+				"v1-abcdef",
+				"v2-abcdef",
+				"Latest",
+				// Older versions are collapsed behind a toggle.
+				`class="version-row" style="display: none;`,
 			},
-			bucketName:           "BUCKET-NAME",
-			showVersions:         true,
-			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "Latest",
 		},
 		{
 			it: "falls back to a normal listing when the versioned listing fails",
 			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					defer close(objCh)
-					if opts.WithVersions {
-						objCh <- minio.ObjectInfo{Err: errS3}
-						return
-					}
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME"}
-				}()
-				return objCh
+				if opts.WithVersions {
+					return objectChan(minio.ObjectInfo{Err: errS3})
+				}
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME"})
 			},
-			bucketName:           "BUCKET-NAME",
 			showVersions:         true,
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "FILE-NAME",
+			expectedBodyContains: []string{"FILE-NAME", "Object versions unavailable"},
 			unexpectedInBody:     []string{"Version ID"},
 		},
 		{
-			it: "falls back to a normal listing when the versioned listing succeeds but returns nothing",
+			it: "falls back to a normal listing when the versioned listing returns nothing",
 			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					defer close(objCh)
-					if opts.WithVersions {
-						return
-					}
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME"}
-				}()
-				return objCh
+				// Some S3-compatible providers silently return an empty result
+				// instead of erroring when versioned listing isn't supported.
+				if opts.WithVersions {
+					return objectChan()
+				}
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME"})
 			},
-			bucketName:           "BUCKET-NAME",
 			showVersions:         true,
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "FILE-NAME",
+			expectedBodyContains: []string{"FILE-NAME", "Object versions unavailable"},
 			unexpectedInBody:     []string{"Version ID"},
 		},
 		{
-			it: "collapses older versions by default with a toggle to expand them",
-			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					if opts.WithVersions {
-						objCh <- minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v2-abcdefghijk", IsLatest: true}
-						objCh <- minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v1-abcdefghijk", IsLatest: false}
-					}
-					close(objCh)
-				}()
-				return objCh
+			it: "does not warn about unavailable versions for an empty bucket",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan()
 			},
-			bucketName:           "BUCKET-NAME",
-			showVersions:         true,
-			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: `class="version-row" style="display: none;`,
+			showVersions:       true,
+			expectedStatusCode: http.StatusOK,
+			unexpectedInBody:   []string{"Object versions unavailable"},
 		},
 		{
-			it: "does not hide folders or objects when the provider never sets IsLatest on versioned entries",
+			it: "does not hide folders or objects when the provider never sets IsLatest",
 			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					defer close(objCh)
-					if !opts.WithVersions {
-						return
-					}
-					// Folders synthesized from CommonPrefixes never carry
-					// version metadata, and some providers don't reliably
-					// set IsLatest on real objects either.
-					objCh <- minio.ObjectInfo{Key: "AFolder/"}
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v1-abcdefghijk"}
-				}()
-				return objCh
+				if !opts.WithVersions {
+					return objectChan()
+				}
+				// Folders synthesized from CommonPrefixes never carry version
+				// metadata, and some providers don't reliably set IsLatest on
+				// real objects either.
+				return objectChan(
+					minio.ObjectInfo{Key: "AFolder/"},
+					minio.ObjectInfo{Key: "FILE-NAME", VersionID: "v1-abcdefghijk"},
+				)
 			},
-			bucketName:           "BUCKET-NAME",
 			showVersions:         true,
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "AFolder",
+			expectedBodyContains: []string{"AFolder", "FILE-NAME"},
 			unexpectedInBody:     []string{`class="version-row" style="display: none;`},
 		},
 		{
 			it: "shows the metadata action when ShowMetadata is enabled",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME"}
-					close(objCh)
-				}()
-				return objCh
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME"})
 			},
-			bucketName:           "BUCKET-NAME",
 			showMetadata:         true,
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: `onclick="handleOpenMetadataModal(`,
+			expectedBodyContains: []string{`onclick="handleOpenMetadataModal(`},
 		},
 		{
 			it: "hides the metadata action when ShowMetadata is disabled",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
-				objCh := make(chan minio.ObjectInfo)
-				go func() {
-					objCh <- minio.ObjectInfo{Key: "FILE-NAME"}
-					close(objCh)
-				}()
-				return objCh
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME"})
 			},
-			bucketName:           "BUCKET-NAME",
 			showMetadata:         false,
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "FILE-NAME",
+			expectedBodyContains: []string{"FILE-NAME"},
 			unexpectedInBody:     []string{`onclick="handleOpenMetadataModal(`},
 		},
 	}
@@ -334,20 +258,29 @@ func TestHandleBucketView(t *testing.T) {
 
 			s3 := &mocks.S3Mock{
 				ListObjectsFunc: tc.listObjectsFunc,
-				EndpointURLFunc: func() *url.URL {
-					u, _ := url.Parse("http://localhost:9000")
-					return u
-				},
+				EndpointURLFunc: mustParseURLFunc("http://localhost:9000"),
+			}
+			instances := s3manager.S3Instances{{ID: "1", Name: "primary", Client: s3}}
+			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
+
+			instanceName := tc.instanceName
+			if instanceName == "" {
+				instanceName = "primary"
 			}
 
-			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 			r := mux.NewRouter()
-			r.PathPrefix("/buckets/").Handler(s3manager.HandleBucketView(s3, templates, true, true, tc.rootUrl, tc.showVersions, tc.showMetadata)).Methods(http.MethodGet)
+			r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketView(instances, templates, s3manager.Options{
+				RootURL:       tc.rootURL,
+				AllowDelete:   true,
+				ListRecursive: true,
+				ShowVersions:  tc.showVersions,
+				ShowMetadata:  tc.showMetadata,
+			})).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
-			resp, err := http.Get(fmt.Sprintf("%s/buckets/%s/%s", ts.URL, tc.bucketName, tc.path))
+			resp, err := http.Get(fmt.Sprintf("%s/%s/buckets/BUCKET-NAME/%s", ts.URL, instanceName, tc.path))
 			is.NoErr(err)
 			defer func() {
 				err = resp.Body.Close()
@@ -356,19 +289,17 @@ func TestHandleBucketView(t *testing.T) {
 			body, err := io.ReadAll(resp.Body)
 			is.NoErr(err)
 
-			is.Equal(tc.expectedStatusCode, resp.StatusCode)                 // status code
-			is.True(strings.Contains(string(body), tc.expectedBodyContains)) // body
+			is.Equal(tc.expectedStatusCode, resp.StatusCode) // status code
+			for _, expected := range tc.expectedBodyContains {
+				is.True(strings.Contains(string(body), expected)) // expected body content
+			}
 			for _, unexpected := range tc.unexpectedInBody {
-				is.True(!strings.Contains(string(body), unexpected))
+				is.True(!strings.Contains(string(body), unexpected)) // unexpected body content
 			}
 
-			// fmt.Println(string(body))
-			if tc.expectedStatusCode == http.StatusOK {
-				backLink := fmt.Sprintf("<a href=\"%s/buckets\" class=\"button circle transparent\">", tc.rootUrl)
+			if resp.StatusCode == http.StatusOK {
+				backLink := fmt.Sprintf("<a href=%q class=\"button circle transparent\">", tc.rootURL+"/primary/buckets")
 				is.True(strings.Contains(string(body), backLink)) // back link honours the root URL
-
-				breadcrumb := fmt.Sprintf("<a class=\"link\" href=\"%s/buckets/%s/\">%s</a>", tc.rootUrl, tc.bucketName, tc.bucketName)
-				is.True(strings.Contains(string(body), breadcrumb)) // breadcrumb honours the root URL
 			}
 		})
 	}

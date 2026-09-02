@@ -2,62 +2,65 @@ package s3manager
 
 import (
 	"fmt"
-	"html/template"
 	"io/fs"
 	"net/http"
+
+	"github.com/minio/minio-go/v7"
 )
 
-// HandleBucketsView renders all buckets on an HTML page.
-func HandleBucketsView(s3 S3, templates fs.FS, allowDelete bool, rootURL string, bucketName string) http.HandlerFunc {
+// HandleBucketsView renders all buckets of an S3 instance on an HTML page.
+func HandleBucketsView(instances S3Instances, templates fs.FS, opts Options) http.HandlerFunc {
 	type pageData struct {
 		RootURL      string
-		Buckets      []any
+		Buckets      []minio.BucketInfo
 		AllowDelete  bool
 		CurrentS3    *S3Instance
-		S3Instances  []*S3Instance
+		S3Instances  S3Instances
 		HasError     bool
 		ErrorMessage string
 	}
 
+	renderer := newPageRenderer(templates, "buckets.html.tmpl")
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		buckets, err := s3.ListBuckets(r.Context())
+		instance, ok := resolveInstance(w, r, instances)
+		if !ok {
+			return
+		}
 
 		data := pageData{
-			RootURL:     rootURL,
-			AllowDelete: allowDelete,
-			HasError:    false,
+			RootURL:     opts.RootURL,
+			AllowDelete: opts.AllowDelete,
+			CurrentS3:   instance,
+			S3Instances: instances,
 		}
 
-		if err != nil {
-			handleHTTPError(w, fmt.Errorf("error listing buckets: %w", err))
-			return
+		buckets, err := instance.Client.ListBuckets(r.Context())
+		switch {
+		case err != nil:
+			// An unreachable instance is reported on the page itself so that
+			// the user can switch to another one instead of being stuck on an
+			// error page.
+			data.HasError = true
+			data.ErrorMessage = fmt.Sprintf("Unable to connect to S3 instance '%s'. Please check the credentials and try switching to another instance.", instance.Name)
+		case opts.BucketName != "":
+			data.Buckets = filterBuckets(buckets, opts.BucketName)
+		default:
+			data.Buckets = buckets
 		}
 
-		if bucketName != "" {
-			filtered := buckets[:0]
-			for _, b := range buckets {
-				if b.Name == bucketName {
-					filtered = append(filtered, b)
-					break
-				}
-			}
-			buckets = filtered
-		}
+		renderer(w, data)
+	}
+}
 
-		data.Buckets = make([]any, len(buckets))
-		for i, bucket := range buckets {
-			data.Buckets[i] = bucket
-		}
-
-		t, err := template.ParseFS(templates, "layout.html.tmpl", "buckets.html.tmpl")
-		if err != nil {
-			handleHTTPError(w, fmt.Errorf("error parsing template files: %w", err))
-			return
-		}
-		err = t.ExecuteTemplate(w, "layout", data)
-		if err != nil {
-			handleHTTPError(w, fmt.Errorf("error executing template: %w", err))
-			return
+// filterBuckets narrows a bucket listing down to the single bucket the app is
+// restricted to, if that bucket exists.
+func filterBuckets(buckets []minio.BucketInfo, name string) []minio.BucketInfo {
+	for _, bucket := range buckets {
+		if bucket.Name == name {
+			return []minio.BucketInfo{bucket}
 		}
 	}
+
+	return nil
 }

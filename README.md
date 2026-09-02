@@ -9,28 +9,71 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 
 ## Features
 
-- List all buckets in your account
-- Create a new bucket
-- List all objects in a bucket
-- Upload new objects to a bucket
-- Download object from a bucket
+- Manage several S3 accounts side by side and switch between them
+- List, create and delete buckets
+- View and edit a bucket's policy
+- List a bucket's objects with search, sorting and pagination
+- Upload single objects or whole folders to a bucket
+- Download an object, or several selected ones as a ZIP archive
 - Open an object in the browser (click its name or use the `Open` action)
-- Delete an object in a bucket
+- Delete a single object or several selected ones
+- Create a time-limited download link for an object
+- Check whether an object is publicly accessible and copy its public link
 - Show object metadata (including user metadata) and object versions
 
 ## Usage
 
 ### Configuration
 
-The application can be configured with the following environment variables:
+The application is configured with environment variables.
 
-- `ENDPOINT`: The endpoint of your S3 server (defaults to `s3.amazonaws.com`)
+#### S3 instances
+
+Every S3 account the app should manage is configured with a numbered set of
+variables, starting at `1_`. The app stops looking at the first number that has
+no `NAME` or no `ENDPOINT`, so the numbering must not have gaps. Each instance
+appears in the app under its `NAME` and is reachable under `/<NAME>/buckets`
+(or `/<NUMBER>/buckets`), so pick names that work in a URL:
+
+```shell
+1_NAME=production
+1_ENDPOINT=s3.amazonaws.com
+1_ACCESS_KEY_ID=XXX
+1_SECRET_ACCESS_KEY=xxx
+
+2_NAME=backups
+2_ENDPOINT=minio.example.com:9000
+2_ACCESS_KEY_ID=YYY
+2_SECRET_ACCESS_KEY=yyy
+```
+
+A single instance may also be configured without a number (it is then named
+`Default`), which is how earlier versions of the app were configured:
+
+```shell
+ENDPOINT=s3.amazonaws.com
+ACCESS_KEY_ID=XXX
+SECRET_ACCESS_KEY=xxx
+```
+
+The variables below are read per instance, either with a `N_` prefix or, for a
+single unnamed instance, without one. At least one instance must be configured.
+
+- `NAME`: The name the instance is shown and addressed under (required in the numbered form; a single unnamed instance is called `Default`)
+- `ENDPOINT`: The endpoint of your S3 server (required, for example `s3.amazonaws.com`)
 - `REGION`: The region of your S3 server (defaults to `""`)
 - `ACCESS_KEY_ID`: Your S3 access key ID (required) (works only if `USE_IAM` is `false`)
 - `SECRET_ACCESS_KEY`: Your S3 secret access key (required) (works only if `USE_IAM` is `false`)
+- `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)
+- `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
 - `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
 - `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
 - `SIGNATURE_TYPE`: The signature type to be used (defaults to `V4`; valid values are `V2, V4, V4Streaming, Anonymous`)
+
+#### Application
+
+These variables apply to the whole app and are never prefixed:
+
 - `PORT`: The port the app should listen on (defaults to `8080`)
 - `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
 - `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`; only affects the `Download` action, not `Open`)
@@ -39,8 +82,6 @@ The application can be configured with the following environment variables:
 - `SHOW_METADATA`: Show the object metadata action and enable the metadata endpoint (defaults to `true`)
 - `TZ`: IANA timezone used when displaying object Last Modified times (defaults to UTC; for example `Europe/Berlin`)
 - `BUCKET_NAME`: Restrict the buckets view to a single named bucket (defaults to unset, showing all buckets)
-- `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)
-- `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
 - `SSE_TYPE`: Specified server side encryption (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
 - `SSE_KEY`: The key needed for SSE method (only for `KMS` and `SSE-C`)
 - `TIMEOUT`: The read and write timeout in seconds (default to `600` - 10 minutes)
@@ -53,7 +94,7 @@ The application can be configured with the following environment variables:
 
 ### Run Container image
 
-1. Run `docker run -p 8080:8080 -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' cloudlena/s3manager`
+1. Run `docker run -p 8080:8080 -e 'ENDPOINT=s3.amazonaws.com' -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' cloudlena/s3manager`
 
 ### Deploy to Kubernetes
 
@@ -100,7 +141,7 @@ The image is available on [Docker Hub](https://hub.docker.com/r/cloudlena/s3mana
 
 ### Run Locally for Testing
 
-There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/main/docker-compose.yml) file that spins up an S3 service and the S3 Manager. You can try it by issuing the following command:
+There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/main/docker-compose.yml) file that spins up two S3 services and the S3 Manager configured for both of them. You can try it by issuing the following command:
 
 ```shell
 $ docker-compose up

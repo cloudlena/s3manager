@@ -1,6 +1,5 @@
 {{ define "content" }}
-{{ $instancePath := "" }}
-{{ if $.CurrentS3 }}{{ $instancePath = printf "/%s" $.CurrentS3.Name }}{{ end }}
+{{ $instancePath := printf "/%s" $.CurrentS3.Name }}
 
 <header class="fixed surface-container">
     <nav>

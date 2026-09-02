@@ -1,7 +1,6 @@
 package s3manager
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -39,19 +38,10 @@ func HandleGetObjectMetadata(s3 S3) http.HandlerFunc {
 
 		userMetadata := info.UserMetadata
 		if len(userMetadata) == 0 {
-			// AWS S3 doesn't populate UserMetadata; derive it from the raw
-			// headers by stripping the x-amz-meta- prefix.
-			userMetadata = make(map[string]string)
-			for key, values := range info.Metadata {
-				lowerKey := strings.ToLower(key)
-				if !strings.HasPrefix(lowerKey, "x-amz-meta-") || len(values) == 0 {
-					continue
-				}
-				userMetadata[strings.TrimPrefix(lowerKey, "x-amz-meta-")] = values[0]
-			}
+			userMetadata = userMetadataFromHeaders(info.Metadata)
 		}
 
-		response := objectMetadata{
+		writeJSON(w, http.StatusOK, objectMetadata{
 			Key:          info.Key,
 			VersionID:    info.VersionID,
 			Size:         info.Size,
@@ -61,12 +51,24 @@ func HandleGetObjectMetadata(s3 S3) http.HandlerFunc {
 			StorageClass: info.StorageClass,
 			IsLatest:     info.IsLatest,
 			UserMetadata: userMetadata,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			handleHTTPError(w, fmt.Errorf("error encoding JSON: %w", err))
-			return
-		}
+		})
 	}
+}
+
+// userMetadataFromHeaders derives the user metadata from the raw response
+// headers, which is where it has to be read from for providers that don't
+// populate minio's UserMetadata field (notably AWS S3 itself).
+func userMetadataFromHeaders(headers http.Header) map[string]string {
+	const prefix = "x-amz-meta-"
+
+	userMetadata := make(map[string]string)
+	for key, values := range headers {
+		key = strings.ToLower(key)
+		if !strings.HasPrefix(key, prefix) || len(values) == 0 {
+			continue
+		}
+		userMetadata[strings.TrimPrefix(key, prefix)] = values[0]
+	}
+
+	return userMetadata
 }

@@ -2,9 +2,11 @@ package s3manager
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -12,22 +14,14 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
-// BulkDeleteRequest represents the request body for bulk delete
-type BulkDeleteRequest struct {
-	Keys []string `json:"keys"`
-}
-
-// BulkDownloadRequest represents the request body for bulk download
-type BulkDownloadRequest struct {
-	Keys []string `json:"keys"`
-}
-
 // HandleBulkDeleteObjects deletes multiple objects from a bucket.
 func HandleBulkDeleteObjects(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 
-		var req BulkDeleteRequest
+		var req struct {
+			Keys []string `json:"keys"`
+		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			handleHTTPError(w, fmt.Errorf("error parsing request: %w", err))
 			return
@@ -38,10 +32,7 @@ func HandleBulkDeleteObjects(s3 S3) http.HandlerFunc {
 			return
 		}
 
-		// Create a channel for objects to delete
 		objectsCh := make(chan minio.ObjectInfo)
-
-		// Send object names to the channel
 		go func() {
 			defer close(objectsCh)
 			for _, key := range req.Keys {
@@ -49,40 +40,31 @@ func HandleBulkDeleteObjects(s3 S3) http.HandlerFunc {
 			}
 		}()
 
-		// Remove objects
-		errorCh := s3.RemoveObjects(r.Context(), bucketName, objectsCh, minio.RemoveObjectsOptions{})
-
-		// Check for errors
-		for err := range errorCh {
+		for err := range s3.RemoveObjects(r.Context(), bucketName, objectsCh, minio.RemoveObjectsOptions{}) {
 			if err.Err != nil {
 				handleHTTPError(w, fmt.Errorf("error removing object %s: %w", err.ObjectName, err.Err))
 				return
 			}
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte(`{"success": true}`)); err != nil {
-			// Response already sent, can only log the error
-			fmt.Printf("error writing response: %v\n", err)
-		}
+		writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 	}
 }
 
 // HandleBulkDownloadObjects downloads multiple objects as a ZIP archive.
+// Objects that cannot be read are skipped: the archive is already being
+// streamed to the client, so there is no way to report an error anymore.
 func HandleBulkDownloadObjects(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 
-		// Parse the form to get the keys
 		if err := r.ParseForm(); err != nil {
 			handleHTTPError(w, fmt.Errorf("error parsing form: %w", err))
 			return
 		}
 
-		keysJSON := r.FormValue("keys")
 		var keys []string
-		if err := json.Unmarshal([]byte(keysJSON), &keys); err != nil {
+		if err := json.Unmarshal([]byte(r.FormValue("keys")), &keys); err != nil {
 			handleHTTPError(w, fmt.Errorf("error parsing keys: %w", err))
 			return
 		}
@@ -92,51 +74,45 @@ func HandleBulkDownloadObjects(s3 S3) http.HandlerFunc {
 			return
 		}
 
-		// Set headers for ZIP download
-		timestamp := time.Now().Format("20060102-150405")
-		zipFilename := fmt.Sprintf("%s-%s.zip", bucketName, timestamp)
+		zipName := fmt.Sprintf("%s-%s.zip", bucketName, time.Now().Format("20060102-150405"))
 		w.Header().Set("Content-Type", "application/zip")
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", zipFilename))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", zipName))
 
-		// Create a new ZIP writer
 		zipWriter := zip.NewWriter(w)
 		defer func() {
 			if err := zipWriter.Close(); err != nil {
-				// Can't return HTTP error at this point, just log
-				fmt.Printf("error closing zip writer: %v\n", err)
+				log.Printf("error closing zip writer: %v", err)
 			}
 		}()
 
-		// Add each object to the ZIP
 		for _, key := range keys {
-			// Get the object from S3
-			object, err := s3.GetObject(r.Context(), bucketName, key, minio.GetObjectOptions{})
-			if err != nil {
-				// Log error but continue with other files
-				continue
-			}
-
-			// Get object info to check if it's valid
-			_, err = object.Stat()
-			if err != nil {
-				_ = object.Close()
-				continue
-			}
-
-			// Create a file in the ZIP
-			zipFile, err := zipWriter.Create(key)
-			if err != nil {
-				_ = object.Close()
-				continue
-			}
-
-			// Copy the object content to the ZIP file
-			_, err = io.Copy(zipFile, object)
-			_ = object.Close()
-			if err != nil {
-				// Error writing to ZIP, but we can't return HTTP error at this point
-				continue
+			if err := addObjectToZip(r.Context(), s3, zipWriter, bucketName, key); err != nil {
+				log.Printf("error adding object %s to zip: %v", key, err)
 			}
 		}
 	}
+}
+
+// addObjectToZip streams a single object into the ZIP archive.
+func addObjectToZip(ctx context.Context, s3 S3, zipWriter *zip.Writer, bucketName, key string) error {
+	object, err := s3.GetObject(ctx, bucketName, key, minio.GetObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting object: %w", err)
+	}
+	defer func() { _ = object.Close() }()
+
+	if _, err := object.Stat(); err != nil {
+		return fmt.Errorf("error getting object info: %w", err)
+	}
+
+	zipFile, err := zipWriter.Create(key)
+	if err != nil {
+		return fmt.Errorf("error creating zip entry: %w", err)
+	}
+
+	if _, err := io.Copy(zipFile, object); err != nil {
+		return fmt.Errorf("error writing zip entry: %w", err)
+	}
+
+	return nil
 }

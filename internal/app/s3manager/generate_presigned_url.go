@@ -1,7 +1,6 @@
 package s3manager
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,38 +10,33 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// maxPresignedURLExpiry is the longest lifetime S3 accepts for a presigned URL.
+const maxPresignedURLExpiry = 7 * 24 * time.Hour
+
 // HandleGenerateURL generates a presigned URL.
 func HandleGenerateURL(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 		objectName := mux.Vars(r)["objectName"]
-		expiry := r.URL.Query().Get("expiry")
 
-		parsedExpiry, err := strconv.ParseInt(expiry, 10, 0)
+		seconds, err := strconv.ParseInt(r.URL.Query().Get("expiry"), 10, 64)
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error converting expiry: %w", err))
 			return
 		}
 
-		if parsedExpiry > 7*24*60*60 || parsedExpiry < 1 {
-			handleHTTPError(w, fmt.Errorf("invalid expiry value: %v", parsedExpiry))
+		if seconds < 1 || seconds > int64(maxPresignedURLExpiry/time.Second) {
+			handleHTTPError(w, fmt.Errorf("invalid expiry value: %v", seconds))
 			return
 		}
 
-		expiryDuration := time.Duration(parsedExpiry) * time.Second
-		reqParams := make(url.Values)
-		url, err := s3.PresignedGetObject(r.Context(), bucketName, objectName, expiryDuration, reqParams)
+		expiry := time.Duration(seconds) * time.Second
+		presignedURL, err := s3.PresignedGetObject(r.Context(), bucketName, objectName, expiry, url.Values{})
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error generating url: %w", err))
 			return
 		}
 
-		encoder := json.NewEncoder(w)
-		encoder.SetEscapeHTML(false)
-		err = encoder.Encode(map[string]string{"url": url.String()})
-		if err != nil {
-			handleHTTPError(w, fmt.Errorf("error encoding JSON: %w", err))
-			return
-		}
+		writeJSON(w, http.StatusOK, map[string]string{"url": presignedURL.String()})
 	}
 }
