@@ -364,8 +364,11 @@ func TestHandleBucketView(t *testing.T) {
 
 			// fmt.Println(string(body))
 			if tc.expectedStatusCode == http.StatusOK {
-				hyperlink := fmt.Sprintf("<a href=\"%s/buckets\" class=\"breadcrumb\"><i class=\"material-icons\">arrow_back</i> buckets </a>", tc.rootUrl)
-				is.True(strings.Contains(string(body), hyperlink))
+				backLink := fmt.Sprintf("<a href=\"%s/buckets\" class=\"button circle transparent\">", tc.rootUrl)
+				is.True(strings.Contains(string(body), backLink)) // back link honours the root URL
+
+				breadcrumb := fmt.Sprintf("<a class=\"link\" href=\"%s/buckets/%s/\">%s</a>", tc.rootUrl, tc.bucketName, tc.bucketName)
+				is.True(strings.Contains(string(body), breadcrumb)) // breadcrumb honours the root URL
 			}
 		})
 	}

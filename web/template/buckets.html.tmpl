@@ -1,113 +1,104 @@
 {{ define "content" }}
 {{ $instancePath := "" }}
 {{ if $.CurrentS3 }}{{ $instancePath = printf "/%s" $.CurrentS3.Name }}{{ end }}
-<nav>
-    <div class="nav-wrapper container">
-        <a href="{{$.RootURL}}" class="brand-logo">S3 Manager</a>
-        {{ if .CurrentS3 }}
-        <span class="right">
-            <i class="material-icons left">storage</i>{{ .CurrentS3.Name }}
-        </span>
+
+<header class="fixed surface-container">
+    <nav>
+        <a href="{{$.RootURL}}{{$instancePath}}/buckets" class="row no-margin">
+            <i>database</i>
+            <h6 class="small no-margin">S3 Manager</h6>
+        </a>
+        <div class="max"></div>
+        {{ template "appbar-actions" . }}
+    </nav>
+</header>
+
+<main class="responsive">
+    {{ if .HasError }}
+    <article class="error-container round border no-elevate">
+        <nav>
+            <i class="large">error</i>
+            <div class="max">
+                <h6 class="small">Connection error</h6>
+                <p class="no-margin">{{ .ErrorMessage }}</p>
+                {{ if gt (len .S3Instances) 1 }}
+                <p class="small-text">Try switching to another S3 instance from the menu above.</p>
+                {{ end }}
+            </div>
+        </nav>
+    </article>
+
+    {{ else if .Buckets }}
+    <div class="grid">
+        {{ range $bucket := .Buckets }}
+        <div class="s12 m6 l4">
+            <article class="no-padding round border no-elevate">
+                <a class="row padding wave" href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $bucket.Name }}">
+                    <i class="large">folder</i>
+                    <div class="max">
+                        <h6 class="small no-margin truncate">{{ $bucket.Name }}</h6>
+                        <div class="small-text secondary-text">Created {{ $bucket.CreationDate.Local.Format "2006-01-02" }}</div>
+                    </div>
+                    <i>chevron_right</i>
+                </a>
+            </article>
+        </div>
         {{ end }}
     </div>
-</nav>
 
-<div class="container">
-    <div class="section">
-        <div class="row">
-
-            {{ if .HasError }}
-            <div class="col s12">
-                <div class="card red lighten-4">
-                    <div class="card-content">
-                        <div class="row">
-                            <div class="col s2">
-                                <i class="material-icons large red-text">error</i>
-                            </div>
-                            <div class="col s10">
-                                <span class="card-title red-text text-darken-2">Connection Error</span>
-                                <p>{{ .ErrorMessage }}</p>
-                                {{ if gt (len .S3Instances) 1 }}
-                                <p><strong>Tip:</strong> Try switching to another S3 instance from the list below.</p>
-                                {{ end }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {{ else if .Buckets }}
-            {{ range $bucket := .Buckets }}
-            <div class="col l6 m12">
-                <a href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $bucket.Name }}" style="color:black;">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="row">
-                                <div class="col">
-                                    <i class="material-icons large">folder_open</i>
-                                </div>
-                                <div class="col">
-                                    <span class="card-title">
-                                        {{ $bucket.Name }}
-                                    </span>
-                                    <p style="color:gray;">Created on {{ $bucket.CreationDate }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            {{ end }}
-            {{ else }}
-            <p style="text-align:center;margin-top:2em;color:gray;">No buckets yet</p>
-            {{ end }}
-
+    {{ else }}
+    <div class="medium-height middle-align center-align">
+        <div class="center-align">
+            <i class="extra secondary-text">folder_open</i>
+            <h6>No buckets yet</h6>
+            <p class="secondary-text">Create your first bucket to get started.</p>
+            <div class="space"></div>
+            <button class="round" data-ui="#dialog-create-bucket">
+                <i>add</i>
+                <span>Create bucket</span>
+            </button>
         </div>
     </div>
-</div>
+    {{ end }}
+</main>
 
 {{ if not .HasError }}
-<div class="fixed-action-btn">
-    <button type="button" class="btn-floating btn-large red modal-trigger" data-target="modal-create-bucket">
-        <i class="material-icons large">add</i>
-    </button>
-</div>
+<button class="circle extra fixed right bottom margin" data-ui="#dialog-create-bucket">
+    <i>add</i>
+    <span class="tooltip left">Create bucket</span>
+</button>
 {{ end }}
 
-<div id="modal-create-bucket" class="modal">
-    <form id="create-bucket-form">
-        <div class="modal-content">
-            <h4>Create Bucket</h4>
-            <br>
-            <div class="row">
-                <div class="input-field col m6">
-                    <input id="name" type="text" name="name" placeholder="My Bucket">
-                    <label for="name">Name</label>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal-footer">
-            <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="button" class="modal-close waves-effect waves-green btn" onclick="createBucket()">Create</button>
-        </div>
-    </form>
-</div>
+<dialog class="modal" id="dialog-create-bucket">
+    <h5>Create bucket</h5>
+    <div class="field label border">
+        <input type="text" id="bucket-name" autocomplete="off" placeholder=" ">
+        <label>Name</label>
+    </div>
+    <div class="error-text" id="create-bucket-error"></div>
+    <nav class="right-align no-space">
+        <button class="transparent link" data-ui="#dialog-create-bucket">Cancel</button>
+        <button onclick="createBucket()">Create</button>
+    </nav>
+</dialog>
 
 <script>
-    function createBucket() {
-        var formData = {};
-        $.each($('#create-bucket-form')
-            .serializeArray(), function(i, field) {
-                formData[field.name] = field.value;
-            });
-        $.ajax({
-            type: 'POST',
-            url: '{{$.RootURL}}{{$instancePath}}/api/buckets',
-            data: JSON.stringify(formData),
-            dataType: 'json',
-            contentType: 'application/json; charset=utf-8',
-            success: function() { location.reload(); }
-        });
+    async function createBucket() {
+        const name = document.getElementById("bucket-name").value.trim();
+        const error = document.getElementById("create-bucket-error");
+        error.textContent = "";
+
+        if (!name) {
+            error.textContent = "Please enter a bucket name.";
+            return;
+        }
+
+        try {
+            await request("POST", "{{$.RootURL}}{{$instancePath}}/api/buckets", { json: { name: name } });
+            location.reload();
+        } catch (e) {
+            error.textContent = e.message;
+        }
     }
 </script>
 {{ end }}

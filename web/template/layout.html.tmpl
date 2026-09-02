@@ -3,118 +3,146 @@
 <html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google" content="notranslate">
     <title>S3 Manager</title>
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="{{$.RootURL}}/static/css/beer.min.css">
+    <script type="module" src="{{$.RootURL}}/static/js/beer.min.js"></script>
 
-    <link rel="stylesheet" href="{{$.RootURL}}/static/css/material-fonts.css" />
-    <link rel="stylesheet" href="{{$.RootURL}}/static/css/materialize.min.css" />
     <style>
-        .s3-instance-switcher {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
-        .s3-instance-button {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 56px;
-            height: 56px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-        .s3-instance-button:hover {
-            background-color: #1976D2;
-        }
-        .s3-instance-dropdown {
-            position: absolute;
-            bottom: 65px;
-            left: 0;
-            background: white;
-            border-radius: 4px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            min-width: 200px;
-            display: none;
-        }
-        .s3-instance-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-            display: block;
-            text-decoration: none;
-            color: #333;
-        }
-        .s3-instance-item:hover {
-            background-color: #f5f5f5;
-        }
-        .s3-instance-item.active {
-            background-color: #e3f2fd;
-            color: #1976d2;
-            font-weight: bold;
-        }
-        .s3-instance-item:last-child {
-            border-bottom: none;
-        }
+        /* The app bar spans the window while its content lines up with <main>. */
+        header { padding-inline: 0; border-block-end: 0.0625rem solid var(--outline-variant); }
+        header > nav { inline-size: 100%; max-inline-size: min(100vw, 75rem); margin-inline: auto; padding-inline: 1rem; }
+        header.wide > nav { max-inline-size: none; }
+        main { padding-inline: 1rem; }
+
+        .truncate { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .clickable { cursor: pointer; }
+        #uploads { position: fixed; inset-block-start: 5rem; inset-inline-end: 1rem; z-index: 20; max-inline-size: 20rem; }
     </style>
 </head>
 
 <body>
+    <script>
+        // Restore the mode the user picked before beer.js decides on its own.
+        try {
+            var savedMode = localStorage.getItem("s3manager-mode");
+            if (savedMode === "dark" || savedMode === "light") {
+                document.body.classList.add(savedMode);
+            }
+        } catch (e) { /* storage unavailable */ }
+    </script>
 
     {{ template "content" . }}
 
-    <!-- S3 Instance Switcher -->
-    {{ if and .S3Instances (gt (len .S3Instances) 1) }}
-    <div class="s3-instance-switcher">
-        <button class="s3-instance-button" onclick="toggleS3Dropdown()">
-            <i class="material-icons">storage</i>
-        </button>
-        <div id="s3-instance-dropdown" class="s3-instance-dropdown">
-            {{ range .S3Instances }}
-            <a class="s3-instance-item {{ if and $.CurrentS3 (eq .Name $.CurrentS3.Name) }}active{{ end }}" 
-               href="{{$.RootURL}}/{{ .Name }}/buckets">
-                {{ .Name }}
-            </a>
-            {{ end }}
-        </div>
+    <div class="snackbar" id="snackbar">
+        <i id="snackbar-icon">info</i>
+        <span id="snackbar-text"></span>
     </div>
-    {{ end }}
 
-    <script
-      src="{{$.RootURL}}/static/js/jquery-3.6.0.min.js"
-    ></script>
-    <script src="{{$.RootURL}}/static/js/materialize.min.js"></script>
     <script>
-        $(document).ready(function(){
-            $('.dropdown-trigger').dropdown();
-            $('.modal').modal();
-        });
+        // --- Feedback -------------------------------------------------------
 
-        function toggleS3Dropdown() {
-            const dropdown = document.getElementById('s3-instance-dropdown');
-            if (dropdown) {
-                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        function toast(message, icon) {
+            document.getElementById("snackbar-icon").textContent = icon || "info";
+            document.getElementById("snackbar-text").textContent = message;
+            ui("#snackbar", 4000);
+        }
+
+        function copyToClipboard(value) {
+            if (!value) return;
+            navigator.clipboard.writeText(value).then(
+                () => toast("Copied to clipboard", "content_copy"),
+                (err) => toast("Could not copy: " + err, "error")
+            );
+        }
+
+        // --- HTTP -----------------------------------------------------------
+
+        // request wraps fetch so that a non-2xx response rejects with the body
+        // text, which is what every handler in this app returns on failure.
+        async function request(method, url, options) {
+            options = options || {};
+            const init = { method: method };
+            if (options.json !== undefined) {
+                init.headers = { "Content-Type": "application/json; charset=utf-8" };
+                init.body = typeof options.json === "string" ? options.json : JSON.stringify(options.json);
+            } else if (options.body !== undefined) {
+                init.body = options.body;
+            }
+
+            const response = await fetch(url, init);
+            const text = await response.text();
+            if (!response.ok) {
+                throw new Error(text.trim() || response.statusText);
+            }
+            try {
+                return text ? JSON.parse(text) : null;
+            } catch (e) {
+                return text;
             }
         }
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            const switcher = document.querySelector('.s3-instance-switcher');
-            const dropdown = document.getElementById('s3-instance-dropdown');
-            if (switcher && dropdown && !switcher.contains(event.target)) {
-                dropdown.style.display = 'none';
+        // --- Theme ----------------------------------------------------------
+
+        function toggleMode() {
+            const mode = ui("mode") === "dark" ? "light" : "dark";
+            ui("mode", mode);
+            try {
+                localStorage.setItem("s3manager-mode", mode);
+            } catch (e) { /* storage unavailable */ }
+            updateModeIcon();
+        }
+
+        function updateModeIcon() {
+            const icon = document.getElementById("mode-icon");
+            if (icon) {
+                icon.textContent = ui("mode") === "dark" ? "light_mode" : "dark_mode";
             }
-        });
+        }
+
+        window.addEventListener("load", updateModeIcon);
     </script>
 </body>
 
 </html>
+{{ end }}
+
+{{/* appbar-actions renders the parts of the top app bar that every page shares:
+     the S3 instance switcher and the light/dark mode toggle. */}}
+{{ define "appbar-actions" }}
+    {{ if .CurrentS3 }}
+    {{ if gt (len .S3Instances) 1 }}
+    <div>
+        <button class="chip border" data-ui="#instance-menu">
+            <i>database</i>
+            <span>{{ .CurrentS3.Name }}</span>
+            <i>arrow_drop_down</i>
+        </button>
+        <menu id="instance-menu" class="left no-wrap border">
+            {{ range .S3Instances }}
+            <li>
+                <a href="{{$.RootURL}}/{{ .Name }}/buckets">
+                    <i>{{ if and $.CurrentS3 (eq .Name $.CurrentS3.Name) }}check{{ else }}database{{ end }}</i>
+                    <span>{{ .Name }}</span>
+                </a>
+            </li>
+            {{ end }}
+        </menu>
+    </div>
+    {{ else }}
+    <div class="chip border">
+        <i>database</i>
+        <span>{{ .CurrentS3.Name }}</span>
+    </div>
+    {{ end }}
+    {{ end }}
+
+    <button class="circle transparent" onclick="toggleMode()">
+        <i id="mode-icon">dark_mode</i>
+        <span class="tooltip bottom">Toggle theme</span>
+    </button>
 {{ end }}

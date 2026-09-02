@@ -1,1471 +1,1089 @@
 {{ define "content" }}
 {{ $instancePath := "" }}
 {{ if $.CurrentS3 }}{{ $instancePath = printf "/%s" $.CurrentS3.Name }}{{ end }}
+
 <style>
-.breadcrumb:before {
-    content: '/';
-}
-#notifications {
-    top: 20px;
-    right: 30px;
-    position: fixed;
-    z-index: 2
-}
-.sortable-header {
-    cursor: pointer;
-    user-select: none;
-}
-.sortable-header:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-.sort-icon {
-    font-size: 16px;
-    vertical-align: middle;
-    margin-left: 4px;
-}
-.monospace {
-    font-family: monospace !important;
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-    white-space: pre-wrap !important;
-    tab-size: 2;
-    padding: 8px !important;
-    border: 1px solid #ddd !important;
-    border-radius: 4px !important;
-    height: 480px !important;
-    overflow-y: auto !important;
-}
+    #policy { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; tab-size: 2; }
+    .breadcrumbs > * { margin-inline-end: 0.25rem; }
+    td .row { gap: 0.5rem; }
+    th { white-space: nowrap; }
+    /* Keys and owner IDs can be arbitrarily long; cap them instead of
+       letting a single row stretch the whole table. */
+    .key-cell { max-inline-size: 32rem; }
+    .owner-cell { max-inline-size: 12rem; }
+    #dialog-edit-policy { inline-size: 90%; max-inline-size: 56rem; }
 </style>
 
-<nav class="nav-extended">
-    <div class="nav-wrapper container">
-        <a href="{{$.RootURL}}{{$instancePath}}/buckets/{{$.BucketName}}" class="brand-logo center"><i class="material-icons">folder_open</i>{{ .BucketName }}</a>
-        <ul class="right">
-            {{ if and (not .Objects) (not .HasError) }}
-            <li>
-                <a class="waves-effect waves-light btn" href="#" onclick="deleteBucket({{ .BucketName }})">
-                    Delete <i class="material-icons right">delete</i>
-                </a>
-            </li>
-            {{ end }}
-            <li>
-                <a class="waves-effect waves-light btn modal-trigger" href="#modal-edit-policy">
-                    Edit Policy <i class="material-icons right">description</i>
-                </a>
-            </li>
-        </ul>
-        <ul class="left">
-            {{ if .CurrentS3 }}
-            <li><span><i class="material-icons left">storage</i>{{ .CurrentS3.Name }}</span></li>
-            {{ end }}
-        </ul>
-    </div>
-
-    <div class="nav-wrapper container">
-        <a href="{{$.RootURL}}{{$instancePath}}/buckets" class="breadcrumb"><i class="material-icons">arrow_back</i> buckets </a>
-        {{ $url := printf "%s%s/buckets/%s/" $.RootURL $instancePath $.BucketName }}
-        <a href="{{ $url }}" class="breadcrumb">{{ $.BucketName }}</a>
-
-        {{ range $index, $path := .Paths }}
-        {{ $url = printf "%s%s/" $url $path }}
-        <a href="{{ $url }}" class="breadcrumb">{{ $path }}</a>
-        {{ end -}}
-    </div>
-  </div>
-</nav>
-
-<div class="section" style="margin: 10px; position: relative; padding-bottom: 3rem;">
-    {{ if .HasError }}
-    <div class="row">
-        <div class="col s12">
-            <div class="card red lighten-4">
-                <div class="card-content">
-                    <div class="row">
-                        <div class="col s1">
-                            <i class="material-icons large red-text">error</i>
-                        </div>
-                        <div class="col s11">
-                            <span class="card-title red-text text-darken-2">Connection Error</span>
-                            <p>{{ .ErrorMessage }}</p>
-                            {{ if gt (len .S3Instances) 1 }}
-                            <p><strong>Tip:</strong> Try switching to another S3 instance from the list below.</p>
-                            {{ end }}
-                            <div style="margin-top: 20px;">
-                                <a href="{{$.RootURL}}{{$instancePath}}/buckets" class="waves-effect waves-green btn">
-                                    <i class="material-icons left">arrow_back</i>Go back to buckets
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {{ else }}
-
-    {{ if .VersionsUnavailable }}
-    <div class="row">
-        <div class="col s12">
-            <div class="card amber lighten-4">
-                <div class="card-content">
-                    <span class="card-title">Object versions unavailable</span>
-                    <p>This bucket does not support listing object versions (it may not have versioning enabled). Showing the latest version of each object instead.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    {{ end }}
-
-    <!-- Search Bar -->
-    <div class="row" style="margin-bottom: 10px;">
-        <div class="col s12 m8 l6">
-            <form id="search-form" onsubmit="return performSearch(event);">
-                <div class="input-field">
-                    <i class="material-icons prefix">search</i>
-                    <input type="text" id="search-input" name="search" value="{{ .Search }}" placeholder="Search objects...">
-                    {{ if .Search }}
-                    <i class="material-icons suffix" onclick="clearSearch()" style="cursor: pointer; position: absolute; right: 0; top: 50%; transform: translateY(-50%);">close</i>
-                    {{ end }}
-                </div>
-            </form>
-        </div>
-        {{ if .Search }}
-        <div class="col s12">
-            <p style="color: #666; margin-top: -10px;">
-                <i class="material-icons tiny" style="vertical-align: middle;">info_outline</i>
-                Showing results for "<strong>{{ .Search }}</strong>"
-                {{ if eq .TotalItems 0 }}
-                - No matches found
+<header class="fixed wide surface-container">
+    <nav>
+        <a href="{{$.RootURL}}{{$instancePath}}/buckets" class="button circle transparent">
+            <i>arrow_back</i>
+            <span class="tooltip bottom">All buckets</span>
+        </a>
+        <i>folder</i>
+        <h6 class="small no-margin truncate">{{ .BucketName }}</h6>
+        <div class="max"></div>
+        {{ template "appbar-actions" . }}
+        {{ if not .HasError }}
+        <div>
+            <button class="circle transparent" data-ui="#bucket-menu">
+                <i>more_vert</i>
+            </button>
+            <menu id="bucket-menu" class="left no-wrap border">
+                <li>
+                    <a onclick="openPolicyDialog()">
+                        <i>description</i>
+                        <span>Edit policy</span>
+                    </a>
+                </li>
+                {{ if not .Objects }}
+                <li>
+                    <a class="error-text" onclick="deleteBucket()">
+                        <i>delete</i>
+                        <span>Delete bucket</span>
+                    </a>
+                </li>
                 {{ end }}
-            </p>
+            </menu>
         </div>
         {{ end }}
-    </div>
+    </nav>
+</header>
+
+<main class="responsive max">
+    {{ if .HasError }}
+    <article class="error-container round border no-elevate">
+        <nav>
+            <i class="large">error</i>
+            <div class="max">
+                <h6 class="small">Connection error</h6>
+                <p class="no-margin">{{ .ErrorMessage }}</p>
+                {{ if gt (len .S3Instances) 1 }}
+                <p class="small-text">Try switching to another S3 instance from the menu above.</p>
+                {{ end }}
+            </div>
+        </nav>
+        <nav>
+            <a class="button" href="{{$.RootURL}}{{$instancePath}}/buckets">
+                <i>arrow_back</i>
+                <span>Back to buckets</span>
+            </a>
+        </nav>
+    </article>
+
+    {{ else }}
+
+    <nav class="breadcrumbs wrap no-space small-text">
+        {{ $url := printf "%s%s/buckets/%s/" $.RootURL $instancePath $.BucketName }}
+        <a class="link" href="{{ $url }}">{{ $.BucketName }}</a>
+        {{ range $path := .Paths }}
+        {{ $url = printf "%s%s/" $url $path }}
+        <span class="secondary-text">/</span>
+        <a class="link" href="{{ $url }}">{{ $path }}</a>
+        {{ end }}
+    </nav>
+
+    {{ if .VersionsUnavailable }}
+    <article class="tertiary-container round border no-elevate">
+        <nav>
+            <i>info</i>
+            <div class="max">
+                <h6 class="small">Object versions unavailable</h6>
+                <p class="no-margin small-text">This bucket does not support listing object versions (it may not have versioning enabled). Showing the latest version of each object instead.</p>
+            </div>
+        </nav>
+    </article>
+    {{ end }}
+
+    <nav class="wrap">
+        <div class="field label prefix {{ if .Search }}suffix {{ end }}border small max" style="max-inline-size: 24rem;">
+            <i>search</i>
+            <input type="text" id="search-input" value="{{ .Search }}" placeholder=" " onkeydown="if (event.key === 'Enter') performSearch()">
+            <label>Search objects</label>
+            {{ if .Search }}
+            <i class="clickable" onclick="clearSearch()">close</i>
+            {{ end }}
+        </div>
+        <button class="small-round" onclick="performSearch()">Search</button>
+    </nav>
+
+    {{ if .Search }}
+    <p class="small-text secondary-text">
+        Showing results for "<strong>{{ .Search }}</strong>"{{ if eq .TotalItems 0 }} — no matches found{{ end }}
+    </p>
+    {{ end }}
 
     {{ if .Objects }}
-    <!-- Bulk Actions Bar -->
-    <div id="bulk-actions-bar" style="margin-bottom: 15px; display: none;">
-        <button class="waves-effect waves-light btn teal" onclick="bulkDownload()" style="margin-right: 10px;">
-            Download Selected
+    <nav id="bulk-actions-bar" class="wrap" style="display: none;">
+        <span class="chip fill" id="selected-count"></span>
+        <button class="small-round" onclick="bulkDownload()">
+            <i>download</i>
+            <span>Download</span>
         </button>
         {{- if $.AllowDelete }}
-        <button class="waves-effect waves-light btn red" onclick="bulkDelete()">
-            Delete Selected
+        <button class="small-round error" onclick="bulkDelete()">
+            <i>delete</i>
+            <span>Delete</span>
         </button>
         {{- end }}
-        <span id="selected-count" style="margin-left: 15px; font-weight: bold;"></span>
-    </div>
+    </nav>
 
-    <table class="striped">
-        <thead>
-            <tr>
-                <th style="width: 40px;">
-                    <label>
-                        <input type="checkbox" id="select-all" onchange="toggleSelectAll()" />
-                        <span></span>
-                    </label>
-                </th>
-                <th class="sortable-header" onclick="sortBy('key')">
-                    Key
-                    {{ if eq .SortBy "key" }}
-                        {{ if eq .SortOrder "asc" }}
-                            <i class="material-icons sort-icon">arrow_upward</i>
-                        {{ else }}
-                            <i class="material-icons sort-icon">arrow_downward</i>
-                        {{ end }}
+    <article class="no-padding round border no-elevate scroll">
+        <table class="border">
+            <thead>
+                <tr>
+                    <th class="min">
+                        <label class="checkbox">
+                            <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                            <span></span>
+                        </label>
+                    </th>
+                    <th class="clickable" onclick="sortBy('key')">
+                        Key
+                        {{ if eq .SortBy "key" }}<i class="tiny">{{ if eq .SortOrder "asc" }}arrow_upward{{ else }}arrow_downward{{ end }}</i>{{ end }}
+                    </th>
+                    <th class="clickable" onclick="sortBy('size')">
+                        Size
+                        {{ if eq .SortBy "size" }}<i class="tiny">{{ if eq .SortOrder "asc" }}arrow_upward{{ else }}arrow_downward{{ end }}</i>{{ end }}
+                    </th>
+                    <th class="clickable" onclick="sortBy('owner')">
+                        Owner
+                        {{ if eq .SortBy "owner" }}<i class="tiny">{{ if eq .SortOrder "asc" }}arrow_upward{{ else }}arrow_downward{{ end }}</i>{{ end }}
+                    </th>
+                    <th class="clickable" onclick="sortBy('lastModified')">
+                        Last Modified
+                        {{ if eq .SortBy "lastModified" }}<i class="tiny">{{ if eq .SortOrder "asc" }}arrow_upward{{ else }}arrow_downward{{ end }}</i>{{ end }}
+                    </th>
+                    {{ if $.ShowVersions }}
+                    <th>Version ID</th>
+                    <th>Latest</th>
                     {{ end }}
-                </th>
-                <th class="sortable-header" onclick="sortBy('size')">
-                    Size
-                    {{ if eq .SortBy "size" }}
-                        {{ if eq .SortOrder "asc" }}
-                            <i class="material-icons sort-icon">arrow_upward</i>
-                        {{ else }}
-                            <i class="material-icons sort-icon">arrow_downward</i>
-                        {{ end }}
-                    {{ end }}
-                </th>
-                <th class="sortable-header" onclick="sortBy('owner')">
-                    Owner
-                    {{ if eq .SortBy "owner" }}
-                        {{ if eq .SortOrder "asc" }}
-                            <i class="material-icons sort-icon">arrow_upward</i>
-                        {{ else }}
-                            <i class="material-icons sort-icon">arrow_downward</i>
-                        {{ end }}
-                    {{ end }}
-                </th>
-                <th class="sortable-header" onclick="sortBy('lastModified')">
-                    Last Modified
-                    {{ if eq .SortBy "lastModified" }}
-                        {{ if eq .SortOrder "asc" }}
-                            <i class="material-icons sort-icon">arrow_upward</i>
-                        {{ else }}
-                            <i class="material-icons sort-icon">arrow_downward</i>
-                        {{ end }}
-                    {{ end }}
-                </th>
-                {{ if $.ShowVersions }}
-                <th>Version ID</th>
-                <th>Latest</th>
-                {{ end }}
-                <th style="min-width:165px;"></th>
-            </tr>
-        </thead>
+                    <th class="right-align">Actions</th>
+                </tr>
+            </thead>
 
-        <tbody>
-            {{ range $index, $object := .Objects }}
-            {{ $isCollapsedVersion := and $.ShowVersions (not $object.IsPrimaryVersion) }}
-            <tr
-                data-version-group="{{ $object.GroupIndex }}"
-                {{ if $isCollapsedVersion }}class="version-row" style="display: none;{{ if $object.IsDeleteMarker }} opacity: 0.5;{{ end }}"
-                {{ else if $object.IsDeleteMarker }}style="opacity: 0.5;"
-                {{ end }}>
-                <td>
-                    {{- /* Bulk actions operate on the object key, so only the
-                        primary row of a version group gets a checkbox. */}}
-                    {{ if and (not $object.IsFolder) (not $isCollapsedVersion) }}
-                    <label>
-                        <input type="checkbox" class="object-checkbox" data-key="{{ $object.Key }}" onchange="updateBulkActions()" />
-                        <span></span>
-                    </label>
-                    {{ end }}
-                </td>
-                <td
-                    {{ if $object.IsFolder }}
-                    onclick="location.href='{{$.RootURL}}{{$instancePath}}/buckets/{{ $.BucketName }}/{{ $object.Key }}'"
-                    style="cursor:pointer;"
+            <tbody>
+                {{ range $index, $object := .Objects }}
+                {{ $isCollapsedVersion := and $.ShowVersions (not $object.IsPrimaryVersion) }}
+                <tr
+                    data-version-group="{{ $object.GroupIndex }}"
+                    {{ if $isCollapsedVersion }}class="version-row" style="display: none;{{ if $object.IsDeleteMarker }} opacity: 0.5;{{ end }}"
+                    {{ else if $object.IsDeleteMarker }}style="opacity: 0.5;"
                     {{ end }}>
-                    <i class="material-icons">{{ $object.Icon }}</i>
-                    {{- if or $object.IsFolder $object.IsDeleteMarker }}
-                    {{ $object.DisplayName }}
-                    {{- else }}
-                    {{- /* Clicking the name opens the object in a new tab. */}}
-                    <a class="black-text" target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">{{ $object.DisplayName }}</a>
-                    {{- end }}
-                </td>
-                <td>{{ $object.SizeDisplay }}</td>
-                <td>{{ $object.Owner }}</td>
-                <td>{{ $object.LastModified.Local.Format "2006-01-02 15:04:05 MST" }}</td>
-                {{ if $.ShowVersions }}
-                <td title="{{ $object.VersionID }}">{{ printf "%.8s" $object.VersionID }}</td>
-                <td>
-                    {{ if $object.IsLatest }}
-                    <span class="new badge teal" data-badge-caption="">Latest</span>
+                    <td class="min">
+                        {{- /* Bulk actions operate on the object key, so only the
+                            primary row of a version group gets a checkbox. */}}
+                        {{ if and (not $object.IsFolder) (not $isCollapsedVersion) }}
+                        <label class="checkbox">
+                            <input type="checkbox" class="object-checkbox" data-key="{{ $object.Key }}" onchange="updateBulkActions()">
+                            <span></span>
+                        </label>
+                        {{ end }}
+                    </td>
+                    <td class="key-cell">
+                        {{- if $object.IsFolder }}
+                        <a class="row" href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $.BucketName }}/{{ $object.Key }}">
+                            <i>{{ $object.Icon }}</i>
+                            <span class="truncate">{{ $object.DisplayName }}</span>
+                        </a>
+                        {{- else if $object.IsDeleteMarker }}
+                        <div class="row">
+                            <i>{{ $object.Icon }}</i>
+                            <span class="truncate">{{ $object.DisplayName }}</span>
+                        </div>
+                        {{- else }}
+                        {{- /* Clicking the name opens the object in a new tab. */}}
+                        <a class="row" target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">
+                            <i>{{ $object.Icon }}</i>
+                            <span class="truncate">{{ $object.DisplayName }}</span>
+                        </a>
+                        {{- end }}
+                    </td>
+                    <td class="min">{{ $object.SizeDisplay }}</td>
+                    <td class="min owner-cell"><span class="truncate" title="{{ $object.Owner }}">{{ $object.Owner }}</span></td>
+                    <td class="min">{{ $object.LastModified.Local.Format "2006-01-02 15:04:05 MST" }}</td>
+                    {{ if $.ShowVersions }}
+                    <td class="min"><span title="{{ $object.VersionID }}">{{ printf "%.8s" $object.VersionID }}</span></td>
+                    <td class="min">
+                        {{ if $object.IsLatest }}
+                        <span class="chip small primary">Latest</span>
+                        {{ end }}
+                        {{ if and $object.IsPrimaryVersion (gt $object.VersionCount 1) }}
+                        <a class="link version-toggle clickable" onclick="toggleVersions({{ $object.GroupIndex }}, this)" aria-expanded="false">
+                            <i class="tiny">expand_more</i> {{ sub $object.VersionCount 1 }} older version{{ if gt $object.VersionCount 2 }}s{{ end }}
+                        </a>
+                        {{ end }}
+                    </td>
                     {{ end }}
-                    {{ if and $object.IsPrimaryVersion (gt $object.VersionCount 1) }}
-                    <a href="#" class="version-toggle" style="cursor:pointer;" onclick="toggleVersions({{ $object.GroupIndex }}, this); return false;" aria-expanded="false">
-                        <i class="material-icons" style="vertical-align: middle;">expand_more</i> {{ sub $object.VersionCount 1 }} older version{{ if gt $object.VersionCount 2 }}s{{ end }}
-                    </a>
-                    {{ end }}
-                </td>
-                {{ end }}
-                <td>
-                    {{ if and (not $object.IsFolder) (not $object.IsDeleteMarker) }}
-                        <button class="dropdown-trigger waves-effect waves-teal btn" data-target="actions-dropdown-{{ $index }}">
-                            Actions <i class="material-icons right">arrow_drop_down</i>
-                        </button>
-                        <!-- Dropdown Structure -->
-                        <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
-                            <li><a target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">Open</a></li>
-                            <li><a target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">Download</a></li>
+                    <td class="min right-align">
+                        {{ if and (not $object.IsFolder) (not $object.IsDeleteMarker) }}
+                        <nav class="no-space right-align no-wrap">
+                            <a class="button circle transparent" target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">
+                                <i>open_in_new</i>
+                                <span class="tooltip left">Open</span>
+                            </a>
+                            <a class="button circle transparent" target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">
+                                <i>download</i>
+                                <span class="tooltip left">Download</span>
+                            </a>
                             {{- if $.ShowMetadata }}
-                            <li><a onclick="handleOpenMetadataModal('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">Metadata</a></li>
+                            <button class="circle transparent" onclick="handleOpenMetadataModal('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">
+                                <i>info</i>
+                                <span class="tooltip left">Metadata</span>
+                            </button>
                             {{- end }}
                             {{- /* The remaining actions operate on the object key (i.e. the
                                 latest version), so hide them on old-version rows. */}}
                             {{- if not $isCollapsedVersion }}
-                            <li><a onclick="handleOpenDownloadLinkModal('{{ $object.Key }}')">Download link</a></li>
-                            <li><a onclick="handleOpenPublicLinkModal('{{ $object.Key }}')">Public link</a></li>
+                            <button class="circle transparent" onclick="handleOpenDownloadLinkModal('{{ $object.Key }}')">
+                                <i>link</i>
+                                <span class="tooltip left">Download link</span>
+                            </button>
+                            <button class="circle transparent" onclick="handleOpenPublicLinkModal('{{ $object.Key }}')">
+                                <i>public</i>
+                                <span class="tooltip left">Public link</span>
+                            </button>
                             {{- if $.AllowDelete }}
-                            <li><a href="#" onclick="deleteObject('{{ $.BucketName }}', '{{ $object.Key }}')">Delete</a></li>
+                            <button class="circle transparent error-text" onclick="deleteObject('{{ $object.Key }}')">
+                                <i>delete</i>
+                                <span class="tooltip left">Delete</span>
+                            </button>
                             {{- end }}
                             {{- end }}
-                        </ul>
-                    {{ else if $object.IsDeleteMarker }}
-                        <em>Delete marker</em>
-                    {{ end }}
-                </td>
-            </tr>
-            {{ end }}
-        </tbody>
-    </table>
+                        </nav>
+                        {{ else if $object.IsDeleteMarker }}
+                        <span class="chip small border">Delete marker</span>
+                        {{ end }}
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </article>
 
-    <!-- Pagination Controls -->
-    <div class="row" style="margin-top: 20px;">
-        <div class="col s12 m6">
-            <div class="input-field" style="margin-top: 0;">
-                <select id="perPageSelect" onchange="changePerPage()">
-                    <option value="25" {{ if eq .PerPage 25 }}selected{{ end }}>25 per page</option>
-                    <option value="50" {{ if eq .PerPage 50 }}selected{{ end }}>50 per page</option>
-                    <option value="100" {{ if eq .PerPage 100 }}selected{{ end }}>100 per page</option>
-                    <option value="200" {{ if eq .PerPage 200 }}selected{{ end }}>200 per page</option>
-                    <option value="500" {{ if eq .PerPage 500 }}selected{{ end }}>500 per page</option>
-                    <option value="0" {{ if eq .TotalItems .PerPage }}selected{{ end }}>All</option>
-                </select>
-                <label>Items per page</label>
-            </div>
-            <p style="margin-top: -10px; color: #666;">Showing {{ if gt .TotalItems 0 }}{{ add (mul (sub .Page 1) .PerPage) 1 }} - {{ min (mul .Page .PerPage) .TotalItems }}{{ else }}0{{ end }} of {{ .TotalItems }} items</p>
+    <nav class="wrap middle-align">
+        <div class="field label suffix border small" style="inline-size: 11rem;">
+            <select id="perPageSelect" onchange="changePerPage()">
+                <option value="25" {{ if eq .PerPage 25 }}selected{{ end }}>25</option>
+                <option value="50" {{ if eq .PerPage 50 }}selected{{ end }}>50</option>
+                <option value="100" {{ if eq .PerPage 100 }}selected{{ end }}>100</option>
+                <option value="200" {{ if eq .PerPage 200 }}selected{{ end }}>200</option>
+                <option value="500" {{ if eq .PerPage 500 }}selected{{ end }}>500</option>
+                <option value="0" {{ if eq .TotalItems .PerPage }}selected{{ end }}>All</option>
+            </select>
+            <label class="active">Items per page</label>
+            <i>arrow_drop_down</i>
         </div>
-        <div class="col s12 m6">
-            <ul class="pagination right">
-                {{ if .HasPrevPage }}
-                <li class="waves-effect"><a href="#" onclick="changePage(1)"><i class="material-icons">first_page</i></a></li>
-                <li class="waves-effect"><a href="#" onclick="changePage({{ sub .Page 1 }})"><i class="material-icons">chevron_left</i></a></li>
-                {{ else }}
-                <li class="disabled"><a href="#!"><i class="material-icons">first_page</i></a></li>
-                <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
-                {{ end }}
-                
-                {{ $currentPage := .Page }}
-                {{ $totalPages := .TotalPages }}
-                {{ $startPage := sub $currentPage 2 }}
-                {{ if lt $startPage 1 }}{{ $startPage = 1 }}{{ end }}
-                {{ $endPage := add $currentPage 2 }}
-                {{ if gt $endPage $totalPages }}{{ $endPage = $totalPages }}{{ end }}
-                
-                {{ if gt $startPage 1 }}
-                <li class="waves-effect"><a href="#" onclick="changePage(1)">1</a></li>
-                {{ if gt $startPage 2 }}
-                <li class="disabled"><a href="#!">...</a></li>
-                {{ end }}
-                {{ end }}
-                
-                {{ range $i := iterate $startPage (add $endPage 1) }}
-                {{ if eq $i $currentPage }}
-                <li class="active"><a href="#!">{{ $i }}</a></li>
-                {{ else }}
-                <li class="waves-effect"><a href="#" onclick="changePage({{ $i }})">{{ $i }}</a></li>
-                {{ end }}
-                {{ end }}
-                
-                {{ if lt $endPage $totalPages }}
-                {{ if lt $endPage (sub $totalPages 1) }}
-                <li class="disabled"><a href="#!">...</a></li>
-                {{ end }}
-                <li class="waves-effect"><a href="#" onclick="changePage({{ $totalPages }})">{{ $totalPages }}</a></li>
-                {{ end }}
-                
-                {{ if .HasNextPage }}
-                <li class="waves-effect"><a href="#" onclick="changePage({{ add .Page 1 }})"><i class="material-icons">chevron_right</i></a></li>
-                <li class="waves-effect"><a href="#" onclick="changePage({{ .TotalPages }})"><i class="material-icons">last_page</i></a></li>
-                {{ else }}
-                <li class="disabled"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
-                <li class="disabled"><a href="#!"><i class="material-icons">last_page</i></a></li>
-                {{ end }}
-            </ul>
-        </div>
-    </div>
+
+        <span class="small-text secondary-text">
+            Showing {{ if gt .TotalItems 0 }}{{ add (mul (sub .Page 1) .PerPage) 1 }}–{{ min (mul .Page .PerPage) .TotalItems }}{{ else }}0{{ end }} of {{ .TotalItems }}
+        </span>
+
+        <div class="max"></div>
+
+        <nav class="no-space">
+            <button class="circle transparent" onclick="changePage(1)" {{ if not .HasPrevPage }}disabled{{ end }}><i>first_page</i></button>
+            <button class="circle transparent" onclick="changePage({{ sub .Page 1 }})" {{ if not .HasPrevPage }}disabled{{ end }}><i>chevron_left</i></button>
+
+            {{ $currentPage := .Page }}
+            {{ $totalPages := .TotalPages }}
+            {{ $startPage := sub $currentPage 2 }}
+            {{ if lt $startPage 1 }}{{ $startPage = 1 }}{{ end }}
+            {{ $endPage := add $currentPage 2 }}
+            {{ if gt $endPage $totalPages }}{{ $endPage = $totalPages }}{{ end }}
+
+            {{ if gt $startPage 1 }}
+            <button class="circle transparent" onclick="changePage(1)">1</button>
+            {{ if gt $startPage 2 }}<span class="secondary-text">…</span>{{ end }}
+            {{ end }}
+
+            {{ range $i := iterate $startPage (add $endPage 1) }}
+            {{ if eq $i $currentPage }}
+            <button class="circle primary">{{ $i }}</button>
+            {{ else }}
+            <button class="circle transparent" onclick="changePage({{ $i }})">{{ $i }}</button>
+            {{ end }}
+            {{ end }}
+
+            {{ if lt $endPage $totalPages }}
+            {{ if lt $endPage (sub $totalPages 1) }}<span class="secondary-text">…</span>{{ end }}
+            <button class="circle transparent" onclick="changePage({{ $totalPages }})">{{ $totalPages }}</button>
+            {{ end }}
+
+            <button class="circle transparent" onclick="changePage({{ add .Page 1 }})" {{ if not .HasNextPage }}disabled{{ end }}><i>chevron_right</i></button>
+            <button class="circle transparent" onclick="changePage({{ .TotalPages }})" {{ if not .HasNextPage }}disabled{{ end }}><i>last_page</i></button>
+        </nav>
+    </nav>
 
     {{ else }}
-    <p style="text-align:center;margin-top:2em;color:gray;">
-        {{ if .Search }}
-        No objects matching "<strong>{{ .Search }}</strong>" found in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong>
-        {{ else }}
-        No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet
-        {{ end }}
-    </p>
-    {{ end }}
-    {{ end }}
-
-    <div id="notifications">
-        <div id="notification-template" class="card" style="display: none;">
-            <div class="card-content" style="padding: 12px">
-                <span class="card-title">Uploading</span>
-                <p> I am a very simple card </p>
-                <div class="progress">
-                    <div class="indeterminate"></div>
-                </div>
-            </div>
+    <div class="medium-height middle-align center-align">
+        <div class="center-align">
+            <i class="extra secondary-text">folder_open</i>
+            {{ if .Search }}
+            <h6>No matches</h6>
+            <p class="secondary-text">No objects matching "<strong>{{ .Search }}</strong>" found in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong></p>
+            {{ else }}
+            <h6>Nothing here yet</h6>
+            <p class="secondary-text">No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet</p>
+            {{ end }}
         </div>
     </div>
-</div>
+    {{ end }}
+    {{ end }}
+</main>
+
+<div id="uploads"></div>
 
 {{ if not .HasError }}
-<div class="fixed-action-btn">
-    <button type="button" class="btn-floating btn-large red tooltipped" id="upload-file-btn" data-position="top" data-tooltip="Upload files">
-        <i class="large material-icons">add</i>
+<div class="fixed right bottom margin">
+    <button class="circle extra" data-ui="#fab-menu">
+        <i>add</i>
     </button>
-
-    <button type="button" class="btn-floating btn-large red tooltipped" id="upload-folder-btn" data-position="top" data-tooltip="Upload folder">
-        <i class="large material-icons">create_new_folder</i>
-    </button>
-
-     <button type="button" class="btn-floating btn-large red modal-trigger tooltipped" data-target="modal-change-path" data-position="top" data-tooltip="Change path">
-        <i class="large material-icons">create</i>
-    </button>
+    <menu id="fab-menu" class="top left no-wrap right-align transparent no-elevate">
+        <li>
+            <button class="round" onclick="document.getElementById('upload-file-input').click()">
+                <i>upload</i>
+                <span>Upload files</span>
+            </button>
+        </li>
+        <li>
+            <button class="round" onclick="document.getElementById('upload-folder-input').click()">
+                <i>drive_folder_upload</i>
+                <span>Upload folder</span>
+            </button>
+        </li>
+        <li>
+            <button class="round" data-ui="#dialog-change-path">
+                <i>create_new_folder</i>
+                <span>Change path</span>
+            </button>
+        </li>
+    </menu>
 </div>
 {{ end }}
 
-<input type="file" id="upload-folder-input" webkitdirectory multiple style="display: none;">
-<input type="file" id="upload-file-input" name="file" multiple style="display: none;">
+<input type="file" id="upload-file-input" name="file" multiple hidden>
+<input type="file" id="upload-folder-input" webkitdirectory multiple hidden>
 
-<div id="modal-change-path" class="modal">
-    <form id="change-path-form" enctype="multipart/form-data">
-        <div class="modal-content">
-            <h4>Change directory path</h4>
-            <br>
-            <div class="row">
-                <div class="col s6">
-                    <div class="input-field">
-                        <input name="new-path" id="new-path" type="text">
-                        <label for="new-path">Path</label>
-                    </div>
-                </div>
+<dialog class="modal" id="dialog-change-path">
+    <h5>Change directory path</h5>
+    <p class="small-text secondary-text">Appends a path to the current location.</p>
+    <div class="field label border">
+        <input type="text" id="new-path" autocomplete="off" placeholder=" ">
+        <label>Path</label>
+    </div>
+    <nav class="right-align no-space">
+        <button class="transparent link" data-ui="#dialog-change-path">Cancel</button>
+        <button onclick="handleChangePath()">Change path</button>
+    </nav>
+</dialog>
+
+<dialog class="modal" id="dialog-download-link">
+    <h5>Create download link</h5>
+    <p class="small-text secondary-text mono truncate" id="download-link-object"></p>
+
+    <div class="grid">
+        <div class="s4">
+            <div class="field label border">
+                <input type="number" id="gen-link-day" value="0" min="0" placeholder=" ">
+                <label>Days</label>
             </div>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="submit" class="modal-close waves-effect waves-green btn">Change path</button>
-        </div>
-    </form>
-</div>
-
-<div id="modal-create-download-link" class="modal">
-    <form id="download-link-form">
-        <div class="modal-content">
-            <div class="row">
-                <h4>Create download link for </h4>
-                <input name="objectName" id="objectName" type="text" readonly>
-            </div>
-            <div class="row">
-                <div class="col s4">
-                    <div class="input-field">
-                        <input name="day" id="gen-link-day" value="0" type="text" pattern="^[\d]+$" class="validate">
-                        <label for="gen-link-day">Day</label>
-                        <span class="helper-text" data-error="Invalid day format"></span>
-                    </div>
-                </div>
-                <div class="col s4">
-                    <div class="input-field">
-                        <input name="hour" id="gen-link-hour" value="1" type="text" pattern="^([0-9]|1\d|2[0-3])$" class="validate">
-                        <label for="gen-link-hour">Hour</label>
-                        <span class="helper-text" data-error="Invalid hour format"></span>
-                    </div>
-                </div>
-                <div class="col s4">
-                    <div class="input-field">
-                        <input name="minute" id="gen-link-minute" value="0" type="text" pattern="^([0-9]|[1-5]\d)$" class="validate">
-                        <label for="gen-link-minute">Minute</label>
-                        <span class="helper-text" data-error="Invalid minute format"></span>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col s3">
-                    <button id="create-link-btn" class="waves-effect waves-green btn">Create link</button>
-                </div>
-                <div class="col s9 red-text text-darken-2" id="gen-url-error"></div>
-            </div>
-            <div class="row">
-                <div class="col s11">
-                    <div class="input-field">
-                        <i class="material-icons prefix" onclick="handleCopyLink()" style="cursor:pointer;">content_copy</i>
-                        <input name="generated-link" id="generated-link" type="text" readonly>
-                    </div>
-                </div>
+        <div class="s4">
+            <div class="field label border">
+                <input type="number" id="gen-link-hour" value="1" min="0" max="23" placeholder=" ">
+                <label>Hours</label>
             </div>
         </div>
-    </form>
-</div>
-
-<div id="modal-create-public-link" class="modal">
-    <div class="modal-content">
-        <div class="row">
-            <h4>Public link for </h4>
-            <input name="objectName" id="public-link-object-name" type="text" readonly>
-        </div>
-
-        <div class="row">
-            <div class="col s12">
-                <label>
-                    <input type="checkbox" id="public-link-confirm" onchange="togglePublicLinkVisibility()" />
-                    <span>I understand that handing out this link is irrevocable, and anyone with the link can access the file for as long as it exists.</span>
-                </label>
-            </div>
-        </div>
-
-        <div id="public-link-container" style="display: none;">
-            <div class="row">
-                <div class="col s12 center-align">
-                    <div id="public-access-status" style="display: inline-block; margin-bottom: 15px; padding: 10px; border-radius: 4px;">
-                        <!-- Status will be injected here -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col s11">
-                    <div class="input-field">
-                        <i class="material-icons prefix" onclick="handleCopyPublicLink()" style="cursor:pointer;">content_copy</i>
-                        <input name="public-link" id="public-link" type="text" readonly>
-                    </div>
-                </div>
+        <div class="s4">
+            <div class="field label border">
+                <input type="number" id="gen-link-minute" value="0" min="0" max="59" placeholder=" ">
+                <label>Minutes</label>
             </div>
         </div>
     </div>
-    <div class="modal-footer">
-        <button type="button" class="modal-close waves-effect waves-green btn-flat">Close</button>
-    </div>
-</div>
 
-<div id="modal-object-metadata" class="modal">
-    <div class="modal-content">
-        <h4>Metadata for <span id="metadata-object-name"></span></h4>
-        <div id="metadata-loading" class="center-align" style="padding: 20px;">
-            <div class="preloader-wrapper small active" style="width: 20px; height: 20px;">
-                <div class="spinner-layer spinner-blue-only">
-                    <div class="circle-clipper left"><div class="circle"></div></div>
-                    <div class="gap-patch"><div class="circle"></div></div>
-                    <div class="circle-clipper right"><div class="circle"></div></div>
-                </div>
-            </div>
-        </div>
-        <div id="metadata-error" class="red-text"></div>
-        <table id="metadata-table" class="striped" style="display: none;">
-            <tbody>
-                <tr><th>Size</th><td id="metadata-size"></td></tr>
-                <tr><th>Content type</th><td id="metadata-content-type"></td></tr>
-                <tr><th>Last modified</th><td id="metadata-last-modified"></td></tr>
-                <tr><th>ETag</th><td id="metadata-etag"></td></tr>
-                <tr id="metadata-storage-class-row"><th>Storage class</th><td id="metadata-storage-class"></td></tr>
-                <tr id="metadata-version-row"><th>Version</th><td id="metadata-version-id"></td></tr>
-            </tbody>
-        </table>
-        <h5 id="metadata-user-heading" style="display: none;">User metadata</h5>
-        <table id="metadata-user-table" class="striped" style="display: none;">
-            <tbody id="metadata-user-body"></tbody>
-        </table>
-    </div>
-    <div class="modal-footer">
-        <button type="button" class="modal-close waves-effect waves-green btn-flat">Close</button>
-    </div>
-</div>
+    <nav>
+        <button class="small-round" onclick="handleGenerateDownloadLink()">Create link</button>
+        <span class="error-text small-text" id="gen-url-error"></span>
+    </nav>
 
-<div id="modal-edit-policy" class="modal">
-    <form id="edit-policy-form">
-        <div class="modal-content">
-            <h4>Edit Bucket Policy</h4>
-            <div class="row">
-                <div class="col s12">
-                    <div class="switch">
-                        <label>
-                            <input type="checkbox" id="advanced-editor-toggle">
-                            <span class="lever"></span>
-                            Advanced Editor
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div id="simple-editor">
-                <div class="row">
-                    <div class="input-field col s12">
-                        <input id="policy-user" type="text" class="validate">
-                        <label for="policy-user">AWS User ARN or ID</label>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col s12">
-                        <div class="switch">
-                            <label>
-                                <input type="checkbox" id="allow-all-actions">
-                                <span class="lever"></span>
-                                Allow All Actions
-                            </label>
-                        </div>
-                        <div id="specific-actions">
-                            <div class="row">
-                                <div class="col s4">
-                                    <h6>Read Operations</h6>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetObject" checked/>
-                                            <span>Get Object</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:ListBucket" checked/>
-                                            <span>List Bucket Contents</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetBucketLocation" checked/>
-                                            <span>Get Bucket Location</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetObjectVersion" checked/>
-                                            <span>Get Object Version</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetObjectTagging" checked/>
-                                            <span>Get Object Tags</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetBucketPolicy" checked/>
-                                            <span>Get Bucket Policy</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:ListBucketVersions" checked/>
-                                            <span>List Bucket Versions</span>
-                                        </label>
-                                    </p>
-                                </div>
-                                <div class="col s4">
-                                    <h6>Write Operations</h6>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutObject" checked/>
-                                            <span>Put Object</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:DeleteObject" checked/>
-                                            <span>Delete Object</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:DeleteObjectVersion" checked/>
-                                            <span>Delete Object Version</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutObjectTagging" checked/>
-                                            <span>Put Object Tags</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:DeleteObjectTagging" checked/>
-                                            <span>Delete Object Tags</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutBucketPolicy" checked/>
-                                            <span>Put Bucket Policy</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:AbortMultipartUpload" checked/>
-                                            <span>Abort Multipart Upload</span>
-                                        </label>
-                                    </p>
-                                </div>
-                                <div class="col s4">
-                                    <h6>Advanced Operations</h6>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetLifecycleConfiguration" checked/>
-                                            <span>Get Lifecycle Config</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutLifecycleConfiguration" checked/>
-                                            <span>Put Lifecycle Config</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:GetBucketVersioning" checked/>
-                                            <span>Get Bucket Versioning</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:PutBucketVersioning" checked/>
-                                            <span>Put Bucket Versioning</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:ReplicateObject" checked/>
-                                            <span>Replicate Object</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:ReplicateDelete" checked/>
-                                            <span>Replicate Delete</span>
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" class="filled-in policy-action" value="s3:RestoreObject" checked/>
-                                            <span>Restore Object</span>
-                                        </label>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="advanced-editor" style="display: none;">
-                <div class="row">
-                    <div class="input-field col s12">
-                        <textarea id="policy" name="policy" class="materialize-textarea monospace" spellcheck="false"></textarea>
-                    </div>
-                </div>
-            </div>
-            <div class="red-text" id="policy-error"></div>
+    <div class="field label border suffix" id="generated-link-field" style="display: none;">
+        <input type="text" id="generated-link" readonly placeholder=" ">
+        <label class="active">Link</label>
+        <i class="clickable" onclick="copyToClipboard(document.getElementById('generated-link').value)">content_copy</i>
+    </div>
+
+    <nav class="right-align no-space">
+        <button class="transparent link" data-ui="#dialog-download-link">Close</button>
+    </nav>
+</dialog>
+
+<dialog class="modal" id="dialog-public-link">
+    <h5>Public link</h5>
+    <p class="small-text secondary-text mono truncate" id="public-link-object"></p>
+
+    <label class="checkbox">
+        <input type="checkbox" id="public-link-confirm" onchange="togglePublicLinkVisibility()">
+        <span>I understand that handing out this link is irrevocable, and anyone with the link can access the file for as long as it exists.</span>
+    </label>
+
+    <div id="public-link-container" style="display: none;">
+        <div class="space"></div>
+        <article class="round border no-elevate" id="public-access-status"></article>
+        <div class="field label border suffix">
+            <input type="text" id="public-link" readonly placeholder=" ">
+            <label class="active">Link</label>
+            <i class="clickable" onclick="copyToClipboard(document.getElementById('public-link').value)">content_copy</i>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="submit" id="save-policy-btn" class="waves-effect waves-green btn">Save Policy</button>
+    </div>
+
+    <nav class="right-align no-space">
+        <button class="transparent link" data-ui="#dialog-public-link">Close</button>
+    </nav>
+</dialog>
+
+<dialog class="modal" id="dialog-metadata">
+    <h5>Metadata</h5>
+    <p class="small-text secondary-text mono truncate" id="metadata-object-name"></p>
+
+    <div id="metadata-loading" class="center-align padding">
+        <progress class="circle"></progress>
+    </div>
+    <div class="error-text" id="metadata-error"></div>
+
+    <table id="metadata-table" class="border" style="display: none;">
+        <tbody>
+            <tr><th class="min">Size</th><td id="metadata-size"></td></tr>
+            <tr><th class="min">Content type</th><td id="metadata-content-type"></td></tr>
+            <tr><th class="min">Last modified</th><td id="metadata-last-modified"></td></tr>
+            <tr><th class="min">ETag</th><td id="metadata-etag"></td></tr>
+            <tr id="metadata-storage-class-row"><th class="min">Storage class</th><td id="metadata-storage-class"></td></tr>
+            <tr id="metadata-version-row"><th class="min">Version</th><td id="metadata-version-id"></td></tr>
+        </tbody>
+    </table>
+
+    <h6 id="metadata-user-heading" class="small" style="display: none;">User metadata</h6>
+    <table id="metadata-user-table" class="border" style="display: none;">
+        <tbody id="metadata-user-body"></tbody>
+    </table>
+
+    <nav class="right-align no-space">
+        <button class="transparent link" data-ui="#dialog-metadata">Close</button>
+    </nav>
+</dialog>
+
+<dialog class="modal" id="dialog-edit-policy">
+    <h5>Edit bucket policy</h5>
+
+    <nav>
+        <div class="max">Advanced editor</div>
+        <label class="switch">
+            <input type="checkbox" id="advanced-editor-toggle" onchange="handlePolicyEditorToggle()">
+            <span></span>
+        </label>
+    </nav>
+
+    <div id="simple-editor">
+        <div class="field label border">
+            <input type="text" id="policy-user" autocomplete="off" placeholder=" " oninput="handleUserIdInput()">
+            <label>AWS user ARN or ID</label>
         </div>
-    </form>
-</div>
+
+        <nav>
+            <div class="max">Allow all actions</div>
+            <label class="switch">
+                <input type="checkbox" id="allow-all-actions" onchange="toggleSpecificActions()">
+                <span></span>
+            </label>
+        </nav>
+
+        <div id="specific-actions" class="grid">
+            <div class="s12 m4">
+                <h6 class="small">Read</h6>
+                <nav class="vertical left-align small-space">
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:GetObject" checked><span>Get object</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:ListBucket" checked><span>List bucket contents</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:GetBucketLocation" checked><span>Get bucket location</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:GetObjectVersion" checked><span>Get object version</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:GetObjectTagging" checked><span>Get object tags</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:GetBucketPolicy" checked><span>Get bucket policy</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:ListBucketVersions" checked><span>List bucket versions</span></label>
+                </nav>
+            </div>
+            <div class="s12 m4">
+                <h6 class="small">Write</h6>
+                <nav class="vertical left-align small-space">
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:PutObject" checked><span>Put object</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:DeleteObject" checked><span>Delete object</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:DeleteObjectVersion" checked><span>Delete object version</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:PutObjectTagging" checked><span>Put object tags</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:DeleteObjectTagging" checked><span>Delete object tags</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:PutBucketPolicy" checked><span>Put bucket policy</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:AbortMultipartUpload" checked><span>Abort multipart upload</span></label>
+                </nav>
+            </div>
+            <div class="s12 m4">
+                <h6 class="small">Advanced</h6>
+                <nav class="vertical left-align small-space">
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:GetLifecycleConfiguration" checked><span>Get lifecycle config</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:PutLifecycleConfiguration" checked><span>Put lifecycle config</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:GetBucketVersioning" checked><span>Get bucket versioning</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:PutBucketVersioning" checked><span>Put bucket versioning</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:ReplicateObject" checked><span>Replicate object</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:ReplicateDelete" checked><span>Replicate delete</span></label>
+                    <label class="checkbox"><input type="checkbox" class="policy-action" value="s3:RestoreObject" checked><span>Restore object</span></label>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <div id="advanced-editor" style="display: none;">
+        <div class="field border">
+            <textarea id="policy" rows="18" spellcheck="false"></textarea>
+        </div>
+    </div>
+
+    <div class="error-text" id="policy-error"></div>
+
+    <nav class="right-align no-space">
+        <button class="transparent link" data-ui="#dialog-edit-policy">Cancel</button>
+        <button id="save-policy-btn" onclick="handleEditPolicy()">Save policy</button>
+    </nav>
+</dialog>
 
 <script>
-function performSearch(event) {
-    event.preventDefault();
-    const searchValue = document.getElementById('search-input').value.trim();
-    const url = new URL(window.location.href);
-    
-    if (searchValue) {
-        url.searchParams.set('search', searchValue);
-    } else {
-        url.searchParams.delete('search');
-    }
-    url.searchParams.set('page', '1'); // Reset to first page when searching
-    
-    window.location.href = url.toString();
-    return false;
-}
+    const rootURL = "{{$.RootURL}}";
+    const instancePath = "{{ $instancePath }}";
+    const bucketName = "{{ .BucketName }}";
+    const currentPath = "{{ .CurrentPath }}";
+    const apiBucketURL = rootURL + instancePath + "/api/buckets/" + bucketName;
 
-function clearSearch() {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('search');
-    url.searchParams.set('page', '1');
-    window.location.href = url.toString();
-}
+    // --- Navigation -----------------------------------------------------
 
-function changePage(page) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('page', page);
-    window.location.href = url.toString();
-}
-
-function changePerPage() {
-    const perPage = document.getElementById('perPageSelect').value;
-    const url = new URL(window.location.href);
-    url.searchParams.set('perPage', perPage);
-    url.searchParams.set('page', '1'); // Reset to first page when changing items per page
-    window.location.href = url.toString();
-}
-
-function sortBy(field) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentSortBy = urlParams.get('sortBy') || 'key';
-    const currentSortOrder = urlParams.get('sortOrder') || 'asc';
-    
-    let newSortOrder = 'asc';
-    if (field === currentSortBy) {
-        // Toggle sort order if clicking the same field
-        newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
-    }
-    
-    // Build new URL with sort parameters, preserve search and pagination
-    const url = new URL(window.location.href);
-    url.searchParams.set('sortBy', field);
-    url.searchParams.set('sortOrder', newSortOrder);
-    url.searchParams.set('page', '1'); // Reset to first page when sorting
-    
-    window.location.href = url.toString();
-}
-
-function deleteObject(bucketName, objectName) {
-    $.ajax({
-        type: 'DELETE',
-        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/' + bucketName + '/objects/' + objectName,
-        success: function () { location.reload(); }
-    })
-}
-
-function deleteBucket(bucketName) {
-    $.ajax({
-        type: 'DELETE',
-        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/' + bucketName,
-        success: function () { window.location.replace('{{$.RootURL}}{{$instancePath}}/buckets'); }
-    })
-}
-
-function handleUploadFiles(event) {
-    files = event.target.files
-    url = "{{$.RootURL}}{{$instancePath}}/api/buckets/{{ .BucketName }}/objects"
-    uploadFiles(files, url);
-}
-
-function handleChangePath(event) {
-    event.preventDefault();
-
-    const form = event.target;
-    const formData = new FormData(form);
-
-    let appendPath = formData.get("new-path")
-    if(!appendPath.endsWith("/")) {
-        appendPath = appendPath + "/";
+    function navigate(mutate) {
+        const url = new URL(window.location.href);
+        mutate(url.searchParams);
+        window.location.href = url.toString();
     }
 
-    let currentPath = window.location.href
-    if(!currentPath.endsWith("/")) {
-        currentPath = currentPath + "/";
-    }
-
-    form.reset();
-    window.location.href = currentPath + appendPath;
-}
-
-function uploadFiles(files, url) {
-    uploadPromises = [];
-    for(file of files) {
-        uploadPromises.push(uploadFile(file, url));
-    }
-    Promise.all(uploadPromises).then(values => {
-        window.location.reload();
-    });
-}
-
-function uploadFile(file, url) {
-    const formData = new FormData();
-    formData.append('file', file);
-    if( !!file.webkitRelativePath ) {
-        formData.append('path', "{{ .CurrentPath }}" + file.webkitRelativePath );
-    } else {
-        formData.append('path', "{{ .CurrentPath }}" + file.name );
-    }
-
-    const notification = createNotification(file.name);
-    notifications = document.getElementById('notifications');
-    notifications.appendChild(notification);
-
-    return fetch(url, {
-        method: "POST",
-        body: formData
-    }).then(response => {
-        notifications.removeChild(notification);
-    })
-}
-
-function createNotification(fileName) {
-    notificationTemplate = document.getElementById('notification-template');
-    notification = notificationTemplate.cloneNode(true);
-    notification.getElementsByTagName('p')[0].innerHTML = fileName;
-    notification.removeAttribute("id");
-    notification.removeAttribute("style");
-    return notification;
-}
-
-function handleOpenDownloadLinkModal(objectName) {
-    const downloadLinkForm = document.forms['download-link-form']
-    downloadLinkForm.elements['objectName'].value = objectName;
-
-    const createLinkModalElement = document.getElementById('modal-create-download-link')
-    document.getElementById('generated-link').setAttribute('value', "");
-    document.getElementById('gen-url-error').innerHTML = "";
-    const modalInstance = M.Modal.init(createLinkModalElement);
-    modalInstance.open()
-}
-
-function handleGenerateDownloadLink(event) {
-    event.preventDefault();
-
-    const form = event.target;
-    const formData = new FormData(form);
-    const objectName = formData.get('objectName');
-    const genUrlMessage = document.getElementById('gen-url-error');
-
-    const expiryTime = formData.get('day') * 24 * 60 * 60 + formData.get('hour') * 60 * 60 + formData.get('minute') * 60;
-
-    if(expiryTime > 7 * 24 * 60 * 60) {
-        genUrlMessage.innerHTML = "Expiry time must be less than 7 days";
-        return;
-    }
-
-    $.ajax({
-        type: 'GET',
-        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectName + "/url?expiry=" + expiryTime,
-        success: function (result) {
-            genUrlMessage.innerHTML = "";
-            document.getElementById("generated-link").setAttribute('value', JSON.parse(result).url);
-        },
-        error: function(request, status, error) {
-            genUrlMessage.innerHTML = "Error when generating url";
-        }
-    });
-}
-
-function handleCopyLink() {
-    const url = document.getElementById("generated-link").value;
-
-    if(!!url) {
-        navigator.clipboard.writeText(url).then(function() {
-            M.toast({html: 'Copied to clipboard!'});
-        }, function(err) {
-            console.error('Could not copy:', err);
+    function performSearch() {
+        const value = document.getElementById("search-input").value.trim();
+        navigate(params => {
+            value ? params.set("search", value) : params.delete("search");
+            params.set("page", "1");
         });
     }
-}
 
-function toggleVersions(groupIndex, link) {
-    const rows = document.querySelectorAll('tr.version-row[data-version-group="' + groupIndex + '"]');
-    const expanded = link.getAttribute('aria-expanded') === 'true';
-    rows.forEach(row => {
-        row.style.display = expanded ? 'none' : 'table-row';
-    });
-    link.setAttribute('aria-expanded', String(!expanded));
-    const icon = link.querySelector('i');
-    if (icon) {
-        icon.textContent = expanded ? 'expand_more' : 'expand_less';
-    }
-}
-
-function toggleSelectAll() {
-    const selectAllCheckbox = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.object-checkbox');
-    checkboxes.forEach(cb => {
-        cb.checked = selectAllCheckbox.checked;
-    });
-    updateBulkActions();
-}
-
-function updateBulkActions() {
-    const checkboxes = document.querySelectorAll('.object-checkbox');
-    const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
-    const count = checkedBoxes.length;
-    
-    const bulkActionsBar = document.getElementById('bulk-actions-bar');
-    const selectedCount = document.getElementById('selected-count');
-    const selectAllCheckbox = document.getElementById('select-all');
-    
-    if (count > 0) {
-        bulkActionsBar.style.display = 'block';
-        selectedCount.textContent = count + ' item' + (count > 1 ? 's' : '') + ' selected';
-    } else {
-        bulkActionsBar.style.display = 'none';
-    }
-    
-    // Update select-all checkbox state
-    selectAllCheckbox.checked = count === checkboxes.length && count > 0;
-    selectAllCheckbox.indeterminate = count > 0 && count < checkboxes.length;
-}
-
-function getSelectedKeys() {
-    const checkboxes = document.querySelectorAll('.object-checkbox:checked');
-    return Array.from(checkboxes).map(cb => cb.getAttribute('data-key'));
-}
-
-function bulkDelete() {
-    const selectedKeys = getSelectedKeys();
-    if (selectedKeys.length === 0) return;
-    
-    const confirmMsg = 'Are you sure you want to delete ' + selectedKeys.length + ' item' + (selectedKeys.length > 1 ? 's' : '') + '?';
-    if (!confirm(confirmMsg)) return;
-    
-    $.ajax({
-        type: 'POST',
-        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/{{ .BucketName }}/objects/bulk-delete',
-        contentType: 'application/json',
-        data: JSON.stringify({ keys: selectedKeys }),
-        success: function () {
-            // Clear all checkboxes before reload
-            document.querySelectorAll('.object-checkbox').forEach(cb => cb.checked = false);
-            document.getElementById('select-all').checked = false;
-            updateBulkActions();
-            // Reload the page
-            location.reload();
-        },
-        error: function(xhr, status, error) {
-            alert('Error deleting objects: ' + error);
-        }
-    });
-}
-
-function bulkDownload() {
-    const selectedKeys = getSelectedKeys();
-    if (selectedKeys.length === 0) return;
-    
-    // Create a form and submit it to trigger download
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '{{$.RootURL}}{{$instancePath}}/api/buckets/{{ .BucketName }}/objects/bulk-download';
-    
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'keys';
-    input.value = JSON.stringify(selectedKeys);
-    
-    form.appendChild(input);
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-}
-
-function handleOpenPublicLinkModal(objectName) {
-    const endpoint = "{{ .Endpoint }}";
-    const bucketName = "{{ .BucketName }}";
-    const separator = endpoint.endsWith('/') ? '' : '/';
-    const url = endpoint + separator + bucketName + "/" + objectName;
-
-    document.getElementById('public-link-object-name').value = objectName;
-    document.getElementById('public-link').value = url;
-
-    // Reset state
-    document.getElementById('public-link-confirm').checked = false;
-    document.getElementById('public-link-container').style.display = 'none';
-
-    // Reset and start public access check
-    const statusDiv = document.getElementById('public-access-status');
-    statusDiv.className = "";
-    statusDiv.innerHTML = `
-        <div class="blue-text" style="display: flex; align-items: center; justify-content: center;">
-            <div class="preloader-wrapper small active" style="width: 20px; height: 20px; margin-right: 10px;">
-                <div class="spinner-layer spinner-blue-only">
-                    <div class="circle-clipper left"><div class="circle"></div></div>
-                    <div class="gap-patch"><div class="circle"></div></div>
-                    <div class="circle-clipper right"><div class="circle"></div></div>
-                </div>
-            </div>
-            Verifying public accessibility...
-        </div>`;
-
-    const instancePath = "{{ if .CurrentS3 }}/{{ .CurrentS3.Name }}{{ end }}";
-    $.ajax({
-        type: 'GET',
-        url: '{{$.RootURL}}' + instancePath + '/api/buckets/' + bucketName + '/objects/' + objectName + '/public-access',
-        success: function (result) {
-            if (result.accessible) {
-                statusDiv.className = "green lighten-5";
-                statusDiv.innerHTML = `
-                    <div class="green-text text-darken-2" style="display: flex; align-items: center; justify-content: center;">
-                        <i class="material-icons" style="margin-right: 10px;">check_circle</i>
-                        The file seems to be publicly available.
-                    </div>`;
-            } else {
-                statusDiv.className = "red lighten-5";
-                statusDiv.innerHTML = `
-                    <div class="red-text text-darken-2" style="display: flex; align-items: center; justify-content: center;">
-                        <i class="material-icons" style="margin-right: 10px;">error</i>
-                        The file does not seem to be publicly available. Make sure the bucket policy allows public read access.
-                    </div>`;
-            }
-        },
-        error: function() {
-            statusDiv.className = "orange lighten-5";
-            statusDiv.innerHTML = `
-                <div class="orange-text text-darken-4" style="display: flex; align-items: center; justify-content: center;">
-                    <i class="material-icons" style="margin-right: 10px;">warning</i>
-                    Could not verify accessibility.
-                </div>`;
-        }
-    });
-
-    const modalElement = document.getElementById('modal-create-public-link');
-    const modalInstance = M.Modal.init(modalElement);
-    modalInstance.open();
-}
-
-function handleOpenMetadataModal(objectName, versionId) {
-    const bucketName = "{{ .BucketName }}";
-    const instancePath = "{{ if .CurrentS3 }}/{{ .CurrentS3.Name }}{{ end }}";
-
-    document.getElementById('metadata-object-name').textContent = objectName;
-    document.getElementById('metadata-loading').style.display = 'block';
-    document.getElementById('metadata-error').textContent = '';
-    document.getElementById('metadata-table').style.display = 'none';
-    document.getElementById('metadata-user-heading').style.display = 'none';
-    document.getElementById('metadata-user-table').style.display = 'none';
-    document.getElementById('metadata-user-body').innerHTML = '';
-
-    let url = '{{$.RootURL}}' + instancePath + '/api/buckets/' + bucketName + '/objects/' + objectName + '/metadata';
-    if (versionId) {
-        url += '?versionId=' + encodeURIComponent(versionId);
-    }
-
-    $.ajax({
-        type: 'GET',
-        url: url,
-        success: function (result) {
-            document.getElementById('metadata-loading').style.display = 'none';
-            document.getElementById('metadata-size').textContent = result.size + ' bytes';
-            document.getElementById('metadata-content-type').textContent = result.contentType || '-';
-            document.getElementById('metadata-last-modified').textContent = result.lastModified ? new Date(result.lastModified).toLocaleString() : '-';
-            document.getElementById('metadata-etag').textContent = result.etag || '-';
-
-            const storageClassRow = document.getElementById('metadata-storage-class-row');
-            if (result.storageClass) {
-                storageClassRow.style.display = '';
-                document.getElementById('metadata-storage-class').textContent = result.storageClass;
-            } else {
-                storageClassRow.style.display = 'none';
-            }
-
-            const versionRow = document.getElementById('metadata-version-row');
-            if (result.versionId) {
-                versionRow.style.display = '';
-                document.getElementById('metadata-version-id').textContent = result.versionId + (result.isLatest ? ' (latest)' : '');
-            } else {
-                versionRow.style.display = 'none';
-            }
-
-            document.getElementById('metadata-table').style.display = '';
-
-            const userMetadataKeys = result.userMetadata ? Object.keys(result.userMetadata) : [];
-            if (userMetadataKeys.length > 0) {
-                const body = document.getElementById('metadata-user-body');
-                userMetadataKeys.forEach(key => {
-                    const row = document.createElement('tr');
-                    const keyCell = document.createElement('th');
-                    keyCell.textContent = key;
-                    const valueCell = document.createElement('td');
-                    valueCell.textContent = result.userMetadata[key];
-                    row.appendChild(keyCell);
-                    row.appendChild(valueCell);
-                    body.appendChild(row);
-                });
-                document.getElementById('metadata-user-heading').style.display = '';
-                document.getElementById('metadata-user-table').style.display = '';
-            }
-        },
-        error: function (request) {
-            document.getElementById('metadata-loading').style.display = 'none';
-            document.getElementById('metadata-error').textContent = 'Error loading metadata: ' + request.responseText;
-        }
-    });
-
-    const modalElement = document.getElementById('modal-object-metadata');
-    const modalInstance = M.Modal.init(modalElement);
-    modalInstance.open();
-}
-
-function togglePublicLinkVisibility() {
-    const isChecked = document.getElementById('public-link-confirm').checked;
-    const container = document.getElementById('public-link-container');
-    if (isChecked) {
-        container.style.display = 'block';
-    } else {
-        container.style.display = 'none';
-    }
-}
-
-function handleCopyPublicLink() {
-    const url = document.getElementById("public-link").value;
-
-    if(!!url) {
-        navigator.clipboard.writeText(url).then(function() {
-            M.toast({html: 'Copied to clipboard!'});
-        }, function(err) {
-            console.error('Could not copy:', err);
+    function clearSearch() {
+        navigate(params => {
+            params.delete("search");
+            params.set("page", "1");
         });
     }
-}
 
-function generateSimplePolicy() {
-    const userId = document.getElementById('policy-user').value;
-    const allowAll = document.getElementById('allow-all-actions').checked;
-    const actions = allowAll ?
-        ["s3:*"] :
-        Array.from(document.getElementsByClassName('policy-action'))
-            .filter(cb => cb.checked)
-            .map(cb => cb.value);
-    const policy = {
-        "Version": "2012-10-17",
-        "Id": "S3Policy",
-        "Statement": [
-            {
-                "Sid": "BucketAllow",
-                "Effect": "Allow",
-                "Principal": {
-                    "AWS": [userId.startsWith('arn:') ? userId : `arn:aws:iam:::user/${userId}`]
-                },
-                "Action": actions,
-                "Resource": [
-                    `arn:aws:s3:::{{ $.BucketName }}`,
-                    `arn:aws:s3:::{{ $.BucketName }}/*`
-                ]
-            }
-        ]
-    };
-    return JSON.stringify(policy, null, 2);
-}
+    function changePage(page) {
+        navigate(params => params.set("page", page));
+    }
 
-function handlePolicyEditorToggle() {
-    const isAdvanced = document.getElementById('advanced-editor-toggle').checked;
-    document.getElementById('simple-editor').style.display = isAdvanced ? 'none' : 'block';
-    document.getElementById('advanced-editor').style.display = isAdvanced ? 'block' : 'none';
-    if (!isAdvanced) {
+    function changePerPage() {
+        const perPage = document.getElementById("perPageSelect").value;
+        navigate(params => {
+            params.set("perPage", perPage);
+            params.set("page", "1");
+        });
+    }
+
+    function sortBy(field) {
+        const params = new URLSearchParams(window.location.search);
+        const currentSortBy = params.get("sortBy") || "key";
+        const currentSortOrder = params.get("sortOrder") || "asc";
+        const order = field === currentSortBy && currentSortOrder === "asc" ? "desc" : "asc";
+
+        navigate(params => {
+            params.set("sortBy", field);
+            params.set("sortOrder", order);
+            params.set("page", "1");
+        });
+    }
+
+    function handleChangePath() {
+        let appendPath = document.getElementById("new-path").value.trim();
+        if (!appendPath) return;
+        if (!appendPath.endsWith("/")) appendPath += "/";
+
+        let here = window.location.href;
+        if (!here.endsWith("/")) here += "/";
+        window.location.href = here + appendPath;
+    }
+
+    // --- Objects --------------------------------------------------------
+
+    async function deleteObject(objectName) {
         try {
-            const policyText = document.getElementById('policy').value;
-            const policy = JSON.parse(policyText);
-            const statement = policy.Statement[0];
-            if (statement && statement.Principal && statement.Principal.AWS) {
-                let userArn = Array.isArray(statement.Principal.AWS)
-                    ? statement.Principal.AWS[0]
-                    : statement.Principal.AWS;
-                if (userArn.startsWith('arn:aws:iam:::user/')) {
-                    userArn = userArn.replace('arn:aws:iam:::user/', '');
-                }
-                const userIdField = document.getElementById('policy-user');
-                userIdField.value = userArn;
-                M.updateTextFields();
-            }
-            const hasAllActions = policy.Statement.some(statement => {
-                const actions = Array.isArray(statement.Action) ? statement.Action : [statement.Action];
-                return actions.includes('s3:*');
-            });
-            const allowAllCheckbox = document.getElementById('allow-all-actions');
-            allowAllCheckbox.checked = hasAllActions;
-            document.getElementById('specific-actions').style.display = hasAllActions ? 'none' : 'block';
-            if (!hasAllActions && statement.Action) {
-                const actions = Array.isArray(statement.Action) ? statement.Action : [statement.Action];
-                document.querySelectorAll('.policy-action').forEach(checkbox => {
-                    checkbox.checked = actions.includes(checkbox.value);
-                });
-            }
+            await request("DELETE", apiBucketURL + "/objects/" + objectName);
+            location.reload();
         } catch (e) {
-            console.error('Error parsing policy:', e);
+            toast("Could not delete object: " + e.message, "error");
         }
-        const policyText = generateSimplePolicy();
-        document.getElementById('policy').value = policyText;
-        M.textareaAutoResize(document.getElementById('policy'));
     }
-}
 
-function toggleSpecificActions() {
-    const allowAll = document.getElementById('allow-all-actions').checked;
-    const specificActions = document.getElementById('specific-actions');
-    specificActions.style.display = allowAll ? 'none' : 'block';
-    if (!document.getElementById('advanced-editor-toggle').checked) {
-        const policyText = generateSimplePolicy();
-        document.getElementById('policy').value = policyText;
-        M.textareaAutoResize(document.getElementById('policy'));
-    }
-}
-
-function loadBucketPolicy() {
-    document.getElementById('simple-editor').style.display = 'none';
-    document.getElementById('advanced-editor').style.display = 'none';
-    $.ajax({
-        type: 'GET',
-        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/{{$.BucketName}}/policy',
-        success: function(result) {
-            const policy = typeof result === 'string' ? JSON.parse(result) : result;
-            const policyText = JSON.stringify(policy, null, 2);
-            const textarea = document.getElementById('policy');
-            textarea.value = policyText;
-            textarea.addEventListener('keydown', handleEditorKeydown);
-            M.textareaAutoResize(textarea);
-            const hasValidUser = policy.Statement &&
-                               policy.Statement[0] &&
-                               policy.Statement[0].Principal &&
-                               policy.Statement[0].Principal.AWS;
-            const toggle = document.getElementById('advanced-editor-toggle');
-            const saveButton = document.getElementById('save-policy-btn');
-            if (hasValidUser) {
-                toggle.checked = true;
-                toggle.disabled = false;
-                saveButton.disabled = false;
-                saveButton.classList.remove('disabled');
-            } else {
-                toggle.checked = false;
-                toggle.disabled = true;
-                saveButton.disabled = true;
-                saveButton.classList.add('disabled');
-            }
-            handlePolicyEditorToggle();
-            M.updateTextFields();
-        },
-        error: function(request, status, error) {
-            const toggle = document.getElementById('advanced-editor-toggle');
-            toggle.checked = false;
-            handlePolicyEditorToggle();
-            document.getElementById('policy-user').value = '';
-            document.getElementById('allow-all-actions').checked = false;
-            document.getElementById('specific-actions').style.display = 'block';
-            handleUserIdInput();
-            document.querySelectorAll('.policy-action').forEach(cb => {
-                cb.checked = false;
-            });
-            const recommendedActions = [
-                's3:GetObject',
-                's3:ListBucket',
-                's3:GetBucketLocation',
-                's3:PutObject',
-                's3:AbortMultipartUpload'
-            ];
-            recommendedActions.forEach(action => {
-                const checkbox = document.querySelector(`.policy-action[value="${action}"]`);
-                if (checkbox) checkbox.checked = true;
-            });
-            const policyText = generateSimplePolicy();
-            document.getElementById('policy').value = policyText;
-            M.textareaAutoResize(document.getElementById('policy'));
-            document.getElementById('policy-error').innerHTML = "Existing policy not found. Use the editor to create one.";
-            M.updateTextFields();
+    async function deleteBucket() {
+        try {
+            await request("DELETE", apiBucketURL);
+            window.location.replace(rootURL + instancePath + "/buckets");
+        } catch (e) {
+            toast("Could not delete bucket: " + e.message, "error");
         }
-    });
-}
-
-function handleUserIdInput() {
-    const userId = document.getElementById('policy-user').value.trim();
-    const toggle = document.getElementById('advanced-editor-toggle');
-    const saveButton = document.getElementById('save-policy-btn');
-    toggle.disabled = !userId;
-    saveButton.disabled = !userId;
-    if (!userId) {
-        saveButton.classList.add('disabled');
-    } else {
-        saveButton.classList.remove('disabled');
     }
-}
 
-function handleEditPolicy(event) {
-    event.preventDefault();
-    const policyText = document.getElementById('policy').value;
-    try {
-        JSON.parse(policyText);
-    } catch (e) {
-        document.getElementById('policy-error').innerHTML = "Invalid JSON format";
-        return;
+    function toggleVersions(groupIndex, link) {
+        const rows = document.querySelectorAll('tr.version-row[data-version-group="' + groupIndex + '"]');
+        const expanded = link.getAttribute("aria-expanded") === "true";
+        rows.forEach(row => {
+            row.style.display = expanded ? "none" : "table-row";
+        });
+        link.setAttribute("aria-expanded", String(!expanded));
+        const icon = link.querySelector("i");
+        if (icon) icon.textContent = expanded ? "expand_more" : "expand_less";
     }
-    $.ajax({
-        type: 'PUT',
-        url: '{{$.RootURL}}{{$instancePath}}/api/buckets/{{$.BucketName}}/policy',
-        data: policyText,
-        contentType: 'application/json',
-        success: function() {
-            M.Modal.getInstance(document.getElementById('modal-edit-policy')).close();
-            M.toast({html: 'Policy updated successfully'});
-        },
-        error: function(request, status, error) {
-            document.getElementById('policy-error').innerHTML = request.responseText;
+
+    // --- Uploads --------------------------------------------------------
+
+    function handleUploadFiles(event) {
+        const files = event.target.files;
+        if (!files.length) return;
+        Promise.all(Array.from(files).map(uploadFile)).then(() => window.location.reload());
+    }
+
+    function uploadFile(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("path", currentPath + (file.webkitRelativePath || file.name));
+
+        const notification = createUploadNotification(file.name);
+        document.getElementById("uploads").appendChild(notification);
+
+        return fetch(apiBucketURL + "/objects", { method: "POST", body: formData })
+            .then(() => notification.remove());
+    }
+
+    function createUploadNotification(fileName) {
+        const article = document.createElement("article");
+        article.className = "round border small-padding";
+        article.innerHTML =
+            '<div class="small-text bold">Uploading</div>' +
+            '<div class="small-text truncate"></div>' +
+            '<progress></progress>';
+        article.querySelectorAll("div")[1].textContent = fileName;
+        return article;
+    }
+
+    // --- Bulk actions ---------------------------------------------------
+
+    function toggleSelectAll() {
+        const checked = document.getElementById("select-all").checked;
+        document.querySelectorAll(".object-checkbox").forEach(cb => { cb.checked = checked; });
+        updateBulkActions();
+    }
+
+    function updateBulkActions() {
+        const checkboxes = document.querySelectorAll(".object-checkbox");
+        const count = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+        const bar = document.getElementById("bulk-actions-bar");
+        bar.style.display = count > 0 ? "" : "none";
+        document.getElementById("selected-count").textContent = count + " selected";
+
+        const selectAll = document.getElementById("select-all");
+        selectAll.checked = count === checkboxes.length && count > 0;
+        selectAll.indeterminate = count > 0 && count < checkboxes.length;
+    }
+
+    function getSelectedKeys() {
+        return Array.from(document.querySelectorAll(".object-checkbox:checked"))
+            .map(cb => cb.getAttribute("data-key"));
+    }
+
+    async function bulkDelete() {
+        const keys = getSelectedKeys();
+        if (!keys.length) return;
+        if (!confirm("Are you sure you want to delete " + keys.length + " item" + (keys.length > 1 ? "s" : "") + "?")) return;
+
+        try {
+            await request("POST", apiBucketURL + "/objects/bulk-delete", { json: { keys: keys } });
+            location.reload();
+        } catch (e) {
+            toast("Error deleting objects: " + e.message, "error");
         }
-    });
-}
+    }
 
-function handleEditorKeydown(e) {
-    const editor = e.target;
-    const start = editor.selectionStart;
-    const end = editor.selectionEnd;
-    if (e.key === 'Tab') {
-        e.preventDefault();
-        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
-        editor.selectionStart = editor.selectionEnd = start + 2;
-        M.textareaAutoResize(editor);
-        return;
+    function bulkDownload() {
+        const keys = getSelectedKeys();
+        if (!keys.length) return;
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = apiBucketURL + "/objects/bulk-download";
+
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "keys";
+        input.value = JSON.stringify(keys);
+
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
     }
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        const currentLine = editor.value.substring(0, start).split('\n').pop();
-        const indent = currentLine.match(/^\s*/)[0];
-        const prevChar = editor.value[start - 1] || '';
-        const nextChar = editor.value[start] || '';
-        const betweenText = editor.value.substring(start - 1, start + 1);
-        const isEmptyBrackets = (betweenText === '{}' || betweenText === '[]') ||
-                               ((prevChar === '{' || prevChar === '[') &&
-                                (nextChar === '}' || nextChar === ']') &&
-                                editor.value.substring(start - 1, start + 1).match(/^[\{\[]\s*[\}\]]$/));
-        if (isEmptyBrackets) {
-            editor.value = editor.value.substring(0, start) +
-                          '\n' + indent + '  ' +
-                          '\n' + indent +
-                          editor.value.substring(end);
-            editor.selectionStart = editor.selectionEnd = start + indent.length + 3;
-        } else {
-            editor.value = editor.value.substring(0, start) +
-                          '\n' + indent +
-                          editor.value.substring(end);
-            editor.selectionStart = editor.selectionEnd = start + indent.length + 1;
-        }
-        M.textareaAutoResize(editor);
-        return;
+
+    // --- Download link --------------------------------------------------
+
+    let downloadLinkObject = "";
+
+    function handleOpenDownloadLinkModal(objectName) {
+        downloadLinkObject = objectName;
+        document.getElementById("download-link-object").textContent = objectName;
+        document.getElementById("generated-link").value = "";
+        document.getElementById("generated-link-field").style.display = "none";
+        document.getElementById("gen-url-error").textContent = "";
+        ui("#dialog-download-link");
     }
-    const pairs = {
-        '{': '}',
-        '[': ']',
-        '"': '"'
-    };
-    if (pairs.hasOwnProperty(e.key)) {
-        if (e.key === '"' && editor.value[start] === '"') {
+
+    async function handleGenerateDownloadLink() {
+        const error = document.getElementById("gen-url-error");
+        const days = Number(document.getElementById("gen-link-day").value) || 0;
+        const hours = Number(document.getElementById("gen-link-hour").value) || 0;
+        const minutes = Number(document.getElementById("gen-link-minute").value) || 0;
+        const expiry = days * 86400 + hours * 3600 + minutes * 60;
+
+        error.textContent = "";
+        if (expiry <= 0) {
+            error.textContent = "Expiry time must be greater than zero";
             return;
         }
-        e.preventDefault();
-        if (start !== end) {
-            const selected = editor.value.substring(start, end);
-            editor.value = editor.value.substring(0, start) +
-                          e.key + selected + pairs[e.key] +
-                          editor.value.substring(end);
-            editor.selectionStart = start;
-            editor.selectionEnd = end + 2;
-        } else {
-            editor.value = editor.value.substring(0, start) +
-                          e.key + pairs[e.key] +
-                          editor.value.substring(end);
-            editor.selectionStart = editor.selectionEnd = start + 1;
+        if (expiry > 7 * 86400) {
+            error.textContent = "Expiry time must be less than 7 days";
+            return;
         }
-        M.textareaAutoResize(editor);
-    }
-    if (e.key === 'Backspace') {
-        const pairs = {'{': '}', '[': ']', '"': '"'};
-        const char = editor.value[start - 1];
-        const nextChar = editor.value[start];
-        if (pairs[char] === nextChar && start === end) {
-            e.preventDefault();
-            editor.value = editor.value.substring(0, start - 1) +
-                          editor.value.substring(start + 1);
-            editor.selectionStart = editor.selectionEnd = start - 1;
-            M.textareaAutoResize(editor);
+
+        try {
+            const result = await request("GET", apiBucketURL + "/objects/" + downloadLinkObject + "/url?expiry=" + expiry);
+            document.getElementById("generated-link").value = result.url;
+            document.getElementById("generated-link-field").style.display = "";
+        } catch (e) {
+            error.textContent = "Error when generating url";
         }
     }
-}
 
-window.onload = (event) => {
-    $('#change-path-form').submit(handleChangePath)
-    $('#download-link-form').submit(handleGenerateDownloadLink)
-    $('#edit-policy-form').submit(handleEditPolicy)
+    // --- Public link ----------------------------------------------------
 
-    uploadFolderInput = $('#upload-folder-input');
-    $('#upload-folder-btn').click(event => uploadFolderInput.click());
-    uploadFolderInput.change(handleUploadFiles);
+    async function handleOpenPublicLinkModal(objectName) {
+        const endpoint = "{{ .Endpoint }}";
+        const separator = endpoint.endsWith("/") ? "" : "/";
 
-    uploadFileInput = $('#upload-file-input');
-    $('#upload-file-btn').click(event => uploadFileInput.click());
-    uploadFileInput.change(handleUploadFiles);
+        document.getElementById("public-link-object").textContent = objectName;
+        document.getElementById("public-link").value = endpoint + separator + bucketName + "/" + objectName;
+        document.getElementById("public-link-confirm").checked = false;
+        document.getElementById("public-link-container").style.display = "none";
 
-    $('.modal-trigger[href="#modal-edit-policy"]').click(loadBucketPolicy);
-    $(document).ready(function(){
-        $('.tooltipped').tooltip();
-        $('select').formSelect(); // Initialize select dropdowns
-    });
-    document.getElementById('policy').addEventListener('keydown', handleEditorKeydown);
-    document.getElementById('advanced-editor-toggle')
-        .addEventListener('change', handlePolicyEditorToggle);
-    document.getElementById('allow-all-actions')
-        .addEventListener('change', toggleSpecificActions);
-    document.querySelectorAll('.policy-action, #policy-user, #allow-all-actions')
-        .forEach(el => el.addEventListener('change', function() {
-            if (!document.getElementById('advanced-editor-toggle').checked) {
-                const policyText = generateSimplePolicy();
-                document.getElementById('policy').value = policyText;
-                M.textareaAutoResize(document.getElementById('policy'));
+        const status = document.getElementById("public-access-status");
+        status.className = "round border no-elevate";
+        status.innerHTML = '<nav><progress class="circle small"></progress><span>Verifying public accessibility…</span></nav>';
+
+        ui("#dialog-public-link");
+
+        try {
+            const result = await request("GET", apiBucketURL + "/objects/" + objectName + "/public-access");
+            if (result.accessible) {
+                status.className = "round border no-elevate primary-container";
+                status.innerHTML = '<nav><i>check_circle</i><span>The file seems to be publicly available.</span></nav>';
+            } else {
+                status.className = "round border no-elevate error-container";
+                status.innerHTML = '<nav><i>error</i><span>The file does not seem to be publicly available. Make sure the bucket policy allows public read access.</span></nav>';
             }
-        }));
-    document.getElementById('policy-user').addEventListener('input', handleUserIdInput);
-};
+        } catch (e) {
+            status.className = "round border no-elevate tertiary-container";
+            status.innerHTML = '<nav><i>warning</i><span>Could not verify accessibility.</span></nav>';
+        }
+    }
+
+    function togglePublicLinkVisibility() {
+        const checked = document.getElementById("public-link-confirm").checked;
+        document.getElementById("public-link-container").style.display = checked ? "" : "none";
+    }
+
+    // --- Metadata -------------------------------------------------------
+
+    async function handleOpenMetadataModal(objectName, versionId) {
+        document.getElementById("metadata-object-name").textContent = objectName;
+        document.getElementById("metadata-loading").style.display = "";
+        document.getElementById("metadata-error").textContent = "";
+        document.getElementById("metadata-table").style.display = "none";
+        document.getElementById("metadata-user-heading").style.display = "none";
+        document.getElementById("metadata-user-table").style.display = "none";
+        document.getElementById("metadata-user-body").innerHTML = "";
+
+        ui("#dialog-metadata");
+
+        let url = apiBucketURL + "/objects/" + objectName + "/metadata";
+        if (versionId) url += "?versionId=" + encodeURIComponent(versionId);
+
+        let result;
+        try {
+            result = await request("GET", url);
+        } catch (e) {
+            document.getElementById("metadata-loading").style.display = "none";
+            document.getElementById("metadata-error").textContent = "Error loading metadata: " + e.message;
+            return;
+        }
+
+        document.getElementById("metadata-loading").style.display = "none";
+        document.getElementById("metadata-size").textContent = result.size + " bytes";
+        document.getElementById("metadata-content-type").textContent = result.contentType || "-";
+        document.getElementById("metadata-last-modified").textContent =
+            result.lastModified ? new Date(result.lastModified).toLocaleString() : "-";
+        document.getElementById("metadata-etag").textContent = result.etag || "-";
+
+        const storageClassRow = document.getElementById("metadata-storage-class-row");
+        storageClassRow.style.display = result.storageClass ? "" : "none";
+        document.getElementById("metadata-storage-class").textContent = result.storageClass || "";
+
+        const versionRow = document.getElementById("metadata-version-row");
+        versionRow.style.display = result.versionId ? "" : "none";
+        document.getElementById("metadata-version-id").textContent =
+            result.versionId ? result.versionId + (result.isLatest ? " (latest)" : "") : "";
+
+        document.getElementById("metadata-table").style.display = "";
+
+        const userMetadata = result.userMetadata || {};
+        const keys = Object.keys(userMetadata);
+        if (keys.length) {
+            const body = document.getElementById("metadata-user-body");
+            keys.forEach(key => {
+                const row = document.createElement("tr");
+                const keyCell = document.createElement("th");
+                keyCell.className = "min";
+                keyCell.textContent = key;
+                const valueCell = document.createElement("td");
+                valueCell.textContent = userMetadata[key];
+                row.appendChild(keyCell);
+                row.appendChild(valueCell);
+                body.appendChild(row);
+            });
+            document.getElementById("metadata-user-heading").style.display = "";
+            document.getElementById("metadata-user-table").style.display = "";
+        }
+    }
+
+    // --- Bucket policy --------------------------------------------------
+
+    function generateSimplePolicy() {
+        const userId = document.getElementById("policy-user").value;
+        const allowAll = document.getElementById("allow-all-actions").checked;
+        const actions = allowAll
+            ? ["s3:*"]
+            : Array.from(document.getElementsByClassName("policy-action")).filter(cb => cb.checked).map(cb => cb.value);
+
+        return JSON.stringify({
+            Version: "2012-10-17",
+            Id: "S3Policy",
+            Statement: [{
+                Sid: "BucketAllow",
+                Effect: "Allow",
+                Principal: { AWS: [userId.startsWith("arn:") ? userId : "arn:aws:iam:::user/" + userId] },
+                Action: actions,
+                Resource: ["arn:aws:s3:::" + bucketName, "arn:aws:s3:::" + bucketName + "/*"]
+            }]
+        }, null, 2);
+    }
+
+    function syncSimplePolicy() {
+        if (!document.getElementById("advanced-editor-toggle").checked) {
+            document.getElementById("policy").value = generateSimplePolicy();
+        }
+    }
+
+    function handlePolicyEditorToggle() {
+        const isAdvanced = document.getElementById("advanced-editor-toggle").checked;
+        document.getElementById("simple-editor").style.display = isAdvanced ? "none" : "";
+        document.getElementById("advanced-editor").style.display = isAdvanced ? "" : "none";
+        if (isAdvanced) return;
+
+        // Switching back to the simple editor: reflect the JSON in the form.
+        try {
+            const policy = JSON.parse(document.getElementById("policy").value);
+            const statement = policy.Statement[0];
+
+            if (statement && statement.Principal && statement.Principal.AWS) {
+                let userArn = Array.isArray(statement.Principal.AWS) ? statement.Principal.AWS[0] : statement.Principal.AWS;
+                document.getElementById("policy-user").value = userArn.replace("arn:aws:iam:::user/", "");
+            }
+
+            const hasAllActions = policy.Statement.some(s => {
+                const actions = Array.isArray(s.Action) ? s.Action : [s.Action];
+                return actions.includes("s3:*");
+            });
+            document.getElementById("allow-all-actions").checked = hasAllActions;
+            document.getElementById("specific-actions").style.display = hasAllActions ? "none" : "";
+
+            if (!hasAllActions && statement.Action) {
+                const actions = Array.isArray(statement.Action) ? statement.Action : [statement.Action];
+                document.querySelectorAll(".policy-action").forEach(cb => { cb.checked = actions.includes(cb.value); });
+            }
+        } catch (e) {
+            console.error("Error parsing policy:", e);
+        }
+
+        document.getElementById("policy").value = generateSimplePolicy();
+    }
+
+    function toggleSpecificActions() {
+        const allowAll = document.getElementById("allow-all-actions").checked;
+        document.getElementById("specific-actions").style.display = allowAll ? "none" : "";
+        syncSimplePolicy();
+    }
+
+    function handleUserIdInput() {
+        const userId = document.getElementById("policy-user").value.trim();
+        document.getElementById("advanced-editor-toggle").disabled = !userId;
+        document.getElementById("save-policy-btn").disabled = !userId;
+        syncSimplePolicy();
+    }
+
+    // A bucket without a policy answers with 200 and an empty body, so an absent
+    // policy is not an error — both cases start the simple editor from defaults.
+    function startBlankPolicy() {
+        document.getElementById("advanced-editor-toggle").checked = false;
+        document.getElementById("policy-user").value = "";
+        document.getElementById("allow-all-actions").checked = false;
+        document.getElementById("specific-actions").style.display = "";
+
+        const recommended = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation", "s3:PutObject", "s3:AbortMultipartUpload"];
+        document.querySelectorAll(".policy-action").forEach(cb => { cb.checked = recommended.includes(cb.value); });
+
+        document.getElementById("policy").value = generateSimplePolicy();
+        document.getElementById("simple-editor").style.display = "";
+        handleUserIdInput();
+        document.getElementById("policy-error").textContent = "Existing policy not found. Use the editor to create one.";
+    }
+
+    async function openPolicyDialog() {
+        ui("#dialog-edit-policy");
+
+        const error = document.getElementById("policy-error");
+        const toggle = document.getElementById("advanced-editor-toggle");
+        const saveButton = document.getElementById("save-policy-btn");
+        const textarea = document.getElementById("policy");
+
+        error.textContent = "";
+        document.getElementById("simple-editor").style.display = "none";
+        document.getElementById("advanced-editor").style.display = "none";
+
+        let policy = null;
+        try {
+            const result = await request("GET", apiBucketURL + "/policy");
+            policy = typeof result === "string" ? JSON.parse(result) : result;
+        } catch (e) {
+            policy = null;
+        }
+
+        if (!policy || !policy.Statement) {
+            startBlankPolicy();
+            return;
+        }
+
+        textarea.value = JSON.stringify(policy, null, 2);
+
+        const hasValidUser = policy.Statement[0] &&
+            policy.Statement[0].Principal && policy.Statement[0].Principal.AWS;
+
+        toggle.checked = !!hasValidUser;
+        toggle.disabled = !hasValidUser;
+        saveButton.disabled = !hasValidUser;
+        handlePolicyEditorToggle();
+    }
+
+    async function handleEditPolicy() {
+        const policyText = document.getElementById("policy").value;
+        const error = document.getElementById("policy-error");
+
+        try {
+            JSON.parse(policyText);
+        } catch (e) {
+            error.textContent = "Invalid JSON format";
+            return;
+        }
+
+        try {
+            await request("PUT", apiBucketURL + "/policy", { json: policyText });
+            ui("#dialog-edit-policy");
+            toast("Policy updated successfully", "check_circle");
+        } catch (e) {
+            error.textContent = e.message;
+        }
+    }
+
+    // Keeps the JSON editor bearable: auto-indent, bracket pairing and tabs.
+    function handleEditorKeydown(e) {
+        const editor = e.target;
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+
+        if (e.key === "Tab") {
+            e.preventDefault();
+            editor.value = editor.value.substring(0, start) + "  " + editor.value.substring(end);
+            editor.selectionStart = editor.selectionEnd = start + 2;
+            return;
+        }
+
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const currentLine = editor.value.substring(0, start).split("\n").pop();
+            const indent = currentLine.match(/^\s*/)[0];
+            const prevChar = editor.value[start - 1] || "";
+            const nextChar = editor.value[start] || "";
+            const isEmptyBrackets = (prevChar === "{" || prevChar === "[") && (nextChar === "}" || nextChar === "]");
+
+            if (isEmptyBrackets) {
+                editor.value = editor.value.substring(0, start) + "\n" + indent + "  " + "\n" + indent + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + indent.length + 3;
+            } else {
+                editor.value = editor.value.substring(0, start) + "\n" + indent + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + indent.length + 1;
+            }
+            return;
+        }
+
+        const pairs = { "{": "}", "[": "]", '"': '"' };
+
+        if (Object.prototype.hasOwnProperty.call(pairs, e.key)) {
+            if (e.key === '"' && editor.value[start] === '"') return;
+            e.preventDefault();
+            if (start !== end) {
+                const selected = editor.value.substring(start, end);
+                editor.value = editor.value.substring(0, start) + e.key + selected + pairs[e.key] + editor.value.substring(end);
+                editor.selectionStart = start;
+                editor.selectionEnd = end + 2;
+            } else {
+                editor.value = editor.value.substring(0, start) + e.key + pairs[e.key] + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 1;
+            }
+            return;
+        }
+
+        if (e.key === "Backspace" && start === end && pairs[editor.value[start - 1]] === editor.value[start]) {
+            e.preventDefault();
+            editor.value = editor.value.substring(0, start - 1) + editor.value.substring(start + 1);
+            editor.selectionStart = editor.selectionEnd = start - 1;
+        }
+    }
+
+    window.addEventListener("load", () => {
+        document.getElementById("upload-file-input").addEventListener("change", handleUploadFiles);
+        document.getElementById("upload-folder-input").addEventListener("change", handleUploadFiles);
+        document.getElementById("policy").addEventListener("keydown", handleEditorKeydown);
+        document.querySelectorAll(".policy-action").forEach(cb => cb.addEventListener("change", syncSimplePolicy));
+    });
 </script>
 {{ end }}
