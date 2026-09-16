@@ -279,9 +279,11 @@ func (a *oidcAuthenticator) role(groups []string) Role {
 func (a *oidcAuthenticator) safeReturnTo(returnTo string) string {
 	fallback := a.config.RootURL + "/"
 
-	// A protocol relative path such as //evil.example points at another host
-	// even though it starts with a slash.
-	if returnTo == "" || !strings.HasPrefix(returnTo, "/") || strings.HasPrefix(returnTo, "//") {
+	// A protocol relative path such as //evil.example or /\evil.example points
+	// at another host even though it starts with a slash: some browsers
+	// normalize a leading backslash to a second forward slash.
+	if returnTo == "" || strings.ContainsRune(returnTo, '\\') ||
+		!strings.HasPrefix(returnTo, "/") || strings.HasPrefix(returnTo, "//") {
 		return fallback
 	}
 	parsed, err := url.Parse(returnTo)
