@@ -23,6 +23,7 @@ func TestSafeReturnTo(t *testing.T) {
 		{name: "empty falls back", returnTo: "", expected: "/"},
 		{name: "absolute URL rejected", returnTo: "https://evil.example/steal", expected: "/"},
 		{name: "protocol relative rejected", returnTo: "//evil.example/steal", expected: "/"},
+		{name: "backslash protocol relative rejected", returnTo: "/\\evil.example/steal", expected: "/"},
 		{name: "scheme relative rejected", returnTo: "javascript:alert(1)", expected: "/"},
 		{name: "relative path rejected", returnTo: "buckets", expected: "/"},
 		{name: "login path would loop", returnTo: "/auth/login", expected: "/"},
