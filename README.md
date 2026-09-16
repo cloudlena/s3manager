@@ -20,6 +20,7 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 - Create a time-limited download link for an object
 - Check whether an object is publicly accessible and copy its public link
 - Show object metadata (including user metadata) and object versions
+- Optionally require a login through an OpenID Connect provider, with viewer and writer roles
 
 ## Usage
 
@@ -83,11 +84,68 @@ These variables apply to the whole app and are never prefixed:
 - `SHOW_VERSIONS`: Show all object versions in bucket view and enable version-specific downloads (defaults to `false`; bucket must have versioning enabled)
 - `SHOW_METADATA`: Show the object metadata action and enable the metadata endpoint (defaults to `true`)
 - `TZ`: IANA timezone used when displaying object Last Modified times (defaults to UTC; for example `Europe/Berlin`)
-- `BUCKET_NAME`: Restrict the buckets view to a single named bucket (defaults to unset, showing all buckets)
+- `BUCKET_NAME`: Restrict the buckets view to one or more named buckets, comma-separated (defaults to unset, showing all buckets)
 - `SSE_TYPE`: Specified server side encryption (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
 - `SSE_KEY`: The key needed for SSE method (only for `KMS` and `SSE-C`)
 - `TIMEOUT`: The read and write timeout in seconds (default to `600` - 10 minutes)
 - `ROOT_URL`: A root URL prefix if running behind a reverse proxy (defaults to unset)
+
+#### Authentication
+
+By default the app is open: anyone who can reach it can use it, and the feature
+flags above alone decide what it offers. Setting `AUTH_PROVIDER` to `oidc` puts
+an OpenID Connect login in front of the whole app.
+
+This only guards access to the web app. The S3 credentials stay server side and
+are never derived from the logged in user, so every user talks to S3 through the
+same configured credentials.
+
+- `AUTH_PROVIDER`: `none` or `oidc` (defaults to `none`)
+- `SESSION_SECRET`: Secret the session cookie is sealed with. Required when authentication is enabled, and it must be the same across all replicas
+- `SESSION_MAX_AGE`: How long a session stays valid, in seconds (defaults to `28800` — 8 hours)
+- `SESSION_COOKIE_SECURE`: Only send the session cookie over HTTPS (defaults to `true`; set to `false` to test over plain HTTP)
+- `OIDC_ISSUER`: The provider's issuer URL, from which its configuration is discovered
+- `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET`: The client registered at the provider
+- `OIDC_REDIRECT_URL`: The app's public URL followed by `/auth/callback`, registered as a redirect URI at the provider
+- `OIDC_SCOPES`: Scopes requested in addition to `openid` (defaults to `profile,email`)
+- `OIDC_ROLE_CLAIM`: The ID token claim the role is read from (defaults to `groups`)
+- `OIDC_VIEWER_GROUPS`: Comma separated claim values granting the viewer role
+- `OIDC_WRITER_GROUPS`: Comma separated claim values granting the writer role
+- `OIDC_DEFAULT_ROLE`: Role for a user matching none of those groups (defaults to `none`, which denies access)
+- `AUTH_ANONYMOUS_ROLE`: Role everyone gets when `AUTH_PROVIDER` is `none` (defaults to `writer`, which is the historical behaviour)
+
+##### Roles
+
+- **viewer** may list buckets, browse, download and share objects, and read bucket policies
+- **writer** may additionally create buckets and objects, delete them, and write bucket policies
+
+A user who matches neither list is refused at login, unless `OIDC_DEFAULT_ROLE`
+says otherwise.
+
+##### Roles cannot widen the configuration
+
+The feature flags are a global cap. A role only ever takes capabilities away; it
+can never enable something the deployment disabled. With `ALLOW_DELETE=false`
+the delete endpoints are not registered at all, so nobody can delete regardless
+of what the provider puts in their claims.
+
+##### Example
+
+```sh
+AUTH_PROVIDER=oidc
+SESSION_SECRET=a-long-random-string
+OIDC_ISSUER=https://keycloak.example.com/realms/main
+OIDC_CLIENT_ID=s3manager
+OIDC_CLIENT_SECRET=...
+OIDC_REDIRECT_URL=https://s3manager.example.com/auth/callback
+OIDC_VIEWER_GROUPS=s3-readers
+OIDC_WRITER_GROUPS=s3-admins
+```
+
+The app uses the authorization code flow with PKCE and a nonce, verifies the ID
+token against the provider's published keys, and keeps the result in an
+encrypted, `HttpOnly` cookie. There is no session storage on the server, so the
+app stays stateless.
 
 ### Browsing large buckets
 
