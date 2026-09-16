@@ -54,6 +54,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 		CurrentPath         string
 		Paths               []string
 		AllowDelete         bool
+		UserName            string
 		CurrentS3           *S3Instance
 		S3Instances         S3Instances
 		ErrorMessage        string
@@ -78,6 +79,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 		bucketName := mux.Vars(r)["bucketName"]
 		path := strings.TrimPrefix(mux.Vars(r)["path"], "/")
 
+		opts := effectiveOptions(r.Context(), opts)
 		query := parseListingQuery(r.URL.Query())
 		data := pageData{
 			RootURL:        opts.RootURL,
@@ -85,6 +87,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 			CurrentPath:    path,
 			Paths:          removeEmptyStrings(strings.Split(path, "/")),
 			AllowDelete:    opts.AllowDelete,
+			UserName:       userName(r.Context()),
 			CurrentS3:      instance,
 			S3Instances:    instances,
 			SortBy:         query.SortBy,

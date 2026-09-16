@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/cloudlena/s3manager/internal/app/s3manager"
+	"github.com/cloudlena/s3manager/internal/app/s3manager/auth"
 	"github.com/cloudlena/s3manager/internal/app/s3manager/mocks"
 	"github.com/gorilla/mux"
 	"github.com/matryer/is"
@@ -430,6 +431,13 @@ func TestHandleBucketView(t *testing.T) {
 			}
 
 			r := mux.NewRouter()
+			// The page is rendered for a writer, so the role takes nothing
+			// away from what the options offer.
+			r.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+					next.ServeHTTP(w, req.WithContext(auth.WithIdentity(req.Context(), &auth.Identity{Role: auth.RoleWriter})))
+				})
+			})
 			r.Handle("/{instance}/buckets/{bucketName}{path:(?:/.*)?}", s3manager.HandleBucketView(instances, templates, s3manager.Options{
 				RootURL:       tc.rootURL,
 				AllowDelete:   !tc.disallowDelete,
