@@ -81,6 +81,18 @@
 
             const response = await fetch(url, init);
             const text = await response.text();
+            if (response.status === 401) {
+                // The session expired while the page was open. Send the user
+                // through the login flow and bring them back to this page.
+                let loginUrl = "";
+                try {
+                    loginUrl = JSON.parse(text).loginUrl || "";
+                } catch (e) { /* not a JSON body */ }
+                if (loginUrl) {
+                    location.href = loginUrl + "?return_to=" + encodeURIComponent(location.pathname + location.search);
+                    throw new Error("Your session expired. Taking you to the login page...");
+                }
+            }
             if (!response.ok) {
                 throw new Error(text.trim() || response.statusText);
             }
@@ -117,7 +129,8 @@
 {{ end }}
 
 {{/* appbar-actions renders the parts of the top app bar that every page shares:
-     the S3 instance switcher and the light/dark mode toggle. */}}
+     the S3 instance switcher, the light/dark mode toggle and, when the app
+     authenticates users, the current user and the log out action. */}}
 {{ define "appbar-actions" }}
     {{ if gt (len .S3Instances) 1 }}
     <div>
@@ -148,4 +161,16 @@
         <i id="mode-icon">dark_mode</i>
         <span class="tooltip bottom">Toggle theme</span>
     </button>
+
+    {{/* The session actions only appear when the deployment authenticates users. */}}
+    {{ if .UserName }}
+    <div class="chip border">
+        <i>person</i>
+        <span>{{ .UserName }}</span>
+    </div>
+    <a class="button circle transparent" href="{{ .RootURL }}/auth/logout">
+        <i>logout</i>
+        <span class="tooltip bottom">Log out</span>
+    </a>
+    {{ end }}
 {{ end }}

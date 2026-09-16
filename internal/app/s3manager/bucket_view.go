@@ -52,6 +52,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 		Paths               []string
 		Endpoint            string
 		AllowDelete         bool
+		UserName            string
 		CurrentS3           *S3Instance
 		S3Instances         S3Instances
 		HasError            bool
@@ -80,6 +81,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 			return
 		}
 
+		opts := effectiveOptions(r.Context(), opts)
 		query := parseListingQuery(r.URL.Query())
 		data := pageData{
 			RootURL:        opts.RootURL,
@@ -88,6 +90,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 			Paths:          removeEmptyStrings(strings.Split(path, "/")),
 			Endpoint:       instance.Client.EndpointURL().String(),
 			AllowDelete:    opts.AllowDelete,
+			UserName:       userName(r.Context()),
 			CurrentS3:      instance,
 			S3Instances:    instances,
 			SortBy:         query.SortBy,

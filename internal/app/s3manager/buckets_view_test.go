@@ -59,6 +59,17 @@ func TestHandleBucketsView(t *testing.T) {
 			unexpectedInBody:     []string{"OTHER-BUCKET"},
 		},
 		{
+			it:           "only renders the configured buckets from a comma-separated list",
+			instanceName: "primary",
+			bucketName:   "BUCKET-NAME, THIRD-BUCKET",
+			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
+				return []minio.BucketInfo{{Name: "BUCKET-NAME"}, {Name: "OTHER-BUCKET"}, {Name: "THIRD-BUCKET"}}, nil
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "THIRD-BUCKET",
+			unexpectedInBody:     []string{"OTHER-BUCKET"},
+		},
+		{
 			it:           "shows an error message if the instance is unreachable",
 			instanceName: "primary",
 			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
