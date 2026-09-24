@@ -1,6 +1,5 @@
 # S3 Manager
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/cloudlena/s3manager)](https://goreportcard.com/report/github.com/cloudlena/s3manager)
 [![Build Status](https://github.com/cloudlena/s3manager/actions/workflows/main.yml/badge.svg)](https://github.com/cloudlena/s3manager/actions)
 
 A Web GUI written in Go to manage S3 buckets from any provider.
@@ -132,7 +131,7 @@ deleting fails on them.
 
 ### Run Container image
 
-1. Run `docker run -p 8080:8080 -e 'ENDPOINT=s3.amazonaws.com' -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' cloudlena/s3manager`
+1. Run `podman run -p 8080:8080 -e 'ENDPOINT=s3.amazonaws.com' -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' docker.io/cloudlena/s3manager`
 
 ### Deploy to Kubernetes
 
@@ -179,12 +178,18 @@ The image is available on [Docker Hub](https://hub.docker.com/r/cloudlena/s3mana
 
 ### Run Locally for Testing
 
-There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/main/docker-compose.yml) file that spins up two S3 services and the S3 Manager configured for both of them. You can try it by issuing the following command:
+There is an example [compose.yaml](https://github.com/cloudlena/s3manager/blob/main/compose.yaml) file that spins up two S3 services and the S3 Manager configured for both of them. You can try it by issuing the following command:
 
 ```shell
-$ docker-compose up
+$ podman compose up
 ```
 
-## GitHub Stars
+## Star History
 
-[![GitHub stars over time](https://starchart.cc/cloudlena/s3manager.svg?variant=adaptive)](https://starchart.cc/cloudlena/s3manager)
+<a href="https://star-history.dera.page/cloudlena/s3manager?style=github">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=cloudlena/s3manager&theme=dark&style=github" />
+   <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=cloudlena/s3manager&style=github" />
+   <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=cloudlena/s3manager&style=github" />
+ </picture>
+</a>

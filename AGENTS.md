@@ -19,7 +19,7 @@ go test -run TestHandleBucketsView ./internal/app/s3manager/
 
 Local dev with MinIO:
 ```bash
-docker compose up   # Starts MinIO at localhost:9000; app at localhost:8080
+podman compose up   # Starts MinIO at localhost:9000; app at localhost:8080
 ```
 
 ## Architecture

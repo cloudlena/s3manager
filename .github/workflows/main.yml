@@ -30,6 +30,7 @@ jobs:
       - name: Build and push container image
         uses: docker/build-push-action@v7
         with:
+          file: Containerfile
           push: true
           tags: cloudlena/s3manager:latest
           platforms: linux/amd64,linux/arm64

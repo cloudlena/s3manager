@@ -14,4 +14,4 @@ dockers:
   - image_templates:
       - "cloudlena/s3manager:{{ .Tag }}"
       - "cloudlena/s3manager:latest"
-    dockerfile: Dockerfile.release
+    dockerfile: Containerfile.release

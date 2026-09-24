@@ -16,7 +16,7 @@ test:
 
 .PHONY: build-image
 build-image:
-	docker build -t s3manager .
+	podman build -t s3manager .
 
 .PHONY: clean
 clean:

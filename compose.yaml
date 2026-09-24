@@ -1,7 +1,9 @@
 services:
   s3manager:
     container_name: s3manager
-    build: .
+    build:
+      context: .
+      dockerfile: Containerfile
     ports:
       - 8080:8080
     environment:
