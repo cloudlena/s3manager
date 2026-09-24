@@ -308,6 +308,24 @@ func TestHandleBucketView(t *testing.T) {
 			expectedBodyContains: []string{"FILE-NAME"},
 			unexpectedInBody:     []string{`onclick="openMetadataDialog(`},
 		},
+		{
+			it: "escapes keys in links",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan(
+					minio.ObjectInfo{Key: "sub#41/100%/"},
+					minio.ObjectInfo{Key: "sub#41/report-%41.txt"},
+					minio.ObjectInfo{Key: "sub#41/a#b?.txt"},
+				)
+			},
+			path:               "sub%2341/",
+			expectedStatusCode: http.StatusOK,
+			expectedBodyContains: []string{
+				`href="/primary/buckets/BUCKET-NAME/sub%2341/"`,
+				`href="/primary/buckets/BUCKET-NAME/sub%2341/100%25/"`,
+				`href="/primary/api/buckets/BUCKET-NAME/objects/sub%2341/report-%2541.txt"`,
+				`href="/primary/api/buckets/BUCKET-NAME/objects/sub%2341/a%23b%3F.txt"`,
+			},
+		},
 	}
 
 	for _, tc := range cases {

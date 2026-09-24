@@ -80,7 +80,7 @@
         {{ $url := printf "%s%s/buckets/%s/" $.RootURL $instancePath $.BucketName }}
         <a class="link" href="{{ $url }}">{{ $.BucketName }}</a>
         {{ range $path := .Paths }}
-        {{ $url = printf "%s%s/" $url $path }}
+        {{ $url = printf "%s%s/" $url (escapeKey $path) }}
         <span class="secondary-text">/</span>
         <a class="link" href="{{ $url }}">{{ $path }}</a>
         {{ end }}
@@ -180,7 +180,7 @@
             <tbody>
                 {{ range $index, $object := .Objects }}
                 {{ $isCollapsedVersion := and $.ShowVersions (not $object.IsPrimaryVersion) }}
-                {{ $objectURL := printf "%s%s/api/buckets/%s/objects/%s" $.RootURL $instancePath $.BucketName $object.Key }}
+                {{ $objectURL := printf "%s%s/api/buckets/%s/objects/%s" $.RootURL $instancePath $.BucketName (escapeKey $object.Key) }}
                 <tr data-version-group="{{ $object.GroupIndex }}" class="{{ if $isCollapsedVersion }}version-row {{ end }}{{ if $object.IsDeleteMarker }}delete-marker{{ end }}">
                     <td class="min">
                         {{- /* Bulk actions operate on the object key, so only the
@@ -194,7 +194,7 @@
                     </td>
                     <td class="min key-cell">
                         {{- if $object.IsFolder }}
-                        <a class="row" href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $.BucketName }}/{{ $object.Key }}">
+                        <a class="row" href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $.BucketName }}/{{ escapeKey $object.Key }}">
                             <i>{{ $object.Icon }}</i>
                             <span class="truncate">{{ $object.DisplayName }}</span>
                         </a>
@@ -666,9 +666,11 @@
         if (!appendPath) return;
         if (!appendPath.endsWith("/")) appendPath += "/";
 
-        let here = window.location.href;
-        if (!here.endsWith("/")) here += "/";
-        window.location.href = here + appendPath;
+        const url = new URL(window.location.href);
+        if (!url.pathname.endsWith("/")) url.pathname += "/";
+        url.pathname += appendPath.split("/").map(encodeURIComponent).join("/");
+        resetPaging(url.searchParams);
+        window.location.href = url.toString();
     }
 
     // --- Objects --------------------------------------------------------

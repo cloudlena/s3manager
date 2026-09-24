@@ -12,6 +12,10 @@ import (
 var templateFuncs = template.FuncMap{
 	"add": func(a, b int) int { return a + b },
 	"sub": func(a, b int) int { return a - b },
+	// escapeKey escapes an object key for use in a link. html/template alone
+	// leaves "#", "?" and anything resembling a percent-escape untouched, so
+	// such keys would otherwise address a different object.
+	"escapeKey": escapeObjectKey,
 	// sortIndicator names the icon a sortable table header shows, or nothing
 	// if the table is not sorted by that column.
 	"sortIndicator": func(field, sortBy, sortOrder string) string {
