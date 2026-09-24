@@ -699,7 +699,17 @@
     function handleUploadFiles(event) {
         const files = event.target.files;
         if (!files.length) return;
-        Promise.all(Array.from(files).map(uploadFile)).then(() => window.location.reload());
+        Promise.all(Array.from(files).map(uploadFile)).then((errors) => {
+            const failed = errors.filter(Boolean);
+            if (!failed.length) {
+                window.location.reload();
+                return;
+            }
+            // Stay on the page so the error stays visible; there is only one
+            // snackbar, so report the first failure and how many there were.
+            const summary = failed.length === 1 ? failed[0] : failed[0] + " (and " + (failed.length - 1) + " more)";
+            toast("Upload failed: " + summary, "error");
+        });
     }
 
     function uploadFile(file) {
@@ -709,18 +719,50 @@
 
         const notification = createUploadNotification(file.name);
         document.getElementById("uploads").appendChild(notification);
+        const status = notification.querySelector(".upload-status");
+        const progress = notification.querySelector("progress");
 
-        return fetch(apiBucketURL + "/objects", { method: "POST", body: formData })
-            .then(() => notification.remove());
+        // fetch can't report upload progress, so this uses XHR instead.
+        return new Promise((resolve) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", apiBucketURL + "/objects");
+
+            xhr.upload.addEventListener("progress", (e) => {
+                if (!e.lengthComputable) return;
+                const percent = Math.floor(e.loaded / e.total * 100);
+                progress.value = percent;
+                status.textContent = "Uploading " + percent + "%";
+            });
+            // The browser has sent everything, but the server still has to
+            // pass the file on to S3, which it can't report progress for.
+            xhr.upload.addEventListener("load", () => {
+                progress.removeAttribute("value");
+                status.textContent = "Saving to bucket…";
+            });
+
+            // Resolves with an error message, or null on success, so one failed
+            // file doesn't abort the others.
+            xhr.addEventListener("load", () => {
+                notification.remove();
+                const ok = xhr.status >= 200 && xhr.status < 300;
+                resolve(ok ? null : file.name + ": " + (xhr.responseText.trim() || xhr.statusText));
+            });
+            xhr.addEventListener("error", () => {
+                notification.remove();
+                resolve(file.name + ": network error");
+            });
+
+            xhr.send(formData);
+        });
     }
 
     function createUploadNotification(fileName) {
         const article = document.createElement("article");
         article.className = "round border small-padding";
         article.innerHTML =
-            '<div class="small-text bold">Uploading</div>' +
+            '<div class="small-text bold upload-status">Uploading 0%</div>' +
             '<div class="small-text truncate"></div>' +
-            '<progress></progress>';
+            '<progress value="0" max="100"></progress>';
         article.querySelectorAll("div")[1].textContent = fileName;
         return article;
     }
