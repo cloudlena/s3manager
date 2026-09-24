@@ -12,13 +12,6 @@ import (
 var templateFuncs = template.FuncMap{
 	"add": func(a, b int) int { return a + b },
 	"sub": func(a, b int) int { return a - b },
-	"iterate": func(start, end int) []int {
-		result := make([]int, 0, max(end-start, 0))
-		for i := start; i < end; i++ {
-			result = append(result, i)
-		}
-		return result
-	},
 	// sortIndicator names the icon a sortable table header shows, or nothing
 	// if the table is not sorted by that column.
 	"sortIndicator": func(field, sortBy, sortOrder string) string {

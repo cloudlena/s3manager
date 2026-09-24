@@ -12,8 +12,8 @@ func TestPaginateObjects(t *testing.T) {
 
 	// Two versions of a.txt (latest first, as S3 lists them) and one b.txt.
 	// Sorted flat by size this would interleave to a(1), b(50), a(100).
-	versionedObjs := func() []objectWithIcon {
-		objs := []objectWithIcon{
+	versionedObjs := func() []listedObject {
+		objs := []listedObject{
 			{Key: "a.txt", DisplayName: "a.txt", VersionID: "v2", IsLatest: true, Size: 100},
 			{Key: "a.txt", DisplayName: "a.txt", VersionID: "v1", Size: 1},
 			{Key: "b.txt", DisplayName: "b.txt", VersionID: "v1", IsLatest: true, Size: 50},
@@ -92,7 +92,7 @@ func TestPaginateObjects(t *testing.T) {
 		is := is.New(t)
 
 		now := time.Now()
-		objs := []objectWithIcon{
+		objs := []listedObject{
 			{Key: "b.txt", DisplayName: "b.txt", LastModified: now},
 			{Key: "a.txt", DisplayName: "a.txt", LastModified: now.Add(time.Hour)},
 		}
@@ -105,4 +105,57 @@ func TestPaginateObjects(t *testing.T) {
 		is.Equal("a.txt", page.Objects[0].Key)
 		is.Equal("b.txt", page.Objects[1].Key)
 	})
+
+	t.Run("keeps the listing order of equal objects when sorting descending", func(t *testing.T) {
+		t.Parallel()
+		is := is.New(t)
+
+		objs := []listedObject{
+			{Key: "a.txt", DisplayName: "a.txt", Size: 1},
+			{Key: "b.txt", DisplayName: "b.txt", Size: 1},
+			{Key: "c.txt", DisplayName: "c.txt", Size: 1},
+		}
+
+		page := paginateObjects(objs, listingQuery{SortBy: "size", SortOrder: "desc", Page: 1, PerPage: 25}, false)
+
+		is.Equal("a.txt", page.Objects[0].Key)
+		is.Equal("b.txt", page.Objects[1].Key)
+		is.Equal("c.txt", page.Objects[2].Key)
+	})
+
+	t.Run("flags a page that holds the whole listing", func(t *testing.T) {
+		t.Parallel()
+		is := is.New(t)
+
+		objs := make([]listedObject, 25)
+		is.True(!paginateObjects(objs, listingQuery{Page: 1, PerPage: 25}, false).ShowAll)
+		is.True(paginateObjects(objs, listingQuery{Page: 1, PerPage: 25, ShowAll: true}, false).ShowAll)
+	})
+}
+
+func TestPageLinks(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		it         string
+		page       int
+		totalPages int
+		expected   []int
+	}{
+		{it: "lists a single page", page: 1, totalPages: 1, expected: []int{1}},
+		{it: "lists every page of a short listing", page: 3, totalPages: 5, expected: []int{1, 2, 3, 4, 5}},
+		{it: "skips the pages before the neighbours", page: 9, totalPages: 10, expected: []int{1, 0, 7, 8, 9, 10}},
+		{it: "skips the pages after the neighbours", page: 2, totalPages: 10, expected: []int{1, 2, 3, 4, 0, 10}},
+		{it: "skips pages on both sides", page: 5, totalPages: 10, expected: []int{1, 0, 3, 4, 5, 6, 7, 0, 10}},
+		{it: "leaves no gap before an adjacent first page", page: 4, totalPages: 10, expected: []int{1, 2, 3, 4, 5, 6, 0, 10}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
+			t.Parallel()
+			is := is.New(t)
+
+			is.Equal(tc.expected, objectPage{Page: tc.page, TotalPages: tc.totalPages}.PageLinks())
+		})
+	}
 }

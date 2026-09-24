@@ -2,10 +2,13 @@
 {{ $instancePath := printf "/%s" $.CurrentS3.Name }}
 
 <style>
-    #policy { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; tab-size: 2; }
+    #policy { tab-size: 2; }
     .breadcrumbs > * { margin-inline-end: 0.25rem; }
     td .row { gap: 0.5rem; }
     th { white-space: nowrap; }
+    /* Older versions stay collapsed until their group is expanded. */
+    tr.version-row:not(.expanded) { display: none; }
+    tr.delete-marker { opacity: 0.5; }
     /* Keys and owner IDs can be arbitrarily long; cap the cell contents
        instead of letting a single row stretch the whole table. */
     .key-cell > * { max-inline-size: 22rem; }
@@ -177,11 +180,8 @@
             <tbody>
                 {{ range $index, $object := .Objects }}
                 {{ $isCollapsedVersion := and $.ShowVersions (not $object.IsPrimaryVersion) }}
-                <tr
-                    data-version-group="{{ $object.GroupIndex }}"
-                    {{ if $isCollapsedVersion }}class="version-row" style="display: none;{{ if $object.IsDeleteMarker }} opacity: 0.5;{{ end }}"
-                    {{ else if $object.IsDeleteMarker }}style="opacity: 0.5;"
-                    {{ end }}>
+                {{ $objectURL := printf "%s%s/api/buckets/%s/objects/%s" $.RootURL $instancePath $.BucketName $object.Key }}
+                <tr data-version-group="{{ $object.GroupIndex }}" class="{{ if $isCollapsedVersion }}version-row {{ end }}{{ if $object.IsDeleteMarker }}delete-marker{{ end }}">
                     <td class="min">
                         {{- /* Bulk actions operate on the object key, so only the
                             primary row of a version group gets a checkbox. */}}
@@ -205,7 +205,7 @@
                         </div>
                         {{- else }}
                         {{- /* Clicking the name opens the object in a new tab. */}}
-                        <a class="row" target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">
+                        <a class="row" target="_blank" rel="noopener" href="{{ $objectURL }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">
                             <i>{{ $object.Icon }}</i>
                             <span class="truncate">{{ $object.DisplayName }}</span>
                         </a>
@@ -230,16 +230,16 @@
                     <td class="right-align">
                         {{ if and (not $object.IsFolder) (not $object.IsDeleteMarker) }}
                         <nav class="no-space right-align no-wrap">
-                            <a class="button circle transparent" target="_blank" rel="noopener" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">
+                            <a class="button circle transparent" target="_blank" rel="noopener" href="{{ $objectURL }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">
                                 <i>open_in_new</i>
                                 <span class="tooltip left">Open</span>
                             </a>
-                            <a class="button circle transparent" target="_blank" href="{{$.RootURL}}{{$instancePath}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">
+                            <a class="button circle transparent" target="_blank" href="{{ $objectURL }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">
                                 <i>download</i>
                                 <span class="tooltip left">Download</span>
                             </a>
                             {{- if $.ShowMetadata }}
-                            <button class="circle transparent" onclick="handleOpenMetadataModal('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">
+                            <button class="circle transparent" onclick="openMetadataDialog('{{ $object.Key }}', '{{ if $.ShowVersions }}{{ $object.VersionID }}{{ end }}')">
                                 <i>info</i>
                                 <span class="tooltip left">Metadata</span>
                             </button>
@@ -247,11 +247,11 @@
                             {{- /* The remaining actions operate on the object key (i.e. the
                                 latest version), so hide them on old-version rows. */}}
                             {{- if not $isCollapsedVersion }}
-                            <button class="circle transparent" onclick="handleOpenDownloadLinkModal('{{ $object.Key }}')">
+                            <button class="circle transparent" onclick="openDownloadLinkDialog('{{ $object.Key }}')">
                                 <i>link</i>
                                 <span class="tooltip left">Download link</span>
                             </button>
-                            <button class="circle transparent" onclick="handleOpenPublicLinkModal('{{ $object.Key }}')">
+                            <button class="circle transparent" onclick="openPublicLinkDialog('{{ $object.Key }}')">
                                 <i>public</i>
                                 <span class="tooltip left">Public link</span>
                             </button>
@@ -281,7 +281,7 @@
                 <option value="100" {{ if eq .PerPage 100 }}selected{{ end }}>100</option>
                 <option value="200" {{ if eq .PerPage 200 }}selected{{ end }}>200</option>
                 <option value="500" {{ if eq .PerPage 500 }}selected{{ end }}>500</option>
-                <option value="0" {{ if eq .TotalItems .PerPage }}selected{{ end }}>All</option>
+                <option value="0" {{ if .ShowAll }}selected{{ end }}>All</option>
             </select>
             <label class="active">Items per page</label>
             <i>arrow_drop_down</i>
@@ -307,30 +307,14 @@
         <nav class="no-space">
             <button class="circle transparent" onclick="changePage(1)" {{ if not .HasPrevPage }}disabled{{ end }}><i>first_page</i></button>
             <button class="circle transparent" onclick="changePage({{ sub .Page 1 }})" {{ if not .HasPrevPage }}disabled{{ end }}><i>chevron_left</i></button>
-
-            {{ $currentPage := .Page }}
-            {{ $totalPages := .TotalPages }}
-            {{ $startPage := sub $currentPage 2 }}
-            {{ if lt $startPage 1 }}{{ $startPage = 1 }}{{ end }}
-            {{ $endPage := add $currentPage 2 }}
-            {{ if gt $endPage $totalPages }}{{ $endPage = $totalPages }}{{ end }}
-
-            {{ if gt $startPage 1 }}
-            <button class="circle transparent" onclick="changePage(1)">1</button>
-            {{ if gt $startPage 2 }}<span class="secondary-text">…</span>{{ end }}
-            {{ end }}
-
-            {{ range $i := iterate $startPage (add $endPage 1) }}
-            {{ if eq $i $currentPage }}
-            <button class="circle primary">{{ $i }}</button>
+            {{ range $page := .PageLinks }}
+            {{ if eq $page 0 }}
+            <span class="secondary-text">…</span>
+            {{ else if eq $page $.Page }}
+            <button class="circle primary">{{ $page }}</button>
             {{ else }}
-            <button class="circle transparent" onclick="changePage({{ $i }})">{{ $i }}</button>
+            <button class="circle transparent" onclick="changePage({{ $page }})">{{ $page }}</button>
             {{ end }}
-            {{ end }}
-
-            {{ if lt $endPage $totalPages }}
-            {{ if lt $endPage (sub $totalPages 1) }}<span class="secondary-text">…</span>{{ end }}
-            <button class="circle transparent" onclick="changePage({{ $totalPages }})">{{ $totalPages }}</button>
             {{ end }}
 
             <button class="circle transparent" onclick="changePage({{ add .Page 1 }})" {{ if not .HasNextPage }}disabled{{ end }}><i>chevron_right</i></button>
@@ -398,7 +382,7 @@
     </div>
     <nav class="right-align no-space">
         <button class="transparent link" data-ui="#dialog-change-path">Cancel</button>
-        <button onclick="handleChangePath()">Change path</button>
+        <button onclick="changePath()">Change path</button>
     </nav>
 </dialog>
 
@@ -428,7 +412,7 @@
     </div>
 
     <nav>
-        <button class="small-round" onclick="handleGenerateDownloadLink()">Create link</button>
+        <button class="small-round" onclick="createDownloadLink()">Create link</button>
         <span class="error-text small-text" id="gen-url-error"></span>
     </nav>
 
@@ -558,7 +542,7 @@
 
     <div id="advanced-editor" style="display: none;">
         <div class="field border">
-            <textarea id="policy" rows="18" spellcheck="false"></textarea>
+            <textarea id="policy" class="mono" rows="18" spellcheck="false"></textarea>
         </div>
     </div>
 
@@ -566,7 +550,7 @@
 
     <nav class="right-align no-space">
         <button class="transparent link" data-ui="#dialog-edit-policy">Cancel</button>
-        <button id="save-policy-btn" onclick="handleEditPolicy()">Save policy</button>
+        <button id="save-policy-btn" onclick="savePolicy()">Save policy</button>
     </nav>
 </dialog>
 
@@ -575,7 +559,21 @@
     const instancePath = "{{ $instancePath }}";
     const bucketName = "{{ .BucketName }}";
     const currentPath = "{{ .CurrentPath }}";
-    const apiBucketURL = rootURL + instancePath + "/api/buckets/" + bucketName;
+    const bucketURL = rootURL + instancePath + "/api/buckets/" + bucketName;
+
+    // objectURL addresses an object in the API. Each segment of the key is
+    // escaped so that characters such as "#" or "?" stay part of the key.
+    function objectURL(key) {
+        return bucketURL + "/objects/" + key.split("/").map(encodeURIComponent).join("/");
+    }
+
+    function show(id, visible) {
+        document.getElementById(id).style.display = visible ? "" : "none";
+    }
+
+    function setText(id, text) {
+        document.getElementById(id).textContent = text;
+    }
 
     // --- Navigation -----------------------------------------------------
 
@@ -653,7 +651,7 @@
         });
     }
 
-    function handleChangePath() {
+    function changePath() {
         let appendPath = document.getElementById("new-path").value.trim();
         if (!appendPath) return;
         if (!appendPath.endsWith("/")) appendPath += "/";
@@ -667,7 +665,7 @@
 
     async function deleteObject(objectName) {
         try {
-            await request("DELETE", apiBucketURL + "/objects/" + objectName);
+            await request("DELETE", objectURL(objectName));
             location.reload();
         } catch (e) {
             toast("Could not delete object: " + e.message, "error");
@@ -676,7 +674,7 @@
 
     async function deleteBucket() {
         try {
-            await request("DELETE", apiBucketURL);
+            await request("DELETE", bucketURL);
             window.location.replace(rootURL + instancePath + "/buckets");
         } catch (e) {
             toast("Could not delete bucket: " + e.message, "error");
@@ -684,14 +682,11 @@
     }
 
     function toggleVersions(groupIndex, link) {
-        const rows = document.querySelectorAll('tr.version-row[data-version-group="' + groupIndex + '"]');
-        const expanded = link.getAttribute("aria-expanded") === "true";
-        rows.forEach(row => {
-            row.style.display = expanded ? "none" : "table-row";
-        });
-        link.setAttribute("aria-expanded", String(!expanded));
-        const icon = link.querySelector("i");
-        if (icon) icon.textContent = expanded ? "expand_more" : "expand_less";
+        const expand = link.getAttribute("aria-expanded") !== "true";
+        document.querySelectorAll('tr.version-row[data-version-group="' + groupIndex + '"]')
+            .forEach(row => row.classList.toggle("expanded", expand));
+        link.setAttribute("aria-expanded", String(expand));
+        link.querySelector("i").textContent = expand ? "expand_less" : "expand_more";
     }
 
     // --- Uploads --------------------------------------------------------
@@ -725,7 +720,7 @@
         // fetch can't report upload progress, so this uses XHR instead.
         return new Promise((resolve) => {
             const xhr = new XMLHttpRequest();
-            xhr.open("POST", apiBucketURL + "/objects");
+            xhr.open("POST", bucketURL + "/objects");
 
             xhr.upload.addEventListener("progress", (e) => {
                 if (!e.lengthComputable) return;
@@ -761,9 +756,9 @@
         article.className = "round border small-padding";
         article.innerHTML =
             '<div class="small-text bold upload-status">Uploading 0%</div>' +
-            '<div class="small-text truncate"></div>' +
+            '<div class="small-text truncate upload-name"></div>' +
             '<progress value="0" max="100"></progress>';
-        article.querySelectorAll("div")[1].textContent = fileName;
+        article.querySelector(".upload-name").textContent = fileName;
         return article;
     }
 
@@ -776,21 +771,19 @@
     }
 
     function updateBulkActions() {
-        const checkboxes = document.querySelectorAll(".object-checkbox");
-        const count = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const total = document.querySelectorAll(".object-checkbox").length;
+        const count = getSelectedKeys().length;
 
-        const bar = document.getElementById("bulk-actions-bar");
-        bar.style.display = count > 0 ? "" : "none";
-        document.getElementById("selected-count").textContent = count + " selected";
+        show("bulk-actions-bar", count > 0);
+        setText("selected-count", count + " selected");
 
         const selectAll = document.getElementById("select-all");
-        selectAll.checked = count === checkboxes.length && count > 0;
-        selectAll.indeterminate = count > 0 && count < checkboxes.length;
+        selectAll.checked = count > 0 && count === total;
+        selectAll.indeterminate = count > 0 && count < total;
     }
 
     function getSelectedKeys() {
-        return Array.from(document.querySelectorAll(".object-checkbox:checked"))
-            .map(cb => cb.getAttribute("data-key"));
+        return Array.from(document.querySelectorAll(".object-checkbox:checked"), cb => cb.dataset.key);
     }
 
     async function bulkDelete() {
@@ -799,20 +792,22 @@
         if (!confirm("Are you sure you want to delete " + keys.length + " item" + (keys.length > 1 ? "s" : "") + "?")) return;
 
         try {
-            await request("POST", apiBucketURL + "/objects/bulk-delete", { json: { keys: keys } });
+            await request("POST", bucketURL + "/objects/bulk-delete", { json: { keys: keys } });
             location.reload();
         } catch (e) {
             toast("Error deleting objects: " + e.message, "error");
         }
     }
 
+    // A ZIP download has to be a real form submission for the browser to save
+    // the response as a file.
     function bulkDownload() {
         const keys = getSelectedKeys();
         if (!keys.length) return;
 
         const form = document.createElement("form");
         form.method = "POST";
-        form.action = apiBucketURL + "/objects/bulk-download";
+        form.action = bucketURL + "/objects/bulk-download";
 
         const input = document.createElement("input");
         input.type = "hidden";
@@ -822,152 +817,140 @@
         form.appendChild(input);
         document.body.appendChild(form);
         form.submit();
-        document.body.removeChild(form);
+        form.remove();
     }
 
     // --- Download link --------------------------------------------------
 
     let downloadLinkObject = "";
 
-    function handleOpenDownloadLinkModal(objectName) {
+    function openDownloadLinkDialog(objectName) {
         downloadLinkObject = objectName;
-        document.getElementById("download-link-object").textContent = objectName;
+        setText("download-link-object", objectName);
+        setText("gen-url-error", "");
         document.getElementById("generated-link").value = "";
-        document.getElementById("generated-link-field").style.display = "none";
-        document.getElementById("gen-url-error").textContent = "";
+        show("generated-link-field", false);
         ui("#dialog-download-link");
     }
 
-    async function handleGenerateDownloadLink() {
-        const error = document.getElementById("gen-url-error");
+    async function createDownloadLink() {
         const days = Number(document.getElementById("gen-link-day").value) || 0;
         const hours = Number(document.getElementById("gen-link-hour").value) || 0;
         const minutes = Number(document.getElementById("gen-link-minute").value) || 0;
         const expiry = days * 86400 + hours * 3600 + minutes * 60;
 
-        error.textContent = "";
+        setText("gen-url-error", "");
         if (expiry <= 0) {
-            error.textContent = "Expiry time must be greater than zero";
+            setText("gen-url-error", "Expiry time must be greater than zero");
             return;
         }
         if (expiry > 7 * 86400) {
-            error.textContent = "Expiry time must be less than 7 days";
+            setText("gen-url-error", "Expiry time must be at most 7 days");
             return;
         }
 
         try {
-            const result = await request("GET", apiBucketURL + "/objects/" + downloadLinkObject + "/url?expiry=" + expiry);
+            const result = await request("GET", objectURL(downloadLinkObject) + "/url?expiry=" + expiry);
             document.getElementById("generated-link").value = result.url;
-            document.getElementById("generated-link-field").style.display = "";
+            show("generated-link-field", true);
         } catch (e) {
-            error.textContent = "Error when generating url";
+            setText("gen-url-error", "Could not create link: " + e.message);
         }
     }
 
     // --- Public link ----------------------------------------------------
 
-    async function handleOpenPublicLinkModal(objectName) {
-        const linkField = document.getElementById("public-link-field");
-
-        document.getElementById("public-link-object").textContent = objectName;
-        document.getElementById("public-link").value = "";
-        linkField.style.display = "none";
-
+    // setPublicAccessStatus fills the status panel of the public link dialog.
+    // Both the icon and the message are fixed markup, never user data.
+    function setPublicAccessStatus(color, iconHTML, message) {
         const status = document.getElementById("public-access-status");
-        status.className = "round border no-elevate";
-        status.innerHTML = '<nav><progress class="circle small"></progress><span>Verifying public accessibility…</span></nav>';
+        status.className = "round border no-elevate " + color;
+        status.innerHTML = "<nav>" + iconHTML + "<span>" + message + "</span></nav>";
+    }
 
+    async function openPublicLinkDialog(objectName) {
+        setText("public-link-object", objectName);
+        document.getElementById("public-link").value = "";
+        show("public-link-field", false);
+        setPublicAccessStatus("", '<progress class="circle small"></progress>', "Verifying public accessibility…");
         ui("#dialog-public-link");
 
         try {
-            const key = objectName.split("/").map(encodeURIComponent).join("/");
-            const result = await request("GET", apiBucketURL + "/objects/" + key + "/public-access");
+            const result = await request("GET", objectURL(objectName) + "/public-access");
             document.getElementById("public-link").value = result.url;
-            linkField.style.display = "";
+            show("public-link-field", true);
             if (result.accessible) {
-                status.className = "round border no-elevate primary-container";
-                status.innerHTML = '<nav><i>check_circle</i><span>The file seems to be publicly available.</span></nav>';
+                setPublicAccessStatus("primary-container", "<i>check_circle</i>", "The file seems to be publicly available.");
             } else {
-                status.className = "round border no-elevate error-container";
-                status.innerHTML = '<nav><i>error</i><span>The file does not seem to be publicly available. Make sure the bucket policy allows public read access.</span></nav>';
+                setPublicAccessStatus("error-container", "<i>error</i>", "The file does not seem to be publicly available. Make sure the bucket policy allows public read access.");
             }
         } catch (e) {
-            status.className = "round border no-elevate tertiary-container";
-            status.innerHTML = '<nav><i>warning</i><span>Could not verify accessibility.</span></nav>';
+            setPublicAccessStatus("tertiary-container", "<i>warning</i>", "Could not verify accessibility.");
         }
     }
 
     // --- Metadata -------------------------------------------------------
 
-    async function handleOpenMetadataModal(objectName, versionId) {
-        document.getElementById("metadata-object-name").textContent = objectName;
-        document.getElementById("metadata-loading").style.display = "";
-        document.getElementById("metadata-error").textContent = "";
-        document.getElementById("metadata-table").style.display = "none";
-        document.getElementById("metadata-user-heading").style.display = "none";
-        document.getElementById("metadata-user-table").style.display = "none";
-        document.getElementById("metadata-user-body").innerHTML = "";
-
+    async function openMetadataDialog(objectName, versionId) {
+        setText("metadata-object-name", objectName);
+        setText("metadata-error", "");
+        document.getElementById("metadata-user-body").replaceChildren();
+        show("metadata-loading", true);
+        show("metadata-table", false);
+        show("metadata-user-heading", false);
+        show("metadata-user-table", false);
         ui("#dialog-metadata");
 
-        let url = apiBucketURL + "/objects/" + objectName + "/metadata";
+        let url = objectURL(objectName) + "/metadata";
         if (versionId) url += "?versionId=" + encodeURIComponent(versionId);
 
         let result;
         try {
             result = await request("GET", url);
         } catch (e) {
-            document.getElementById("metadata-loading").style.display = "none";
-            document.getElementById("metadata-error").textContent = "Error loading metadata: " + e.message;
+            setText("metadata-error", "Error loading metadata: " + e.message);
             return;
+        } finally {
+            show("metadata-loading", false);
         }
 
-        document.getElementById("metadata-loading").style.display = "none";
-        document.getElementById("metadata-size").textContent = result.size + " bytes";
-        document.getElementById("metadata-content-type").textContent = result.contentType || "-";
-        document.getElementById("metadata-last-modified").textContent =
-            result.lastModified ? new Date(result.lastModified).toLocaleString() : "-";
-        document.getElementById("metadata-etag").textContent = result.etag || "-";
+        setText("metadata-size", result.size + " bytes");
+        setText("metadata-content-type", result.contentType || "-");
+        setText("metadata-last-modified", result.lastModified ? new Date(result.lastModified).toLocaleString() : "-");
+        setText("metadata-etag", result.etag || "-");
+        setText("metadata-storage-class", result.storageClass || "");
+        setText("metadata-version-id", result.versionId ? result.versionId + (result.isLatest ? " (latest)" : "") : "");
+        show("metadata-storage-class-row", result.storageClass);
+        show("metadata-version-row", result.versionId);
+        show("metadata-table", true);
 
-        const storageClassRow = document.getElementById("metadata-storage-class-row");
-        storageClassRow.style.display = result.storageClass ? "" : "none";
-        document.getElementById("metadata-storage-class").textContent = result.storageClass || "";
-
-        const versionRow = document.getElementById("metadata-version-row");
-        versionRow.style.display = result.versionId ? "" : "none";
-        document.getElementById("metadata-version-id").textContent =
-            result.versionId ? result.versionId + (result.isLatest ? " (latest)" : "") : "";
-
-        document.getElementById("metadata-table").style.display = "";
-
-        const userMetadata = result.userMetadata || {};
-        const keys = Object.keys(userMetadata);
-        if (keys.length) {
-            const body = document.getElementById("metadata-user-body");
-            keys.forEach(key => {
-                const row = document.createElement("tr");
-                const keyCell = document.createElement("th");
-                keyCell.className = "min";
-                keyCell.textContent = key;
-                const valueCell = document.createElement("td");
-                valueCell.textContent = userMetadata[key];
-                row.appendChild(keyCell);
-                row.appendChild(valueCell);
-                body.appendChild(row);
-            });
-            document.getElementById("metadata-user-heading").style.display = "";
-            document.getElementById("metadata-user-table").style.display = "";
+        const userMetadata = Object.entries(result.userMetadata || {});
+        const body = document.getElementById("metadata-user-body");
+        for (const [key, value] of userMetadata) {
+            const keyCell = document.createElement("th");
+            keyCell.className = "min";
+            keyCell.textContent = key;
+            const valueCell = document.createElement("td");
+            valueCell.textContent = value;
+            body.insertRow().append(keyCell, valueCell);
         }
+        show("metadata-user-heading", userMetadata.length > 0);
+        show("metadata-user-table", userMetadata.length > 0);
     }
 
     // --- Bucket policy --------------------------------------------------
+
+    // A policy may give a single value wherever it could give a list.
+    function asArray(value) {
+        return Array.isArray(value) ? value : [value];
+    }
 
     function generateSimplePolicy() {
         const userId = document.getElementById("policy-user").value;
         const allowAll = document.getElementById("allow-all-actions").checked;
         const actions = allowAll
             ? ["s3:*"]
-            : Array.from(document.getElementsByClassName("policy-action")).filter(cb => cb.checked).map(cb => cb.value);
+            : Array.from(document.querySelectorAll(".policy-action:checked"), cb => cb.value);
 
         return JSON.stringify({
             Version: "2012-10-17",
@@ -989,30 +972,32 @@
     }
 
     function handlePolicyEditorToggle() {
-        const isAdvanced = document.getElementById("advanced-editor-toggle").checked;
-        document.getElementById("simple-editor").style.display = isAdvanced ? "none" : "";
-        document.getElementById("advanced-editor").style.display = isAdvanced ? "" : "none";
-        if (isAdvanced) return;
+        const advanced = document.getElementById("advanced-editor-toggle").checked;
+        show("simple-editor", !advanced);
+        show("advanced-editor", advanced);
+        if (!advanced) {
+            fillSimpleEditor();
+        }
+    }
 
-        // Switching back to the simple editor: reflect the JSON in the form.
+    // fillSimpleEditor reflects the JSON policy in the simple editor's form, as
+    // far as the form can express it, and then regenerates the JSON from it.
+    function fillSimpleEditor() {
         try {
             const policy = JSON.parse(document.getElementById("policy").value);
             const statement = policy.Statement[0];
 
             if (statement && statement.Principal && statement.Principal.AWS) {
-                let userArn = Array.isArray(statement.Principal.AWS) ? statement.Principal.AWS[0] : statement.Principal.AWS;
+                const userArn = asArray(statement.Principal.AWS)[0];
                 document.getElementById("policy-user").value = userArn.replace("arn:aws:iam:::user/", "");
             }
 
-            const hasAllActions = policy.Statement.some(s => {
-                const actions = Array.isArray(s.Action) ? s.Action : [s.Action];
-                return actions.includes("s3:*");
-            });
-            document.getElementById("allow-all-actions").checked = hasAllActions;
-            document.getElementById("specific-actions").style.display = hasAllActions ? "none" : "";
+            const allowAll = policy.Statement.some(s => asArray(s.Action).includes("s3:*"));
+            document.getElementById("allow-all-actions").checked = allowAll;
+            show("specific-actions", !allowAll);
 
-            if (!hasAllActions && statement.Action) {
-                const actions = Array.isArray(statement.Action) ? statement.Action : [statement.Action];
+            if (!allowAll && statement.Action) {
+                const actions = asArray(statement.Action);
                 document.querySelectorAll(".policy-action").forEach(cb => { cb.checked = actions.includes(cb.value); });
             }
         } catch (e) {
@@ -1023,8 +1008,7 @@
     }
 
     function toggleSpecificActions() {
-        const allowAll = document.getElementById("allow-all-actions").checked;
-        document.getElementById("specific-actions").style.display = allowAll ? "none" : "";
+        show("specific-actions", !document.getElementById("allow-all-actions").checked);
         syncSimplePolicy();
     }
 
@@ -1041,32 +1025,26 @@
         document.getElementById("advanced-editor-toggle").checked = false;
         document.getElementById("policy-user").value = "";
         document.getElementById("allow-all-actions").checked = false;
-        document.getElementById("specific-actions").style.display = "";
+        show("specific-actions", true);
 
         const recommended = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation", "s3:PutObject", "s3:AbortMultipartUpload"];
         document.querySelectorAll(".policy-action").forEach(cb => { cb.checked = recommended.includes(cb.value); });
 
         document.getElementById("policy").value = generateSimplePolicy();
-        document.getElementById("simple-editor").style.display = "";
+        show("simple-editor", true);
         handleUserIdInput();
-        document.getElementById("policy-error").textContent = "Existing policy not found. Use the editor to create one.";
+        setText("policy-error", "Existing policy not found. Use the editor to create one.");
     }
 
     async function openPolicyDialog() {
         ui("#dialog-edit-policy");
-
-        const error = document.getElementById("policy-error");
-        const toggle = document.getElementById("advanced-editor-toggle");
-        const saveButton = document.getElementById("save-policy-btn");
-        const textarea = document.getElementById("policy");
-
-        error.textContent = "";
-        document.getElementById("simple-editor").style.display = "none";
-        document.getElementById("advanced-editor").style.display = "none";
+        setText("policy-error", "");
+        show("simple-editor", false);
+        show("advanced-editor", false);
 
         let policy = null;
         try {
-            const result = await request("GET", apiBucketURL + "/policy");
+            const result = await request("GET", bucketURL + "/policy");
             policy = typeof result === "string" ? JSON.parse(result) : result;
         } catch (e) {
             policy = null;
@@ -1077,34 +1055,35 @@
             return;
         }
 
-        textarea.value = JSON.stringify(policy, null, 2);
+        document.getElementById("policy").value = JSON.stringify(policy, null, 2);
 
-        const hasValidUser = policy.Statement[0] &&
-            policy.Statement[0].Principal && policy.Statement[0].Principal.AWS;
-
-        toggle.checked = !!hasValidUser;
-        toggle.disabled = !hasValidUser;
-        saveButton.disabled = !hasValidUser;
+        // A policy the simple editor can't attribute to a user opens in the
+        // form so that one can be entered before it can be saved.
+        const statement = policy.Statement[0];
+        const hasUser = Boolean(statement && statement.Principal && statement.Principal.AWS);
+        const toggle = document.getElementById("advanced-editor-toggle");
+        toggle.checked = hasUser;
+        toggle.disabled = !hasUser;
+        document.getElementById("save-policy-btn").disabled = !hasUser;
         handlePolicyEditorToggle();
     }
 
-    async function handleEditPolicy() {
+    async function savePolicy() {
         const policyText = document.getElementById("policy").value;
-        const error = document.getElementById("policy-error");
 
         try {
             JSON.parse(policyText);
         } catch (e) {
-            error.textContent = "Invalid JSON format";
+            setText("policy-error", "Invalid JSON format");
             return;
         }
 
         try {
-            await request("PUT", apiBucketURL + "/policy", { json: policyText });
+            await request("PUT", bucketURL + "/policy", { json: policyText });
             ui("#dialog-edit-policy");
             toast("Policy updated successfully", "check_circle");
         } catch (e) {
-            error.textContent = e.message;
+            setText("policy-error", e.message);
         }
     }
 

@@ -173,7 +173,7 @@ func TestHandleBucketView(t *testing.T) {
 				"v2-abcdef",
 				"Latest",
 				// Older versions are collapsed behind a toggle.
-				`class="version-row" style="display: none;`,
+				`class="version-row `,
 			},
 		},
 		{
@@ -271,7 +271,7 @@ func TestHandleBucketView(t *testing.T) {
 			showVersions:         true,
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: []string{"AFolder", "FILE-NAME"},
-			unexpectedInBody:     []string{`class="version-row" style="display: none;`},
+			unexpectedInBody:     []string{`class="version-row `},
 		},
 		{
 			it: "shows the metadata action when ShowMetadata is enabled",
@@ -280,7 +280,7 @@ func TestHandleBucketView(t *testing.T) {
 			},
 			showMetadata:         true,
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: []string{`onclick="handleOpenMetadataModal(`},
+			expectedBodyContains: []string{`onclick="openMetadataDialog(`},
 		},
 		{
 			it: "hides the metadata action when ShowMetadata is disabled",
@@ -290,7 +290,7 @@ func TestHandleBucketView(t *testing.T) {
 			showMetadata:         false,
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: []string{"FILE-NAME"},
-			unexpectedInBody:     []string{`onclick="handleOpenMetadataModal(`},
+			unexpectedInBody:     []string{`onclick="openMetadataDialog(`},
 		},
 	}
 

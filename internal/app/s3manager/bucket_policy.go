@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// HandleGetBucketPolicy returns the policy of a bucket as JSON, or an empty
+// body if the bucket has none.
 func HandleGetBucketPolicy(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
@@ -23,6 +25,7 @@ func HandleGetBucketPolicy(s3 S3) http.HandlerFunc {
 	}
 }
 
+// HandlePutBucketPolicy replaces the policy of a bucket with the request body.
 func HandlePutBucketPolicy(s3 S3) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]

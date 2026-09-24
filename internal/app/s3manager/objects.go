@@ -10,8 +10,8 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
-// objectWithIcon is an S3 object as shown in the bucket view.
-type objectWithIcon struct {
+// listedObject is an S3 object as shown in the bucket view.
+type listedObject struct {
 	Key              string
 	Size             int64
 	SizeDisplay      string
@@ -45,7 +45,7 @@ const endOfFolder = "\U0010FFFF"
 // objectListing is the outcome of listing a bucket prefix for the bucket view.
 type objectListing struct {
 	// Objects are the objects that were listed, in S3 listing order.
-	Objects []objectWithIcon
+	Objects []listedObject
 	// VersionsShown reports whether Objects carry version information.
 	VersionsShown bool
 	// Truncated reports that the prefix holds more objects than were listed,
@@ -57,7 +57,7 @@ type objectListing struct {
 }
 
 // listAllObjects lists a bucket prefix in full, up to maxScanObjects, converting
-// each minio.ObjectInfo into an objectWithIcon. If showVersions is set but the
+// each minio.ObjectInfo into a listedObject. If showVersions is set but the
 // versioned listing fails, or comes back empty (some S3-compatible providers
 // don't support listing object versions and either reject the request outright
 // or silently return nothing instead of erroring), it transparently falls back
@@ -84,7 +84,7 @@ func listAllObjects(ctx context.Context, s3 S3, bucketName, prefix string, listR
 
 // cappedListing trims a listing that collected one object beyond maxScanObjects
 // down to the cap, flagging it as truncated.
-func cappedListing(objs []objectWithIcon, versionsShown bool) objectListing {
+func cappedListing(objs []listedObject, versionsShown bool) objectListing {
 	listing := objectListing{Objects: objs, VersionsShown: versionsShown}
 	if len(objs) > maxScanObjects {
 		listing.Objects = objs[:maxScanObjects]
@@ -137,7 +137,7 @@ func listObjectPage(ctx context.Context, s3 S3, bucketName, prefix, cursor strin
 // everything inside it sorts after it ("dir/" < "dir/file"), so resuming after
 // the prefix itself would collapse the very same folder into the listing again,
 // forever.
-func nextCursor(obj objectWithIcon) string {
+func nextCursor(obj listedObject) string {
 	if obj.IsFolder {
 		return obj.Key + endOfFolder
 	}
@@ -156,7 +156,7 @@ func nextCursor(obj objectWithIcon) string {
 // cursor-paged listing survives the switch. If the retry itself fails, the
 // empty V2 listing stands: a provider that rejects V1 is one that meant its
 // empty answer.
-func listWithV1Fallback(ctx context.Context, s3 S3, bucketName, prefix string, limit int, opts minio.ListObjectsOptions) ([]objectWithIcon, error) {
+func listWithV1Fallback(ctx context.Context, s3 S3, bucketName, prefix string, limit int, opts minio.ListObjectsOptions) ([]listedObject, error) {
 	objs, err := collectObjects(ctx, s3, bucketName, prefix, limit, opts)
 	if err != nil || len(objs) > 0 {
 		return objs, err
@@ -176,16 +176,16 @@ func listWithV1Fallback(ctx context.Context, s3 S3, bucketName, prefix string, l
 // half-listed result. The context handed to ListObjects is cancelled on return,
 // which is what releases minio's producer goroutine when the limit cuts the
 // listing short.
-func collectObjects(ctx context.Context, s3 S3, bucketName, prefix string, limit int, opts minio.ListObjectsOptions) ([]objectWithIcon, error) {
+func collectObjects(ctx context.Context, s3 S3, bucketName, prefix string, limit int, opts minio.ListObjectsOptions) ([]listedObject, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	objs := make([]objectWithIcon, 0, min(limit, defaultPerPage))
+	objs := make([]listedObject, 0, min(limit, defaultPerPage))
 	for object := range s3.ListObjects(ctx, bucketName, opts) {
 		if object.Err != nil {
 			return nil, object.Err
 		}
-		objs = append(objs, toObjectWithIcon(object, prefix))
+		objs = append(objs, toListedObject(object, prefix))
 		if len(objs) == limit {
 			break
 		}
@@ -196,13 +196,13 @@ func collectObjects(ctx context.Context, s3 S3, bucketName, prefix string, limit
 
 // sortObjectsByKey puts objects into the ascending lexicographic key order S3
 // lists them in.
-func sortObjectsByKey(objs []objectWithIcon) {
+func sortObjectsByKey(objs []listedObject) {
 	sort.Slice(objs, func(i, j int) bool { return objs[i].Key < objs[j].Key })
 }
 
-// toObjectWithIcon converts a minio.ObjectInfo into the template-facing objectWithIcon.
-func toObjectWithIcon(object minio.ObjectInfo, prefix string) objectWithIcon {
-	return objectWithIcon{
+// toListedObject converts a minio.ObjectInfo into the template-facing listedObject.
+func toListedObject(object minio.ObjectInfo, prefix string) listedObject {
+	return listedObject{
 		Key:            object.Key,
 		Size:           object.Size,
 		SizeDisplay:    formatFileSize(object.Size),
@@ -243,7 +243,7 @@ func icon(fileName string) string {
 // CommonPrefixes, which are never version-aware) the first entry seen for that
 // key. Relying on the raw IsLatest flag alone would hide every row in a group
 // where no entry has it set, making the bucket appear empty.
-func annotateVersionGroups(objs []objectWithIcon) {
+func annotateVersionGroups(objs []listedObject) {
 	counts := make(map[string]int, len(objs))
 	groupIndex := make(map[string]int, len(objs))
 	primaryIndex := make(map[string]int, len(objs))
@@ -268,10 +268,10 @@ func annotateVersionGroups(objs []objectWithIcon) {
 
 // filterObjects keeps the objects whose key or display name contains the
 // case-insensitive search term.
-func filterObjects(objs []objectWithIcon, search string) []objectWithIcon {
+func filterObjects(objs []listedObject, search string) []listedObject {
 	search = strings.ToLower(search)
 
-	filtered := make([]objectWithIcon, 0, len(objs))
+	filtered := make([]listedObject, 0, len(objs))
 	for _, obj := range objs {
 		if strings.Contains(strings.ToLower(obj.DisplayName), search) ||
 			strings.Contains(strings.ToLower(obj.Key), search) {
@@ -284,11 +284,13 @@ func filterObjects(objs []objectWithIcon, search string) []objectWithIcon {
 
 // objectPage is the slice of a bucket's objects shown on a single page.
 type objectPage struct {
-	Objects    []objectWithIcon
+	Objects    []listedObject
 	Page       int
 	PerPage    int
 	TotalItems int
 	TotalPages int
+	// ShowAll reports that the page holds the whole listing.
+	ShowAll bool
 
 	// CursorPaging reports that the page came straight out of S3 instead of
 	// being sliced out of a full listing. TotalItems and TotalPages are unknown
@@ -336,6 +338,33 @@ func (p objectPage) LastItem() int {
 	return min(p.Page*p.PerPage, p.TotalItems)
 }
 
+// PageLinks lists the page numbers the numbered pager shows: the current page
+// with up to two neighbours on either side, plus the first and the last page.
+// A 0 marks a gap between pages that are not adjacent.
+func (p objectPage) PageLinks() []int {
+	start := max(p.Page-2, 1)
+	end := min(p.Page+2, p.TotalPages)
+
+	var links []int
+	if start > 1 {
+		links = append(links, 1)
+		if start > 2 {
+			links = append(links, 0)
+		}
+	}
+	for i := start; i <= end; i++ {
+		links = append(links, i)
+	}
+	if end < p.TotalPages {
+		if end < p.TotalPages-1 {
+			links = append(links, 0)
+		}
+		links = append(links, p.TotalPages)
+	}
+
+	return links
+}
+
 // cursorPage presents a page listed straight from S3. Its position in the
 // listing follows from the cursor trail: every page before it was full, so the
 // offset is exact even though the total number of objects is unknown.
@@ -354,7 +383,7 @@ func cursorPage(listing objectListing, query listingQuery) objectPage {
 // is set (versioned listing), all versions of a key travel together: groups are
 // ordered by their primary row and are never split across page boundaries, and
 // TotalItems counts objects, not individual versions.
-func paginateObjects(objs []objectWithIcon, query listingQuery, grouped bool) objectPage {
+func paginateObjects(objs []listedObject, query listingQuery, grouped bool) objectPage {
 	groups := groupObjects(objs, grouped)
 	sortObjectGroups(groups, query.SortBy, query.SortOrder)
 
@@ -367,6 +396,7 @@ func paginateObjects(objs []objectWithIcon, query listingQuery, grouped bool) ob
 			PerPage:    max(totalItems, 1),
 			TotalItems: totalItems,
 			TotalPages: 1,
+			ShowAll:    true,
 		}
 	}
 
@@ -388,9 +418,9 @@ func paginateObjects(objs []objectWithIcon, query listingQuery, grouped bool) ob
 // groupObjects splits objs into version groups that move as one unit through
 // sorting and pagination. Objects keep their listing order within a group.
 // Without version grouping every object is its own group.
-func groupObjects(objs []objectWithIcon, grouped bool) [][]objectWithIcon {
+func groupObjects(objs []listedObject, grouped bool) [][]listedObject {
 	if !grouped {
-		groups := make([][]objectWithIcon, len(objs))
+		groups := make([][]listedObject, len(objs))
 		for i := range objs {
 			groups[i] = objs[i : i+1 : i+1]
 		}
@@ -398,7 +428,7 @@ func groupObjects(objs []objectWithIcon, grouped bool) [][]objectWithIcon {
 	}
 
 	positions := make(map[int]int, len(objs))
-	var groups [][]objectWithIcon
+	var groups [][]listedObject
 	for _, obj := range objs {
 		pos, ok := positions[obj.GroupIndex]
 		if !ok {
@@ -415,33 +445,30 @@ func groupObjects(objs []objectWithIcon, grouped bool) [][]objectWithIcon {
 // sortObjectGroups sorts version groups based on the specified field and order,
 // comparing groups by their primary row so all versions of a key move as one
 // unit. The stable sort preserves the S3 listing order between equal groups.
-func sortObjectGroups(groups [][]objectWithIcon, sortBy, sortOrder string) {
+func sortObjectGroups(groups [][]listedObject, sortBy, sortOrder string) {
 	sort.SliceStable(groups, func(i, j int) bool {
 		a := primaryObject(groups[i])
 		b := primaryObject(groups[j])
+		if sortOrder == "desc" {
+			a, b = b, a
+		}
 
-		var less bool
 		switch sortBy {
 		case "size":
-			less = a.Size < b.Size
+			return a.Size < b.Size
 		case "owner":
-			less = strings.ToLower(a.Owner) < strings.ToLower(b.Owner)
+			return strings.ToLower(a.Owner) < strings.ToLower(b.Owner)
 		case "lastModified":
-			less = a.LastModified.Before(b.LastModified)
+			return a.LastModified.Before(b.LastModified)
 		default:
-			less = strings.ToLower(a.DisplayName) < strings.ToLower(b.DisplayName)
+			return strings.ToLower(a.DisplayName) < strings.ToLower(b.DisplayName)
 		}
-
-		if sortOrder == "desc" {
-			return !less
-		}
-		return less
 	})
 }
 
 // primaryObject returns the row that represents a group when sorting: the one
 // marked IsPrimaryVersion by annotateVersionGroups, or the first row otherwise.
-func primaryObject(group []objectWithIcon) objectWithIcon {
+func primaryObject(group []listedObject) listedObject {
 	for _, obj := range group {
 		if obj.IsPrimaryVersion {
 			return obj
@@ -452,8 +479,8 @@ func primaryObject(group []objectWithIcon) objectWithIcon {
 }
 
 // flattenGroups concatenates version groups back into a flat object list.
-func flattenGroups(groups [][]objectWithIcon) []objectWithIcon {
-	objs := make([]objectWithIcon, 0, len(groups))
+func flattenGroups(groups [][]listedObject) []listedObject {
+	objs := make([]listedObject, 0, len(groups))
 	for _, group := range groups {
 		objs = append(objs, group...)
 	}
