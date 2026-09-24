@@ -11,7 +11,7 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 
 - Manage several S3 accounts side by side and switch between them
 - List, create and delete buckets
-- View and edit a bucket's policy
+- View and edit a bucket's policy, including making a bucket publicly readable
 - List a bucket's objects with search, sorting and pagination
 - Upload single objects or whole folders to a bucket
 - Download an object, or several selected ones as a ZIP archive

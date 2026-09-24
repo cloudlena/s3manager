@@ -487,10 +487,20 @@
     </nav>
 
     <div id="simple-editor">
-        <div class="field label border">
-            <input type="text" id="policy-user" autocomplete="off" placeholder=" " oninput="handleUserIdInput()">
+        <h6 class="small top-margin">Grant access to</h6>
+        <nav class="wrap">
+            <label class="radio"><input type="radio" name="policy-principal" id="policy-principal-user" checked onchange="handlePrincipalChange()"><span>A specific user</span></label>
+            <label class="radio"><input type="radio" name="policy-principal" id="policy-principal-public" onchange="handlePrincipalChange()"><span>Anyone (public)</span></label>
+        </nav>
+
+        <div class="field label border" id="policy-user-field">
+            <input type="text" id="policy-user" autocomplete="off" placeholder=" " oninput="handlePrincipalChange()">
             <label>AWS user ARN or ID</label>
         </div>
+
+        <article class="round border no-elevate tertiary-container" id="policy-public-warning" style="display: none;">
+            <nav><i>warning</i><span class="max">Anyone on the internet will be able to perform the selected actions without credentials. Public read access usually needs only "Get object", plus "List bucket contents" to let people browse.</span></nav>
+        </article>
 
         <nav>
             <div class="max">Allow all actions</div>
@@ -865,7 +875,7 @@
     function setPublicAccessStatus(color, iconHTML, message) {
         const status = document.getElementById("public-access-status");
         status.className = "round border no-elevate " + color;
-        status.innerHTML = "<nav>" + iconHTML + "<span>" + message + "</span></nav>";
+        status.innerHTML = "<nav>" + iconHTML + "<span class=\"max\">" + message + "</span></nav>";
     }
 
     async function openPublicLinkDialog(objectName) {
@@ -945,8 +955,19 @@
         return Array.isArray(value) ? value : [value];
     }
 
+    const userARNPrefix = "arn:aws:iam:::user/";
+    const recommendedActions = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation", "s3:PutObject", "s3:AbortMultipartUpload"];
+
+    function policyResources() {
+        return ["arn:aws:s3:::" + bucketName, "arn:aws:s3:::" + bucketName + "/*"];
+    }
+
+    function isPublicPolicy() {
+        return document.getElementById("policy-principal-public").checked;
+    }
+
     function generateSimplePolicy() {
-        const userId = document.getElementById("policy-user").value;
+        const userId = document.getElementById("policy-user").value.trim();
         const allowAll = document.getElementById("allow-all-actions").checked;
         const actions = allowAll
             ? ["s3:*"]
@@ -958,11 +979,83 @@
             Statement: [{
                 Sid: "BucketAllow",
                 Effect: "Allow",
-                Principal: { AWS: [userId.startsWith("arn:") ? userId : "arn:aws:iam:::user/" + userId] },
+                Principal: isPublicPolicy() ? "*" : { AWS: [userId.startsWith("arn:") ? userId : userARNPrefix + userId] },
                 Action: actions,
-                Resource: ["arn:aws:s3:::" + bucketName, "arn:aws:s3:::" + bucketName + "/*"]
+                Resource: policyResources()
             }]
         }, null, 2);
+    }
+
+    // principalUsers lists the AWS principals a statement names, "*" meaning
+    // anyone, or returns null for principals of any other kind.
+    function principalUsers(principal) {
+        if (principal === "*") {
+            return ["*"];
+        }
+        if (principal && typeof principal === "object" && Object.keys(principal).length === 1 && principal.AWS !== undefined) {
+            return asArray(principal.AWS);
+        }
+        return null;
+    }
+
+    // simplePolicyForm reads a policy into the simple editor's fields, or
+    // returns null if the policy says anything the form can't express, since
+    // regenerating it from the form would then silently change it.
+    function simplePolicyForm(policy) {
+        if (!policy || typeof policy !== "object" || policy.Version !== "2012-10-17"
+            || Object.keys(policy).some(k => !["Version", "Id", "Statement"].includes(k))) {
+            return null;
+        }
+
+        const statements = asArray(policy.Statement);
+        const statement = statements[0];
+        if (statements.length !== 1 || !statement || statement.Effect !== "Allow"
+            || Object.keys(statement).some(k => !["Sid", "Effect", "Principal", "Action", "Resource"].includes(k))) {
+            return null;
+        }
+
+        const users = principalUsers(statement.Principal);
+        if (!users || users.length !== 1 || typeof users[0] !== "string") {
+            return null;
+        }
+        const isPublic = users[0] === "*";
+        if (!isPublic && !users[0].startsWith("arn:")) {
+            return null;
+        }
+
+        const known = Array.from(document.querySelectorAll(".policy-action"), cb => cb.value);
+        const actions = asArray(statement.Action);
+        const allowAll = actions.length === 1 && actions[0] === "s3:*";
+        if (!allowAll && !actions.every(a => known.includes(a))) {
+            return null;
+        }
+
+        const resources = asArray(statement.Resource);
+        const expected = policyResources();
+        if (resources.length !== expected.length || !expected.every(r => resources.includes(r))) {
+            return null;
+        }
+
+        return {
+            isPublic,
+            user: isPublic ? "" : users[0].replace(userARNPrefix, ""),
+            allowAll,
+            actions: allowAll ? [] : actions
+        };
+    }
+
+    // fillSimpleEditor shows a form in the simple editor and regenerates the
+    // JSON policy from it.
+    function fillSimpleEditor(form) {
+        document.getElementById("policy-principal-public").checked = form.isPublic;
+        document.getElementById("policy-principal-user").checked = !form.isPublic;
+        document.getElementById("policy-user").value = form.user;
+        document.getElementById("allow-all-actions").checked = form.allowAll;
+        show("specific-actions", !form.allowAll);
+        if (!form.allowAll) {
+            document.querySelectorAll(".policy-action").forEach(cb => { cb.checked = form.actions.includes(cb.value); });
+        }
+        handlePrincipalChange();
     }
 
     function syncSimplePolicy() {
@@ -971,40 +1064,38 @@
         }
     }
 
-    function handlePolicyEditorToggle() {
-        const advanced = document.getElementById("advanced-editor-toggle").checked;
-        show("simple-editor", !advanced);
-        show("advanced-editor", advanced);
-        if (!advanced) {
-            fillSimpleEditor();
-        }
+    // A simple policy can't be saved or shown as JSON until it names who it is for.
+    function updatePolicyControls() {
+        const incomplete = !document.getElementById("advanced-editor-toggle").checked
+            && !isPublicPolicy()
+            && !document.getElementById("policy-user").value.trim();
+        document.getElementById("advanced-editor-toggle").disabled = incomplete;
+        document.getElementById("save-policy-btn").disabled = incomplete;
     }
 
-    // fillSimpleEditor reflects the JSON policy in the simple editor's form, as
-    // far as the form can express it, and then regenerates the JSON from it.
-    function fillSimpleEditor() {
-        try {
-            const policy = JSON.parse(document.getElementById("policy").value);
-            const statement = policy.Statement[0];
+    function handlePolicyEditorToggle() {
+        const toggle = document.getElementById("advanced-editor-toggle");
+        setText("policy-error", "");
 
-            if (statement && statement.Principal && statement.Principal.AWS) {
-                const userArn = asArray(statement.Principal.AWS)[0];
-                document.getElementById("policy-user").value = userArn.replace("arn:aws:iam:::user/", "");
+        if (!toggle.checked) {
+            const text = document.getElementById("policy").value.trim();
+            let form = null;
+            try {
+                form = text ? simplePolicyForm(JSON.parse(text)) : defaultPolicyForm();
+            } catch (e) {
+                form = null;
             }
-
-            const allowAll = policy.Statement.some(s => asArray(s.Action).includes("s3:*"));
-            document.getElementById("allow-all-actions").checked = allowAll;
-            show("specific-actions", !allowAll);
-
-            if (!allowAll && statement.Action) {
-                const actions = asArray(statement.Action);
-                document.querySelectorAll(".policy-action").forEach(cb => { cb.checked = actions.includes(cb.value); });
+            if (!form) {
+                toggle.checked = true;
+                setText("policy-error", "The simple editor can't show this policy without changing it, so it can only be edited here.");
+                return;
             }
-        } catch (e) {
-            console.error("Error parsing policy:", e);
+            fillSimpleEditor(form);
         }
 
-        document.getElementById("policy").value = generateSimplePolicy();
+        show("simple-editor", !toggle.checked);
+        show("advanced-editor", toggle.checked);
+        updatePolicyControls();
     }
 
     function toggleSpecificActions() {
@@ -1012,27 +1103,24 @@
         syncSimplePolicy();
     }
 
-    function handleUserIdInput() {
-        const userId = document.getElementById("policy-user").value.trim();
-        document.getElementById("advanced-editor-toggle").disabled = !userId;
-        document.getElementById("save-policy-btn").disabled = !userId;
+    function handlePrincipalChange() {
+        const isPublic = isPublicPolicy();
+        show("policy-user-field", !isPublic);
+        show("policy-public-warning", isPublic);
+        updatePolicyControls();
         syncSimplePolicy();
+    }
+
+    function defaultPolicyForm() {
+        return { isPublic: false, user: "", allowAll: false, actions: recommendedActions };
     }
 
     // A bucket without a policy answers with 200 and an empty body, so an absent
     // policy is not an error — both cases start the simple editor from defaults.
     function startBlankPolicy() {
         document.getElementById("advanced-editor-toggle").checked = false;
-        document.getElementById("policy-user").value = "";
-        document.getElementById("allow-all-actions").checked = false;
-        show("specific-actions", true);
-
-        const recommended = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation", "s3:PutObject", "s3:AbortMultipartUpload"];
-        document.querySelectorAll(".policy-action").forEach(cb => { cb.checked = recommended.includes(cb.value); });
-
-        document.getElementById("policy").value = generateSimplePolicy();
+        fillSimpleEditor(defaultPolicyForm());
         show("simple-editor", true);
-        handleUserIdInput();
         setText("policy-error", "Existing policy not found. Use the editor to create one.");
     }
 
@@ -1055,16 +1143,10 @@
             return;
         }
 
+        // An existing policy opens as JSON, where nothing about it can be lost.
+        // The simple editor is a toggle away for policies it can express.
         document.getElementById("policy").value = JSON.stringify(policy, null, 2);
-
-        // A policy the simple editor can't attribute to a user opens in the
-        // form so that one can be entered before it can be saved.
-        const statement = policy.Statement[0];
-        const hasUser = Boolean(statement && statement.Principal && statement.Principal.AWS);
-        const toggle = document.getElementById("advanced-editor-toggle");
-        toggle.checked = hasUser;
-        toggle.disabled = !hasUser;
-        document.getElementById("save-policy-btn").disabled = !hasUser;
+        document.getElementById("advanced-editor-toggle").checked = true;
         handlePolicyEditorToggle();
     }
 
