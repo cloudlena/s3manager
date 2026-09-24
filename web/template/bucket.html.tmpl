@@ -184,8 +184,9 @@
                 <tr data-version-group="{{ $object.GroupIndex }}" class="{{ if $isCollapsedVersion }}version-row {{ end }}{{ if $object.IsDeleteMarker }}delete-marker{{ end }}">
                     <td class="min">
                         {{- /* Bulk actions operate on the object key, so only the
-                            primary row of a version group gets a checkbox. */}}
-                        {{ if and (not $object.IsFolder) (not $isCollapsedVersion) }}
+                            primary row of a version group gets a checkbox. A
+                            folder's key stands for everything inside it. */}}
+                        {{ if not $isCollapsedVersion }}
                         <label class="checkbox">
                             <input type="checkbox" class="object-checkbox" data-key="{{ $object.Key }}" onchange="updateBulkActions()">
                             <span></span>
@@ -265,6 +266,13 @@
                         </nav>
                         {{ else if $object.IsDeleteMarker }}
                         <span class="chip small border">Delete marker</span>
+                        {{ else if $.AllowDelete }}
+                        <nav class="no-space right-align no-wrap">
+                            <button class="circle transparent error-text" onclick="deleteKeys(['{{ $object.Key }}'])">
+                                <i>delete</i>
+                                <span class="tooltip left">Delete folder</span>
+                            </button>
+                        </nav>
                         {{ end }}
                     </td>
                 </tr>
@@ -798,10 +806,21 @@
         return Array.from(document.querySelectorAll(".object-checkbox:checked"), cb => cb.dataset.key);
     }
 
-    async function bulkDelete() {
+    function bulkDelete() {
         const keys = getSelectedKeys();
-        if (!keys.length) return;
-        if (!confirm("Are you sure you want to delete " + keys.length + " item" + (keys.length > 1 ? "s" : "") + "?")) return;
+        if (keys.length) deleteKeys(keys);
+    }
+
+    // deleteKeys deletes objects and folders, the latter with everything in
+    // them. Only S3 knows how many objects a folder holds, so the confirmation
+    // counts folders as folders instead of pretending to know.
+    async function deleteKeys(keys) {
+        const folders = keys.filter(key => key.endsWith("/")).length;
+        const objects = keys.length - folders;
+        const parts = [];
+        if (objects) parts.push(objects + " object" + (objects > 1 ? "s" : ""));
+        if (folders) parts.push(folders + " folder" + (folders > 1 ? "s" : "") + " and everything in " + (folders > 1 ? "them" : "it"));
+        if (!confirm("Are you sure you want to delete " + parts.join(" and ") + "?")) return;
 
         try {
             await request("POST", bucketURL + "/objects/bulk-delete", { json: { keys: keys } });

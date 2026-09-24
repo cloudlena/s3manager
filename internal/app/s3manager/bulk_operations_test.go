@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -115,6 +116,108 @@ func TestHandleBulkDeleteObjects(t *testing.T) {
 	}
 }
 
+func TestHandleBulkDeleteObjectsWithFolders(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		it                 string
+		body               string
+		folders            map[string][]string
+		v1Folders          map[string][]string
+		listErr            error
+		expectedStatusCode int
+		expectedRemoved    []string
+	}{
+		{
+			it:                 "deletes everything inside a folder",
+			body:               `{"keys":["photos/"]}`,
+			folders:            map[string][]string{"photos/": {"photos/", "photos/a.jpg", "photos/2024/b.jpg"}},
+			expectedStatusCode: http.StatusOK,
+			expectedRemoved:    []string{"photos/", "photos/a.jpg", "photos/2024/b.jpg"},
+		},
+		{
+			it:                 "deletes a mix of objects and folders",
+			body:               `{"keys":["readme.txt","photos/","docs/"]}`,
+			folders:            map[string][]string{"photos/": {"photos/a.jpg"}, "docs/": {"docs/b.pdf"}},
+			expectedStatusCode: http.StatusOK,
+			expectedRemoved:    []string{"readme.txt", "photos/a.jpg", "docs/b.pdf"},
+		},
+		{
+			it:                 "falls back to a V1 listing for a folder that lists empty",
+			body:               `{"keys":["photos/"]}`,
+			v1Folders:          map[string][]string{"photos/": {"photos/a.jpg"}},
+			expectedStatusCode: http.StatusOK,
+			expectedRemoved:    []string{"photos/a.jpg"},
+		},
+		{
+			it:                 "deletes nothing for an empty folder",
+			body:               `{"keys":["photos/"]}`,
+			expectedStatusCode: http.StatusOK,
+			expectedRemoved:    nil,
+		},
+		{
+			it:                 "returns error if listing a folder fails",
+			body:               `{"keys":["readme.txt","photos/"]}`,
+			listErr:            errS3,
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedRemoved:    []string{"readme.txt"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.it, func(t *testing.T) {
+			t.Parallel()
+			is := is.New(t)
+
+			var removed []string
+			s3 := &mocks.S3Mock{
+				ListObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+					is.True(opts.Recursive)
+					folders := tc.folders
+					if opts.UseV1 {
+						folders = tc.v1Folders
+					}
+					objCh := make(chan minio.ObjectInfo, len(folders[opts.Prefix])+1)
+					if tc.listErr != nil {
+						objCh <- minio.ObjectInfo{Err: tc.listErr}
+					}
+					for _, key := range folders[opts.Prefix] {
+						objCh <- minio.ObjectInfo{Key: key}
+					}
+					close(objCh)
+					return objCh
+				},
+				RemoveObjectsFunc: func(_ context.Context, _ string, objectsCh <-chan minio.ObjectInfo, _ minio.RemoveObjectsOptions) <-chan minio.RemoveObjectError {
+					errCh := make(chan minio.RemoveObjectError)
+					go func() {
+						defer close(errCh)
+						for object := range objectsCh {
+							removed = append(removed, object.Key)
+						}
+					}()
+					return errCh
+				},
+			}
+
+			r := mux.NewRouter()
+			r.Handle("/api/buckets/{bucketName}/objects/bulk-delete", s3manager.HandleBulkDeleteObjects(s3)).Methods(http.MethodPost)
+
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			resp, err := http.Post(ts.URL+"/api/buckets/my-bucket/objects/bulk-delete", "application/json", bytes.NewBufferString(tc.body))
+			is.NoErr(err)
+			defer func() {
+				err = resp.Body.Close()
+				is.NoErr(err)
+			}()
+
+			is.Equal(tc.expectedStatusCode, resp.StatusCode)
+			is.Equal(tc.expectedRemoved, removed)
+		})
+	}
+}
+
 func TestHandleBulkDownloadObjects(t *testing.T) {
 	t.Parallel()
 
@@ -165,4 +268,45 @@ func TestHandleBulkDownloadObjects(t *testing.T) {
 			is.True(strings.Contains(string(body), tc.expectedBodyContains))
 		})
 	}
+}
+
+func TestHandleBulkDownloadObjectsWithFolders(t *testing.T) {
+	t.Parallel()
+	is := is.New(t)
+
+	s3 := &mocks.S3Mock{
+		ListObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+			objCh := make(chan minio.ObjectInfo, 2)
+			if opts.Prefix == "photos/" && opts.Recursive {
+				objCh <- minio.ObjectInfo{Key: "photos/a.jpg"}
+				objCh <- minio.ObjectInfo{Key: "photos/2024/b.jpg"}
+			}
+			close(objCh)
+			return objCh
+		},
+		GetObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
+			return nil, errS3
+		},
+	}
+
+	r := mux.NewRouter()
+	r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3)).Methods(http.MethodPost)
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	resp, err := http.PostForm(ts.URL+"/api/buckets/my-bucket/objects/bulk-download", url.Values{"keys": {`["readme.txt","photos/"]`}})
+	is.NoErr(err)
+	defer func() {
+		err = resp.Body.Close()
+		is.NoErr(err)
+	}()
+
+	is.Equal(http.StatusOK, resp.StatusCode)
+
+	var fetched []string
+	for _, call := range s3.GetObjectCalls() {
+		fetched = append(fetched, call.ObjectName)
+	}
+	is.Equal([]string{"readme.txt", "photos/a.jpg", "photos/2024/b.jpg"}, fetched)
 }
