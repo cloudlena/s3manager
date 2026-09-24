@@ -8,6 +8,10 @@
             <h6 class="small no-margin">S3 Manager</h6>
         </a>
         <div class="max"></div>
+        <button class="circle transparent" data-ui="#dialog-open-bucket">
+            <i>folder_open</i>
+            <span class="tooltip bottom">Open bucket by name</span>
+        </button>
         {{ template "appbar-actions" . }}
     </nav>
 </header>
@@ -23,6 +27,7 @@
                 {{ if gt (len .S3Instances) 1 }}
                 <p class="small-text">Try switching to another S3 instance from the menu above.</p>
                 {{ end }}
+                <p class="small-text">A bucket you know the name of, such as a public one, can still be opened with the folder button above.</p>
             </div>
         </nav>
     </article>
@@ -36,7 +41,9 @@
                     <i class="large">folder</i>
                     <div class="max">
                         <h6 class="small no-margin truncate">{{ $bucket.Name }}</h6>
+                        {{ if not $bucket.CreationDate.IsZero }}
                         <div class="small-text secondary-text">Created {{ $bucket.CreationDate.Local.Format "2006-01-02" }}</div>
+                        {{ end }}
                     </div>
                     <i>chevron_right</i>
                 </a>
@@ -81,7 +88,31 @@
     </nav>
 </dialog>
 
+<dialog class="modal" id="dialog-open-bucket">
+    <h5>Open bucket</h5>
+    <p>Browse a bucket that is not listed, such as a public one owned by someone else.</p>
+    <div class="field label border">
+        <input type="text" id="open-bucket-name" autocomplete="off" placeholder=" ">
+        <label>Name</label>
+    </div>
+    <div class="error-text" id="open-bucket-error"></div>
+    <nav class="right-align no-space">
+        <button class="transparent link" data-ui="#dialog-open-bucket">Cancel</button>
+        <button onclick="openBucket()">Open</button>
+    </nav>
+</dialog>
+
 <script>
+    function openBucket() {
+        const name = document.getElementById("open-bucket-name").value.trim();
+        if (!name) {
+            document.getElementById("open-bucket-error").textContent = "Please enter a bucket name.";
+            return;
+        }
+
+        location.href = "{{$.RootURL}}{{$instancePath}}/buckets/" + encodeURIComponent(name);
+    }
+
     async function createBucket() {
         const name = document.getElementById("bucket-name").value.trim();
         const error = document.getElementById("create-bucket-error");

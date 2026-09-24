@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/minio/minio-go/v7/pkg/s3utils"
 )
 
 // S3InstanceConfig holds the configuration of a single S3 instance.
@@ -27,6 +28,9 @@ type S3InstanceConfig struct {
 	SignatureType       string
 	BucketLookup        string
 	PublicURL           string
+	// Buckets are listed on top of the ones the instance reports itself, so
+	// that buckets owned by someone else, like public datasets, can be browsed.
+	Buckets []string
 }
 
 // S3Instance is a configured S3 instance and its client.
@@ -40,6 +44,9 @@ type S3Instance struct {
 	// PublicURL is an optional template for public object links, such as a
 	// CDN in front of the bucket. See PublicObjectURL.
 	PublicURL string
+	// Buckets are the configured bucket names that are always listed, even
+	// when the instance does not report them or refuses to list its buckets.
+	Buckets []string
 }
 
 // S3Instances is the ordered set of configured S3 instances. It is built once
@@ -81,6 +88,11 @@ func NewS3Instances(configs []S3InstanceConfig) (S3Instances, error) {
 		if config.PublicURL != "" && !strings.Contains(config.PublicURL, "{key}") {
 			return nil, fmt.Errorf("PUBLIC_URL of instance %s must contain the {key} placeholder", config.Name)
 		}
+		for _, bucket := range config.Buckets {
+			if err := s3utils.CheckValidBucketName(bucket); err != nil {
+				return nil, fmt.Errorf("invalid bucket %q in BUCKETS of instance %s: %w", bucket, config.Name, err)
+			}
+		}
 
 		client, err := newS3Client(config, bucketLookup)
 		if err != nil {
@@ -92,6 +104,7 @@ func NewS3Instances(configs []S3InstanceConfig) (S3Instances, error) {
 			Client:       client,
 			BucketLookup: bucketLookup,
 			PublicURL:    config.PublicURL,
+			Buckets:      config.Buckets,
 		})
 	}
 

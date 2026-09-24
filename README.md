@@ -63,15 +63,16 @@ configured.
 - `NAME`: The name the instance is shown and addressed under (required in the numbered form; a single unnamed instance is called `Default`)
 - `ENDPOINT`: The endpoint of your S3 server (defaults to `s3.amazonaws.com`)
 - `REGION`: The region of your S3 server (defaults to `""`)
-- `ACCESS_KEY_ID`: Your S3 access key ID (required) (works only if `USE_IAM` is `false`)
-- `SECRET_ACCESS_KEY`: Your S3 secret access key (required) (works only if `USE_IAM` is `false`)
+- `ACCESS_KEY_ID`: Your S3 access key ID (required unless `USE_IAM` is `true` or `SIGNATURE_TYPE` is `Anonymous`)
+- `SECRET_ACCESS_KEY`: Your S3 secret access key (required unless `USE_IAM` is `true` or `SIGNATURE_TYPE` is `Anonymous`)
 - `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)
 - `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
 - `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
 - `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
-- `SIGNATURE_TYPE`: The signature type to be used (defaults to `V4`; valid values are `V2, V4, V4Streaming, Anonymous`)
+- `SIGNATURE_TYPE`: The signature type to be used (defaults to `V4`; valid values are `V2, V4, V4Streaming, Anonymous`). `Anonymous` sends unsigned requests, which is how public buckets are browsed
 - `BUCKET_LOOKUP`: How buckets are addressed in requests (defaults to `Auto`; valid values are `Auto, DNS, Path`). `DNS` uses virtual-hosted–style addressing (`bucket.endpoint`), `Path` uses path-style addressing (`endpoint/bucket`) and `Auto` picks virtual-hosted style for Amazon and Google endpoints and path style for all others. Set it to `DNS` if your provider answers with `Virtual host domain is required while accessing a specific bucket`
 - `PUBLIC_URL`: A template for the public links of objects, for when they are served from a CDN or a custom domain (defaults to unset, which links to the object on `ENDPOINT` following `BUCKET_LOOKUP`). `{key}` is replaced by the object key and `{bucket}` by the bucket name, for example `https://cdn.example.com/{key}` or `https://files.example.com/{bucket}/{key}`; `{key}` is required
+- `BUCKETS`: A comma-separated list of bucket names to show in addition to the ones the instance lists itself (defaults to unset), for example public buckets owned by someone else. They are shown even if the instance refuses to list its buckets, as it does for anonymous access
 
 #### Application
 
@@ -104,6 +105,25 @@ per page needs the whole location in memory instead, and so does `SHOW_VERSIONS`
 Those listings stop after 10,000 objects and say so on the page — their counting,
 sorting and searching then cover only that many. Narrow the listing down with a
 search or by opening a folder to reach the rest.
+
+### Browsing public buckets
+
+Public buckets, such as the datasets of the
+[Registry of Open Data on AWS](https://registry.opendata.aws/), can be browsed
+without an account by configuring an instance for anonymous access and naming the
+buckets to show:
+
+```shell
+SIGNATURE_TYPE=Anonymous
+REGION=us-east-1
+BUCKETS=noaa-ghcn-pds
+```
+
+Anonymous requests cannot look up the region of a bucket, so `REGION` has to
+match it; a bucket in another region reports the region it is in. Any other
+bucket can be opened by name with the folder button of the bucket list, even if
+it isn't configured. Public buckets usually only allow reading, so uploading and
+deleting fails on them.
 
 ### Build and Run Locally
 

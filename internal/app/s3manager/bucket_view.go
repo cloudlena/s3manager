@@ -1,6 +1,7 @@
 package s3manager
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -8,6 +9,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/minio/minio-go/v7"
 )
 
 const defaultPerPage = 25
@@ -201,6 +204,17 @@ func parseListingQuery(params url.Values) listingQuery {
 // user-facing message for the bucket view's error banner.
 func listObjectsErrorMessage(err error, bucketName, instanceName string) string {
 	msg := err.Error()
+
+	// S3 redirects requests for a bucket in another region. Anonymous
+	// requests cannot look the region up beforehand, so this is how browsing
+	// a public bucket without a matching REGION fails.
+	var errResp minio.ErrorResponse
+	if errors.As(err, &errResp) && errResp.Code == "PermanentRedirect" {
+		if errResp.Region != "" {
+			return fmt.Sprintf("Bucket '%s' is located in region '%s'. Please set the REGION of S3 instance '%s' to '%s' to browse it.", bucketName, errResp.Region, instanceName, errResp.Region)
+		}
+		return fmt.Sprintf("Bucket '%s' is located in another region than S3 instance '%s' uses. Please set the instance's REGION to the bucket's region to browse it.", bucketName, instanceName)
+	}
 
 	switch {
 	case strings.Contains(msg, "AccessDenied"), strings.Contains(msg, "InvalidAccessKeyId"), strings.Contains(msg, "SignatureDoesNotMatch"):

@@ -155,6 +155,22 @@ func TestHandleBucketView(t *testing.T) {
 			expectedBodyContains: []string{"Unable to list objects", errS3.Error()},
 		},
 		{
+			it: "names the region of a bucket in another region",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan(minio.ObjectInfo{Err: minio.ErrorResponse{Code: "PermanentRedirect", Region: "us-west-2"}})
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"is located in region", "us-west-2", "Please set the REGION"},
+		},
+		{
+			it: "asks for the region of a bucket in an unknown other region",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan(minio.ObjectInfo{Err: minio.ErrorResponse{Code: "PermanentRedirect"}})
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"is located in another region", "set the instance"},
+		},
+		{
 			it:                   "does not show version columns when ShowVersions is disabled",
 			listObjectsFunc:      listVersions,
 			showVersions:         false,

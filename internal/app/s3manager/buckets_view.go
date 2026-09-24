@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"slices"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -37,20 +38,34 @@ func HandleBucketsView(instances S3Instances, templates fs.FS, opts Options) htt
 
 		buckets, err := instance.Client.ListBuckets(r.Context())
 		switch {
-		case err != nil:
+		case err != nil && len(instance.Buckets) == 0:
 			// An unreachable instance is reported on the page itself so that
 			// the user can switch to another one instead of being stuck on an
 			// error page.
 			data.HasError = true
 			data.ErrorMessage = fmt.Sprintf("Unable to connect to S3 instance '%s'. Please check the credentials and try switching to another instance.", instance.Name)
 		case opts.BucketName != "":
-			data.Buckets = filterBuckets(buckets, opts.BucketName)
+			data.Buckets = filterBuckets(addConfiguredBuckets(buckets, instance.Buckets), opts.BucketName)
 		default:
-			data.Buckets = buckets
+			// Listing buckets is refused for anonymous access, so the
+			// configured buckets stand on their own when it fails.
+			data.Buckets = addConfiguredBuckets(buckets, instance.Buckets)
 		}
 
 		renderer(w, data)
 	}
+}
+
+// addConfiguredBuckets appends the configured bucket names that a listing
+// does not already contain. Their creation date is unknown and stays zero.
+func addConfiguredBuckets(buckets []minio.BucketInfo, names []string) []minio.BucketInfo {
+	for _, name := range names {
+		if !slices.ContainsFunc(buckets, func(bucket minio.BucketInfo) bool { return bucket.Name == name }) {
+			buckets = append(buckets, minio.BucketInfo{Name: name})
+		}
+	}
+
+	return buckets
 }
 
 // filterBuckets narrows a bucket listing down to the single bucket the app is

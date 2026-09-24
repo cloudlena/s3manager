@@ -139,6 +139,19 @@ func TestNewS3Instances(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			it: "creates an instance with configured buckets",
+			configs: []s3manager.S3InstanceConfig{
+				{Name: "test", Endpoint: "s3.amazonaws.com", SignatureType: "Anonymous", Buckets: []string{"noaa-ghcn-pds", "sentinel-cogs"}},
+			},
+		},
+		{
+			it: "returns an error for an invalid configured bucket",
+			configs: []s3manager.S3InstanceConfig{
+				{Name: "test", Endpoint: "localhost:9000", SignatureType: "Anonymous", Buckets: []string{"Not A Bucket"}},
+			},
+			expectError: true,
+		},
 	}
 
 	for _, tc := range cases {

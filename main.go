@@ -103,9 +103,12 @@ func parseS3Instances() []s3manager.S3InstanceConfig {
 			SignatureType:       viper.GetString(prefix + "SIGNATURE_TYPE"),
 			BucketLookup:        viper.GetString(prefix + "BUCKET_LOOKUP"),
 			PublicURL:           viper.GetString(prefix + "PUBLIC_URL"),
+			Buckets:             parseList(viper.GetString(prefix + "BUCKETS")),
 		}
 
-		if !instance.UseIam {
+		// Anonymous requests are not signed, so they need no key pair. That is
+		// how public buckets are browsed.
+		if !instance.UseIam && instance.SignatureType != "Anonymous" {
 			if instance.AccessKeyID == "" {
 				log.Fatalf("please provide %sACCESS_KEY_ID for instance %s", prefix, name)
 			}
@@ -116,6 +119,18 @@ func parseS3Instances() []s3manager.S3InstanceConfig {
 
 		instances = append(instances, instance)
 	}
+}
+
+// parseList splits a comma-separated configuration value, dropping blanks.
+func parseList(value string) []string {
+	var items []string
+	for item := range strings.SplitSeq(value, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			items = append(items, item)
+		}
+	}
+
+	return items
 }
 
 func main() {

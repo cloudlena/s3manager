@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cloudlena/s3manager/internal/app/s3manager"
 	"github.com/cloudlena/s3manager/internal/app/s3manager/mocks"
@@ -24,10 +25,12 @@ func TestHandleBucketsView(t *testing.T) {
 		it                   string
 		instanceName         string
 		bucketName           string
+		configuredBuckets    []string
 		listBucketsFunc      func(context.Context) ([]minio.BucketInfo, error)
 		expectedStatusCode   int
 		expectedBodyContains string
 		unexpectedInBody     []string
+		expectedCount        map[string]int
 	}{
 		{
 			it:           "renders a list of buckets",
@@ -68,6 +71,30 @@ func TestHandleBucketsView(t *testing.T) {
 			expectedBodyContains: "Unable to connect to S3 instance",
 		},
 		{
+			it:                "adds configured buckets to the listed ones",
+			instanceName:      "primary",
+			configuredBuckets: []string{"LISTED-BUCKET", "PUBLIC-BUCKET"},
+			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
+				return []minio.BucketInfo{{Name: "LISTED-BUCKET", CreationDate: time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC)}}, nil
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "PUBLIC-BUCKET",
+			// The listed bucket is shown once, with its date, and the
+			// configured one without a date it doesn't have.
+			expectedCount: map[string]int{"LISTED-BUCKET</h6>": 1, "Created ": 1},
+		},
+		{
+			it:                "shows configured buckets if the instance refuses to list buckets",
+			instanceName:      "primary",
+			configuredBuckets: []string{"PUBLIC-BUCKET"},
+			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
+				return nil, errS3
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "PUBLIC-BUCKET",
+			unexpectedInBody:     []string{"Unable to connect to S3 instance"},
+		},
+		{
 			it:           "returns not found for an unknown instance",
 			instanceName: "unknown",
 			listBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
@@ -84,7 +111,7 @@ func TestHandleBucketsView(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{ListBucketsFunc: tc.listBucketsFunc}
-			instances := s3manager.S3Instances{{ID: "1", Name: "primary", Client: s3}}
+			instances := s3manager.S3Instances{{ID: "1", Name: "primary", Client: s3, Buckets: tc.configuredBuckets}}
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 
 			r := mux.NewRouter()
@@ -109,6 +136,9 @@ func TestHandleBucketsView(t *testing.T) {
 			is.True(strings.Contains(string(body), tc.expectedBodyContains)) // body
 			for _, unexpected := range tc.unexpectedInBody {
 				is.True(!strings.Contains(string(body), unexpected)) // unexpected body content
+			}
+			for text, count := range tc.expectedCount {
+				is.Equal(count, strings.Count(string(body), text)) // occurrences of text
 			}
 		})
 	}
