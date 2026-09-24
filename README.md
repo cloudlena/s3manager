@@ -71,6 +71,7 @@ configured.
 - `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
 - `SIGNATURE_TYPE`: The signature type to be used (defaults to `V4`; valid values are `V2, V4, V4Streaming, Anonymous`)
 - `BUCKET_LOOKUP`: How buckets are addressed in requests (defaults to `Auto`; valid values are `Auto, DNS, Path`). `DNS` uses virtual-hosted–style addressing (`bucket.endpoint`), `Path` uses path-style addressing (`endpoint/bucket`) and `Auto` picks virtual-hosted style for Amazon and Google endpoints and path style for all others. Set it to `DNS` if your provider answers with `Virtual host domain is required while accessing a specific bucket`
+- `PUBLIC_URL`: A template for the public links of objects, for when they are served from a CDN or a custom domain (defaults to unset, which links to the object on `ENDPOINT` following `BUCKET_LOOKUP`). `{key}` is replaced by the object key and `{bucket}` by the bucket name, for example `https://cdn.example.com/{key}` or `https://files.example.com/{bucket}/{key}`; `{key}` is required
 
 #### Application
 

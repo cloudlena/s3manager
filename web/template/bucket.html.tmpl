@@ -447,19 +447,13 @@
     <h5>Public link</h5>
     <p class="small-text secondary-text mono truncate" id="public-link-object"></p>
 
-    <label class="checkbox">
-        <input type="checkbox" id="public-link-confirm" onchange="togglePublicLinkVisibility()">
-        <span>I understand that handing out this link is irrevocable, and anyone with the link can access the file for as long as it exists.</span>
-    </label>
+    <p>Handing out this link is irrevocable: anyone with the link can access the file for as long as it exists.</p>
 
-    <div id="public-link-container" style="display: none;">
-        <div class="space"></div>
-        <article class="round border no-elevate" id="public-access-status"></article>
-        <div class="field label border suffix">
-            <input type="text" id="public-link" readonly placeholder=" ">
-            <label class="active">Link</label>
-            <i class="clickable" onclick="copyToClipboard(document.getElementById('public-link').value)">content_copy</i>
-        </div>
+    <article class="round border no-elevate" id="public-access-status"></article>
+    <div class="field label border suffix" id="public-link-field" style="display: none;">
+        <input type="text" id="public-link" readonly placeholder=" ">
+        <label class="active">Link</label>
+        <i class="clickable" onclick="copyToClipboard(document.getElementById('public-link').value)">content_copy</i>
     </div>
 
     <nav class="right-align no-space">
@@ -831,13 +825,11 @@
     // --- Public link ----------------------------------------------------
 
     async function handleOpenPublicLinkModal(objectName) {
-        const endpoint = "{{ .Endpoint }}";
-        const separator = endpoint.endsWith("/") ? "" : "/";
+        const linkField = document.getElementById("public-link-field");
 
         document.getElementById("public-link-object").textContent = objectName;
-        document.getElementById("public-link").value = endpoint + separator + bucketName + "/" + objectName;
-        document.getElementById("public-link-confirm").checked = false;
-        document.getElementById("public-link-container").style.display = "none";
+        document.getElementById("public-link").value = "";
+        linkField.style.display = "none";
 
         const status = document.getElementById("public-access-status");
         status.className = "round border no-elevate";
@@ -846,7 +838,10 @@
         ui("#dialog-public-link");
 
         try {
-            const result = await request("GET", apiBucketURL + "/objects/" + objectName + "/public-access");
+            const key = objectName.split("/").map(encodeURIComponent).join("/");
+            const result = await request("GET", apiBucketURL + "/objects/" + key + "/public-access");
+            document.getElementById("public-link").value = result.url;
+            linkField.style.display = "";
             if (result.accessible) {
                 status.className = "round border no-elevate primary-container";
                 status.innerHTML = '<nav><i>check_circle</i><span>The file seems to be publicly available.</span></nav>';
@@ -858,11 +853,6 @@
             status.className = "round border no-elevate tertiary-container";
             status.innerHTML = '<nav><i>warning</i><span>Could not verify accessibility.</span></nav>';
         }
-    }
-
-    function togglePublicLinkVisibility() {
-        const checked = document.getElementById("public-link-confirm").checked;
-        document.getElementById("public-link-container").style.display = checked ? "" : "none";
     }
 
     // --- Metadata -------------------------------------------------------

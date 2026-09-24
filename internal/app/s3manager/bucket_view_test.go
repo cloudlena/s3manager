@@ -301,7 +301,6 @@ func TestHandleBucketView(t *testing.T) {
 
 			s3 := &mocks.S3Mock{
 				ListObjectsFunc: tc.listObjectsFunc,
-				EndpointURLFunc: mustParseURLFunc("http://localhost:9000"),
 			}
 			instances := s3manager.S3Instances{{ID: "1", Name: "primary", Client: s3}}
 			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
@@ -426,7 +425,6 @@ func getBucketView(t *testing.T, listObjects func(context.Context, string, minio
 
 	s3 := &mocks.S3Mock{
 		ListObjectsFunc: listObjects,
-		EndpointURLFunc: mustParseURLFunc("http://localhost:9000"),
 	}
 	instances := s3manager.S3Instances{{ID: "1", Name: "primary", Client: s3}}
 	templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))

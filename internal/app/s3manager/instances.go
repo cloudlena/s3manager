@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
@@ -25,6 +26,7 @@ type S3InstanceConfig struct {
 	SkipSSLVerification bool
 	SignatureType       string
 	BucketLookup        string
+	PublicURL           string
 }
 
 // S3Instance is a configured S3 instance and its client.
@@ -32,6 +34,12 @@ type S3Instance struct {
 	ID     string
 	Name   string
 	Client S3
+	// BucketLookup is how the client addresses buckets, which public links
+	// follow unless PublicURL overrides them.
+	BucketLookup minio.BucketLookupType
+	// PublicURL is an optional template for public object links, such as a
+	// CDN in front of the bucket. See PublicObjectURL.
+	PublicURL string
 }
 
 // S3Instances is the ordered set of configured S3 instances. It is built once
@@ -66,14 +74,24 @@ func NewS3Instances(configs []S3InstanceConfig) (S3Instances, error) {
 
 	instances := make(S3Instances, 0, len(configs))
 	for i, config := range configs {
-		client, err := newS3Client(config)
+		bucketLookup, ok := bucketLookups[config.BucketLookup]
+		if config.BucketLookup != "" && !ok {
+			return nil, fmt.Errorf("invalid BUCKET_LOOKUP: %s", config.BucketLookup)
+		}
+		if config.PublicURL != "" && !strings.Contains(config.PublicURL, "{key}") {
+			return nil, fmt.Errorf("PUBLIC_URL of instance %s must contain the {key} placeholder", config.Name)
+		}
+
+		client, err := newS3Client(config, bucketLookup)
 		if err != nil {
 			return nil, err
 		}
 		instances = append(instances, &S3Instance{
-			ID:     strconv.Itoa(i + 1),
-			Name:   config.Name,
-			Client: client,
+			ID:           strconv.Itoa(i + 1),
+			Name:         config.Name,
+			Client:       client,
+			BucketLookup: bucketLookup,
+			PublicURL:    config.PublicURL,
 		})
 	}
 
@@ -81,10 +99,11 @@ func NewS3Instances(configs []S3InstanceConfig) (S3Instances, error) {
 }
 
 // newS3Client creates the S3 client described by a single instance configuration.
-func newS3Client(config S3InstanceConfig) (S3, error) {
+func newS3Client(config S3InstanceConfig, bucketLookup minio.BucketLookupType) (S3, error) {
 	opts := &minio.Options{
-		Secure: config.UseSSL,
-		Region: config.Region,
+		Secure:       config.UseSSL,
+		Region:       config.Region,
+		BucketLookup: bucketLookup,
 	}
 
 	if config.UseIam {
@@ -95,14 +114,6 @@ func newS3Client(config S3InstanceConfig) (S3, error) {
 			return nil, fmt.Errorf("invalid SIGNATURE_TYPE: %s", config.SignatureType)
 		}
 		opts.Creds = credentials.NewStatic(config.AccessKeyID, config.SecretAccessKey, "", signatureType)
-	}
-
-	if config.BucketLookup != "" {
-		bucketLookup, ok := bucketLookups[config.BucketLookup]
-		if !ok {
-			return nil, fmt.Errorf("invalid BUCKET_LOOKUP: %s", config.BucketLookup)
-		}
-		opts.BucketLookup = bucketLookup
 	}
 
 	if config.UseSSL && config.SkipSSLVerification {

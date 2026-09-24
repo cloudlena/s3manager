@@ -102,6 +102,7 @@ func parseS3Instances() []s3manager.S3InstanceConfig {
 			SkipSSLVerification: viper.GetBool(prefix + "SKIP_SSL_VERIFICATION"),
 			SignatureType:       viper.GetString(prefix + "SIGNATURE_TYPE"),
 			BucketLookup:        viper.GetString(prefix + "BUCKET_LOOKUP"),
+			PublicURL:           viper.GetString(prefix + "PUBLIC_URL"),
 		}
 
 		if !instance.UseIam {
@@ -157,7 +158,7 @@ func main() {
 	})).Methods(http.MethodPost)
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-download", withInstance(s3manager.HandleBulkDownloadObjects)).Methods(http.MethodPost)
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/url", withInstance(s3manager.HandleGenerateURL)).Methods(http.MethodGet)
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/public-access", withInstance(s3manager.HandleCheckPublicAccess)).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/public-access", s3manager.HandleCheckPublicAccess(instances)).Methods(http.MethodGet)
 	if opts.ShowMetadata {
 		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", withInstance(s3manager.HandleGetObjectMetadata)).Methods(http.MethodGet)
 	}

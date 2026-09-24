@@ -112,6 +112,33 @@ func TestNewS3Instances(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			it: "creates an instance with a public URL",
+			configs: []s3manager.S3InstanceConfig{
+				{
+					Name:            "test",
+					Endpoint:        "localhost:9000",
+					AccessKeyID:     "key",
+					SecretAccessKey: "secret",
+					SignatureType:   "V4",
+					PublicURL:       "https://cdn.example.com/{key}",
+				},
+			},
+		},
+		{
+			it: "returns an error for a public URL without a key placeholder",
+			configs: []s3manager.S3InstanceConfig{
+				{
+					Name:            "test",
+					Endpoint:        "localhost:9000",
+					AccessKeyID:     "key",
+					SecretAccessKey: "secret",
+					SignatureType:   "V4",
+					PublicURL:       "https://cdn.example.com",
+				},
+			},
+			expectError: true,
+		},
 	}
 
 	for _, tc := range cases {

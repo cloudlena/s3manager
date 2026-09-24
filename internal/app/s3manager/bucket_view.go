@@ -50,7 +50,6 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 		BucketName          string
 		CurrentPath         string
 		Paths               []string
-		Endpoint            string
 		AllowDelete         bool
 		CurrentS3           *S3Instance
 		S3Instances         S3Instances
@@ -86,7 +85,6 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 			BucketName:     bucketName,
 			CurrentPath:    path,
 			Paths:          removeEmptyStrings(strings.Split(path, "/")),
-			Endpoint:       instance.Client.EndpointURL().String(),
 			AllowDelete:    opts.AllowDelete,
 			CurrentS3:      instance,
 			S3Instances:    instances,
