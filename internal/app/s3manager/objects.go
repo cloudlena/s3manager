@@ -223,10 +223,10 @@ func icon(fileName string) string {
 		return "folder"
 	}
 
-	switch path.Ext(fileName) {
+	switch strings.ToLower(path.Ext(fileName)) {
 	case ".tgz", ".gz", ".zip":
 		return "archive"
-	case ".png", ".jpg", ".gif", ".svg":
+	case ".png", ".jpg", ".jpeg", ".gif", ".svg":
 		return "photo"
 	case ".mp3", ".wav":
 		return "music_note"

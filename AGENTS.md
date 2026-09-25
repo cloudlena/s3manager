@@ -17,9 +17,9 @@ Run a single test:
 go test -run TestHandleBucketsView ./internal/app/s3manager/
 ```
 
-Local dev with MinIO:
+Local dev with RustFS:
 ```bash
-podman compose up   # Starts MinIO at localhost:9000; app at localhost:8080
+podman compose up   # Starts two RustFS instances at localhost:9000 and :9002; app at localhost:8080
 ```
 
 ## Architecture

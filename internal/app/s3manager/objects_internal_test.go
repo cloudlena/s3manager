@@ -159,3 +159,29 @@ func TestPageLinks(t *testing.T) {
 		})
 	}
 }
+
+func TestIcon(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		fileName string
+		expected string
+	}{
+		{fileName: "photos/", expected: "folder"},
+		{fileName: "archive.tar.gz", expected: "archive"},
+		{fileName: "image.jpg", expected: "photo"},
+		{fileName: "image.jpeg", expected: "photo"},
+		{fileName: "IMG_0001.JPG", expected: "photo"},
+		{fileName: "song.mp3", expected: "music_note"},
+		{fileName: "notes.txt", expected: "insert_drive_file"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.fileName, func(t *testing.T) {
+			t.Parallel()
+			is := is.New(t)
+
+			is.Equal(icon(tc.fileName), tc.expected)
+		})
+	}
+}

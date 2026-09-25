@@ -24,25 +24,25 @@ services:
       - s3-2
   s3:
     container_name: s3
-    image: docker.io/minio/minio
-    command: server /data
+    image: docker.io/rustfs/rustfs
     ports:
       - 9000:9000
       - 9001:9001
     environment:
-      - MINIO_ACCESS_KEY=s3manager
-      - MINIO_SECRET_KEY=s3manager
-      - MINIO_ADDRESS=0.0.0.0:9000
-      - MINIO_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_ACCESS_KEY=s3manager
+      - RUSTFS_SECRET_KEY=s3manager
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
   s3-2:
     container_name: s3-2
-    image: docker.io/minio/minio
-    command: server /data
+    image: docker.io/rustfs/rustfs
     ports:
       - 9002:9000
       - 9003:9001
     environment:
-      - MINIO_ACCESS_KEY=s3manager2
-      - MINIO_SECRET_KEY=s3manager2
-      - MINIO_ADDRESS=0.0.0.0:9000
-      - MINIO_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_ACCESS_KEY=s3manager2
+      - RUSTFS_SECRET_KEY=s3manager2
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
