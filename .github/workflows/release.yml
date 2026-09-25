@@ -10,10 +10,10 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: "1.26"
-      - uses: actions/checkout@v7
+          go-version-file: go.mod
       - uses: golangci/golangci-lint-action@v9
       - run: make test
       - uses: docker/login-action@v4
