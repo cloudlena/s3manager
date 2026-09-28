@@ -188,9 +188,11 @@ func main() {
 	r.Handle("/{instance}/api/buckets/{bucketName}/policy", withInstance(s3manager.HandleGetBucketPolicy)).Methods(http.MethodGet)
 	r.Handle("/{instance}/api/buckets/{bucketName}/policy", withInstance(s3manager.HandlePutBucketPolicy)).Methods(http.MethodPut)
 
+	handler := http.NewCrossOriginProtection().Handler(r)
+
 	srv := &http.Server{
 		Addr:         ":" + configuration.Port,
-		Handler:      logging.Handler(os.Stdout)(r),
+		Handler:      logging.Handler(os.Stdout)(handler),
 		ReadTimeout:  configuration.Timeout,
 		WriteTimeout: configuration.Timeout,
 	}
