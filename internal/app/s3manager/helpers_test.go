@@ -10,6 +10,9 @@ import (
 var (
 	errS3                 = errors.New("mocked s3 error")
 	errBucketDoesNotExist = minio.ErrorResponse{Code: minio.NoSuchBucket, Message: "The specified bucket does not exist"}
+	// errV2Unpageable is what minio-go reports for a truncated ListObjects V2
+	// page without a continuation token, as older Ceph RGW releases send.
+	errV2Unpageable = minio.ErrorResponse{Code: minio.NotImplemented, Message: "Truncated response should have continuation token set"}
 )
 
 // mustParseURLFunc returns a mock's EndpointURL implementation for a fixed URL.

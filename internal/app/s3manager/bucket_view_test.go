@@ -312,6 +312,41 @@ func TestHandleBucketView(t *testing.T) {
 			unexpectedInBody:     []string{"Unable to list objects"},
 		},
 		{
+			it: "falls back to a V1 listing when the V2 listing can't be paged",
+			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				if !opts.UseV1 {
+					return objectChan(minio.ObjectInfo{Err: errV2Unpageable})
+				}
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME"})
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"FILE-NAME"},
+			unexpectedInBody:     []string{"Unable to list objects"},
+		},
+		{
+			it: "shows the V2 error when the V1 fallback for an unpageable listing fails",
+			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				if !opts.UseV1 {
+					return objectChan(minio.ObjectInfo{Err: errV2Unpageable})
+				}
+				return objectChan(minio.ObjectInfo{Err: errS3})
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"Unable to list objects", errV2Unpageable.Message},
+		},
+		{
+			it: "does not fall back to a V1 listing on other errors",
+			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				if !opts.UseV1 {
+					return objectChan(minio.ObjectInfo{Err: errS3})
+				}
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME"})
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"Unable to list objects", errS3.Error()},
+			unexpectedInBody:     []string{"FILE-NAME"},
+		},
+		{
 			it: "does not warn about unavailable versions for an empty bucket",
 			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 				return objectChan()

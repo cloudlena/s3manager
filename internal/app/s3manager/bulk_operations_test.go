@@ -125,6 +125,8 @@ func TestHandleBulkDeleteObjectsWithFolders(t *testing.T) {
 		folders            map[string][]string
 		v1Folders          map[string][]string
 		listErr            error
+		v2ListErr          error
+		v1ListErr          error
 		expectedStatusCode int
 		expectedRemoved    []string
 	}{
@@ -150,6 +152,31 @@ func TestHandleBulkDeleteObjectsWithFolders(t *testing.T) {
 			expectedRemoved:    []string{"photos/a.jpg"},
 		},
 		{
+			it:                 "falls back to a V1 listing for a folder whose V2 listing can't be paged",
+			body:               `{"keys":["photos/"]}`,
+			v1Folders:          map[string][]string{"photos/": {"photos/a.jpg"}},
+			v2ListErr:          errV2Unpageable,
+			expectedStatusCode: http.StatusNoContent,
+			expectedRemoved:    []string{"photos/a.jpg"},
+		},
+		{
+			it:                 "resumes the V1 listing after the objects V2 listed before failing",
+			body:               `{"keys":["photos/"]}`,
+			folders:            map[string][]string{"photos/": {"photos/a.jpg"}},
+			v1Folders:          map[string][]string{"photos/": {"photos/a.jpg", "photos/b.jpg"}},
+			v2ListErr:          errV2Unpageable,
+			expectedStatusCode: http.StatusNoContent,
+			expectedRemoved:    []string{"photos/a.jpg", "photos/b.jpg"},
+		},
+		{
+			it:                 "returns error if the V1 fallback for an unpageable folder fails",
+			body:               `{"keys":["photos/"]}`,
+			v2ListErr:          errV2Unpageable,
+			v1ListErr:          errS3,
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedRemoved:    nil,
+		},
+		{
 			it:                 "deletes nothing for an empty folder",
 			body:               `{"keys":["photos/"]}`,
 			expectedStatusCode: http.StatusNoContent,
@@ -173,16 +200,21 @@ func TestHandleBulkDeleteObjectsWithFolders(t *testing.T) {
 			s3 := &mocks.S3Mock{
 				ListObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
 					is.True(opts.Recursive)
-					folders := tc.folders
+					folders, trailingErr := tc.folders, tc.v2ListErr
 					if opts.UseV1 {
-						folders = tc.v1Folders
+						folders, trailingErr = tc.v1Folders, tc.v1ListErr
 					}
-					objCh := make(chan minio.ObjectInfo, len(folders[opts.Prefix])+1)
+					objCh := make(chan minio.ObjectInfo, len(folders[opts.Prefix])+2)
 					if tc.listErr != nil {
 						objCh <- minio.ObjectInfo{Err: tc.listErr}
 					}
 					for _, key := range folders[opts.Prefix] {
-						objCh <- minio.ObjectInfo{Key: key}
+						if key > opts.StartAfter {
+							objCh <- minio.ObjectInfo{Key: key}
+						}
+					}
+					if trailingErr != nil {
+						objCh <- minio.ObjectInfo{Err: trailingErr}
 					}
 					close(objCh)
 					return objCh

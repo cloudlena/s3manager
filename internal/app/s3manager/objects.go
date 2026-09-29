@@ -2,6 +2,7 @@ package s3manager
 
 import (
 	"context"
+	"errors"
 	"path"
 	"sort"
 	"strings"
@@ -152,23 +153,39 @@ func nextCursor(obj listedObject) string {
 // indistinguishable from an empty prefix and makes a bucket full of objects
 // look empty, with nothing to report to the user. The retry costs one extra
 // round trip on prefixes that really are empty, and turns that silent case into
-// the objects that are actually there. StartAfter doubles as V1's marker, so a
-// cursor-paged listing survives the switch. If the retry itself fails, the
-// empty V2 listing stands: a provider that rejects V1 is one that meant its
-// empty answer.
+// the objects that are actually there. It retries the same way when the V2
+// listing fails with an error that says V2 isn't supported (see
+// v2ListingUnsupported). StartAfter doubles as V1's marker, so a cursor-paged
+// listing survives the switch. If the retry itself fails, the V2 answer stands,
+// whether it was empty or an error: a provider that rejects V1 as well is one
+// that meant it.
 func listWithV1Fallback(ctx context.Context, s3 S3, bucketName, prefix string, limit int, opts minio.ListObjectsOptions) ([]listedObject, error) {
 	objs, err := collectObjects(ctx, s3, bucketName, prefix, limit, opts)
-	if err != nil || len(objs) > 0 {
-		return objs, err
+	if err == nil && len(objs) > 0 {
+		return objs, nil
+	}
+	if err != nil && !v2ListingUnsupported(err) {
+		return nil, err
 	}
 
 	opts.UseV1 = true
-	v1Objs, err := collectObjects(ctx, s3, bucketName, prefix, limit, opts)
-	if err != nil {
-		return objs, nil
+	v1Objs, v1Err := collectObjects(ctx, s3, bucketName, prefix, limit, opts)
+	if v1Err != nil {
+		return objs, err
 	}
 
 	return v1Objs, nil
+}
+
+// v2ListingUnsupported reports whether a listing failed because the provider
+// doesn't implement ListObjects V2 correctly. minio-go reports this as a
+// NotImplemented error, both when the provider says so and when a V2 page is
+// marked as truncated but has no continuation token to fetch the next one
+// with. Older Ceph RGW releases do the latter as soon as a prefix holds more
+// objects than fit on one page.
+func v2ListingUnsupported(err error) bool {
+	var errResp minio.ErrorResponse
+	return errors.As(err, &errResp) && errResp.Code == minio.NotImplemented
 }
 
 // collectObjects drains up to limit objects off an S3 ListObjects channel,

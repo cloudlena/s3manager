@@ -137,46 +137,61 @@ func forEachKey(ctx context.Context, s3 S3, bucketName string, keys []string, fn
 }
 
 // forEachObjectInFolder calls fn with the key of every object below prefix.
-// It falls back to a ListObjects V1 request on an empty result for the same
-// reason as listWithV1Fallback: otherwise a folder on a provider that answers
-// V2 listings with nothing would silently come out as empty.
+// It falls back to a ListObjects V1 request for the same reasons as
+// listWithV1Fallback: otherwise a folder on a provider that answers V2 listings
+// with nothing would silently come out as empty, and one on a provider that
+// can't page through V2 listings couldn't be listed at all. fn has already
+// seen the keys V2 listed before it failed, so the V1 listing resumes after
+// them instead of handing them to fn twice.
 func forEachObjectInFolder(ctx context.Context, s3 S3, bucketName, prefix string, fn func(key string) error) error {
 	opts := minio.ListObjectsOptions{Prefix: prefix, Recursive: true}
-	found, err := forEachListedObject(ctx, s3, bucketName, opts, fn)
-	if err != nil || found {
+	lastKey, listErr, err := forEachListedObject(ctx, s3, bucketName, opts, fn)
+	if err != nil {
 		return err
 	}
-
-	opts.UseV1 = true
-	found, err = forEachListedObject(ctx, s3, bucketName, opts, fn)
-	if !found {
-		// A provider that rejects V1 is one that meant its empty answer.
+	if listErr != nil && !v2ListingUnsupported(listErr) {
+		return listErr
+	}
+	if listErr == nil && lastKey != "" {
 		return nil
 	}
 
-	return err
+	opts.UseV1 = true
+	opts.StartAfter = lastKey
+	v1LastKey, v1ListErr, err := forEachListedObject(ctx, s3, bucketName, opts, fn)
+	if err != nil {
+		return err
+	}
+	if v1ListErr != nil && v1LastKey == "" {
+		// A provider that rejects V1 as well is one that meant its V2 answer,
+		// be it empty or an error.
+		return listErr
+	}
+
+	return v1ListErr
 }
 
 // forEachListedObject calls fn with the key of every object a listing returns,
-// and reports whether it returned any. The context handed to ListObjects is
+// and returns the last key it handed to fn, so that a failed listing can be
+// resumed. The listing's own error is returned apart from fn's, since only the
+// former says anything about the listing. The context handed to ListObjects is
 // cancelled on return, which releases minio's producer goroutine when an error
 // cuts the listing short.
-func forEachListedObject(ctx context.Context, s3 S3, bucketName string, opts minio.ListObjectsOptions, fn func(key string) error) (bool, error) {
+func forEachListedObject(ctx context.Context, s3 S3, bucketName string, opts minio.ListObjectsOptions, fn func(key string) error) (lastKey string, listErr, fnErr error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	found := false
 	for object := range s3.ListObjects(ctx, bucketName, opts) {
 		if object.Err != nil {
-			return found, object.Err
+			return lastKey, object.Err, nil
 		}
-		found = true
+		lastKey = object.Key
 		if err := fn(object.Key); err != nil {
-			return found, err
+			return lastKey, nil, err
 		}
 	}
 
-	return found, nil
+	return lastKey, nil, nil
 }
 
 // addObjectToZip streams a single object into the ZIP archive.
