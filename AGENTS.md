@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents when working with code in this repository.
 
 ## Commands
 
@@ -9,6 +9,7 @@ make build       # Compile to bin/s3manager
 make run         # go run . (dev server)
 make test        # go test -race -cover ./...
 make lint        # golangci-lint run
+make build-image # Build the container image with podman
 make clean       # Remove bin/
 ```
 
@@ -26,7 +27,7 @@ podman compose up   # Starts two RustFS instances at localhost:9000 and :9002; a
 
 S3 Manager is a stateless Go web app for managing S3-compatible storage (AWS S3, MinIO, etc.). There is no database; S3 is the sole source of truth.
 
-**Backend** (`main.go` + `internal/app/s3manager/`): Gorilla mux routes requests to handler factory functions. Each handler receives its dependencies (S3 client, templates, `Options`) via closure, not global state. `S3Instances` is the ordered, immutable list of configured S3 instances; instance selection happens via a `{instance}` URL prefix, enabling concurrent multi-instance sessions. `WithInstance` resolves that prefix and hands the matching client to a single-instance handler, so most handlers never see the instance list.
+**Backend** (`main.go` + `internal/app/s3manager/`): Gorilla mux routes requests to handler factory functions. Each handler receives its dependencies (S3 client, templates, `Options`) via closure, not global state. `S3Instances` is the ordered, immutable list of configured S3 instances; instance selection happens via a `{instance}` URL prefix, enabling concurrent multi-instance sessions. `WithInstance` resolves that prefix and hands the matching client to a single-instance handler, so most handlers never see the instance list. The handlers that need more than the client (the two views and `HandleCheckPublicAccess`) take `S3Instances` and resolve the instance themselves with `resolveInstance`.
 
 **Frontend** (`web/`): Server-rendered HTML using three Go templates (`layout.html.tmpl`, `buckets.html.tmpl`, `bucket.html.tmpl`) styled with [BeerCSS](https://www.beercss.com/) 5.0.3 (Material Design 3). No JS framework and no jQuery — plain `fetch` plus BeerCSS's `ui()` helper for dialogs, menus and snackbars. `layout.html.tmpl` owns the page shell, the shared `appbar-actions` template (instance switcher, light/dark toggle) and the shared `toast`/`request` helpers; each page template renders its own `<header>` and `<main>`.
 
@@ -40,7 +41,7 @@ Static assets and templates are embedded into the binary via `//go:embed`, and B
 HTTP request
   → Gorilla mux (main.go)
   → Handler factory (e.g. HandleBucketView)
-      → S3Instances.Get(instanceName) (via WithInstance for non-view handlers)
+      → S3Instances.Get(instanceName) (via WithInstance, or resolveInstance for handlers that need the whole instance)
       → S3 interface call (minio-go/v7 under the hood)
       → Template render or JSON response
 ```
@@ -48,14 +49,16 @@ HTTP request
 ### Key handler categories
 
 - **Views** (`HandleBucketsView`, `HandleBucketView`): Render full-page HTML templates. `HandleBucketView` has two listing paths, picked by `cursorPagingPossible`: the default name-ascending view is listed one page at a time through S3's own `StartAfter`/`MaxKeys` paging (`listObjectPage`), which is why it has no total count; every other view (other sorts, search, `All`, versions) needs the whole prefix and falls back to a scan capped at `maxScanObjects` (`listAllObjects`).
-- **CRUD** (`HandleCreateBucket`, `HandleCreateObject`, `HandleDeleteBucket`, `HandleDeleteObject`): REST-ish JSON/form handlers.
-- **Bulk** (`HandleBulkDeleteObjects`, `HandleBulkDownloadObjects`): Batch delete or ZIP-stream multiple objects.
-- **URL** (`HandleGenerateURL`): Returns presigned S3 download URLs.
+- **CRUD** (`HandleCreateBucket`, `HandleCreateObject`, `HandleDeleteBucket`): REST-ish JSON/form handlers. Objects are deleted through the bulk endpoint, which also takes care of folders.
+- **Objects** (`HandleGetObject`, `HandleGetObjectMetadata`): Download an object, or serve it inline with a content type that can't run scripts (`inlineContentType`); return its metadata as JSON. Both honor `versionId` only when `SHOW_VERSIONS` is on.
+- **Bulk** (`HandleBulkDeleteObjects`, `HandleBulkDownloadObjects`): Batch delete or ZIP-stream multiple objects. A key ending in `/` stands for the whole folder.
+- **Links** (`HandleGenerateURL`, `HandleCheckPublicAccess`): Return a presigned download URL, or an object's public URL along with whether it is actually reachable.
+- **Policy** (`HandleGetBucketPolicy`, `HandlePutBucketPolicy`): Read and replace a bucket's policy as raw JSON.
 
 ### Configuration
 
-Instances are configured via numbered environment variables (`S3_1_ENDPOINT`, `S3_1_ACCESS_KEY_ID`, …) or a single unnamed set for backward compatibility. Viper is used to read all config. `ROOT_URL` supports reverse-proxy deployments with a path prefix. The feature flags the handlers care about are bundled into a single `s3manager.Options` value that `main.go` fills in and passes down.
+Instances are configured via numbered environment variables (`S3_1_ENDPOINT`, `S3_1_ACCESS_KEY_ID`, …) or a single unnamed set for backward compatibility. Viper is used to read all config. `ROOT_URL` supports reverse-proxy deployments with a path prefix. The feature flags the handlers care about are bundled into a single `s3manager.Options` value that `main.go` fills in and passes down, including the server side encryption, which is built once at start-up (`NewServerSideEncryption`) and also sent along with reads so that SSE-C objects can be read back.
 
 ## Testing
 
-Tests live alongside source files: each handler file has a corresponding `_test.go` in package `s3manager_test`, and the few tests of unexported helpers use `*_internal_test.go` in package `s3manager`. The `S3` mock (`mocks/s3.go`) is generated — regenerate with `go generate ./...` if the interface changes. Tests use `github.com/matryer/is` for assertions.
+Tests live alongside source files: each handler file has a corresponding `_test.go` in package `s3manager_test`, and the few tests of unexported helpers use `*_internal_test.go` in package `s3manager`. The `S3` mock (`mocks/s3.go`) is generated — regenerate with `go generate ./...` if the interface changes (moq is pinned as a tool in `go.mod`). Tests use `github.com/matryer/is` for assertions.

@@ -78,16 +78,15 @@ configured.
 These variables apply to the whole app and are never prefixed:
 
 - `PORT`: The port the app should listen on (defaults to `8080`)
-- `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
-- `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`; only affects the `Download` action, not `Open`)
+- `ALLOW_DELETE`: Enable deleting objects, folders and empty buckets (defaults to `true`)
 - `LIST_RECURSIVE`: List all objects in buckets recursively (defaults to `false`)
 - `SHOW_VERSIONS`: Show all object versions in bucket view and enable version-specific downloads (defaults to `false`; bucket must have versioning enabled)
 - `SHOW_METADATA`: Show the object metadata action and enable the metadata endpoint (defaults to `true`)
 - `TZ`: IANA timezone used when displaying object Last Modified times (defaults to UTC; for example `Europe/Berlin`)
-- `BUCKET_NAME`: Restrict the buckets view to a single named bucket (defaults to unset, showing all buckets)
-- `SSE_TYPE`: Specified server side encryption (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
-- `SSE_KEY`: The key needed for SSE method (only for `KMS` and `SSE-C`)
-- `TIMEOUT`: The read and write timeout in seconds (default to `600` - 10 minutes)
+- `BUCKET_NAME`: Show only this bucket in the bucket list of every instance (defaults to unset, showing all buckets). It only filters the list: other buckets can still be opened by name or URL, so it is not an access restriction
+- `SSE_TYPE`: The server side encryption applied to uploaded objects (defaults to unset, which leaves it off; valid values are `SSE`, `KMS` and `SSE-C`)
+- `SSE_KEY`: The key for `KMS` (a key ID) or `SSE-C` (exactly 32 bytes). With `SSE-C` the key is also sent when reading objects, since they can't be read without it; download links and public links don't carry it and so don't work for such objects
+- `TIMEOUT`: The read and write timeout in seconds (defaults to `600`, i.e. 10 minutes)
 - `ROOT_URL`: A root URL prefix if running behind a reverse proxy (defaults to unset)
 
 ### Browsing large buckets
@@ -139,8 +138,9 @@ You can deploy S3 Manager to a Kubernetes cluster using the [Helm chart](https:/
 
 #### Running behind a reverse proxy
 
-If there are multiple S3 users/accounts in a site then multiple instances of the S3 manager can be run in Kubernetes and expose behind a single nginx reverse proxy ingress.
-The s3manager can be run with a `ROOT_URL` environment variable set that accounts for the reverse proxy location.
+A single S3 Manager can manage several S3 accounts (see [S3 instances](#s3-instances)), but everyone who can reach it can use all of them.
+To give each team access to its own accounts only, run one S3 Manager per team and expose them behind a single nginx reverse proxy that authenticates each location.
+Set the `ROOT_URL` environment variable of each S3 Manager to the location it is served under.
 
 If the nginx configuration block looks like:
 

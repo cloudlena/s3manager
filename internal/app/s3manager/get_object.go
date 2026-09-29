@@ -3,6 +3,8 @@ package s3manager
 import (
 	"fmt"
 	"io"
+	"log"
+	"mime"
 	"net/http"
 	"path"
 	"strings"
@@ -52,46 +54,50 @@ func HandleGetObject(s3 S3, opts Options) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 		objectName := mux.Vars(r)["objectName"]
-		// Ignore versionId unless the versions feature is enabled, so
-		// disabling SHOW_VERSIONS also prevents access to old versions.
-		versionID := ""
-		if opts.ShowVersions {
-			versionID = r.URL.Query().Get("versionId")
-		}
-		inline := r.URL.Query().Get("inline") == "true"
 
-		contentType := ""
-		if inline {
-			// The content type has to come from S3 rather than from sniffing
-			// the body, so it is looked up before streaming the object.
-			info, err := s3.StatObject(r.Context(), bucketName, objectName, minio.StatObjectOptions{VersionID: versionID})
-			if err != nil {
-				handleHTTPError(w, fmt.Errorf("error getting object metadata: %w", err))
-				return
-			}
-			contentType = inlineContentType(info.ContentType)
-		}
-
-		object, err := s3.GetObject(r.Context(), bucketName, objectName, minio.GetObjectOptions{VersionID: versionID})
+		object, err := s3.GetObject(r.Context(), bucketName, objectName, minio.GetObjectOptions{
+			VersionID:            requestedVersion(r, opts),
+			ServerSideEncryption: opts.SSE,
+		})
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error getting object: %w", err))
 			return
 		}
+		defer func() { _ = object.Close() }()
 
-		switch {
-		case inline:
-			w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", path.Base(objectName)))
-			w.Header().Set("Content-Type", contentType)
-			w.Header().Set("X-Content-Type-Options", "nosniff")
-		case opts.ForceDownload:
-			w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
-			w.Header().Set("Content-Type", "application/octet-stream")
-		}
-
-		_, err = io.Copy(w, object)
+		// GetObject is lazy and only Stat sends the request, so an object that
+		// can't be read is reported before any of the response is written.
+		info, err := object.Stat()
 		if err != nil {
-			handleHTTPError(w, fmt.Errorf("error copying object to response writer: %w", err))
+			handleHTTPError(w, fmt.Errorf("error getting object info: %w", err))
 			return
 		}
+
+		// The content type has to come from S3 rather than from sniffing the
+		// body, which could turn an HTML object into stored XSS.
+		disposition, contentType := "attachment", "application/octet-stream"
+		if r.URL.Query().Get("inline") == "true" {
+			disposition, contentType = "inline", inlineContentType(info.ContentType)
+		}
+		w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": path.Base(objectName)}))
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+
+		// The response is already under way once copying starts, so an error
+		// can only be logged.
+		if _, err := io.Copy(w, object); err != nil {
+			log.Printf("error copying object %s to response writer: %v", objectName, err)
+		}
 	}
+}
+
+// requestedVersion returns the object version a request asks for. It is
+// ignored unless the versions feature is enabled, so disabling SHOW_VERSIONS
+// also prevents access to old versions.
+func requestedVersion(r *http.Request, opts Options) string {
+	if !opts.ShowVersions {
+		return ""
+	}
+
+	return r.URL.Query().Get("versionId")
 }

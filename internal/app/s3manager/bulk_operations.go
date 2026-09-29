@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
 
 // HandleBulkDeleteObjects deletes multiple objects from a bucket.
@@ -64,14 +65,14 @@ func HandleBulkDeleteObjects(s3 S3) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
 // HandleBulkDownloadObjects downloads multiple objects as a ZIP archive.
 // Objects that cannot be read are skipped: the archive is already being
 // streamed to the client, so there is no way to report an error anymore.
-func HandleBulkDownloadObjects(s3 S3) http.HandlerFunc {
+func HandleBulkDownloadObjects(s3 S3, sse encrypt.ServerSide) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 
@@ -103,7 +104,7 @@ func HandleBulkDownloadObjects(s3 S3) http.HandlerFunc {
 		}()
 
 		err := forEachKey(r.Context(), s3, bucketName, keys, func(key string) error {
-			if err := addObjectToZip(r.Context(), s3, zipWriter, bucketName, key); err != nil {
+			if err := addObjectToZip(r.Context(), s3, sse, zipWriter, bucketName, key); err != nil {
 				log.Printf("error adding object %s to zip: %v", key, err)
 			}
 			return nil
@@ -179,8 +180,8 @@ func forEachListedObject(ctx context.Context, s3 S3, bucketName string, opts min
 }
 
 // addObjectToZip streams a single object into the ZIP archive.
-func addObjectToZip(ctx context.Context, s3 S3, zipWriter *zip.Writer, bucketName, key string) error {
-	object, err := s3.GetObject(ctx, bucketName, key, minio.GetObjectOptions{})
+func addObjectToZip(ctx context.Context, s3 S3, sse encrypt.ServerSide, zipWriter *zip.Writer, bucketName, key string) error {
+	object, err := s3.GetObject(ctx, bucketName, key, minio.GetObjectOptions{ServerSideEncryption: sse})
 	if err != nil {
 		return fmt.Errorf("error getting object: %w", err)
 	}

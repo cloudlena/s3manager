@@ -6,18 +6,14 @@ import (
 	"io/fs"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v7"
 )
 
 const defaultPerPage = 25
-
-// bucketPathPattern matches the bucket name and the path within the bucket of a
-// bucket view URL, which has the form /{instance}/buckets/{bucket}/{path...}.
-var bucketPathPattern = regexp.MustCompile(`/[^/]+/buckets/([^/]*)/?(.*)`)
 
 // listingQuery holds the sorting, pagination and search parameters of a bucket
 // view request.
@@ -45,7 +41,9 @@ func (q listingQuery) Cursor() string {
 	return q.Cursors[len(q.Cursors)-1]
 }
 
-// HandleBucketView shows the details page of a bucket.
+// HandleBucketView shows the details page of a bucket. It expects the route to
+// provide the bucket name as {bucketName} and the location within the bucket,
+// if any, as a {path} starting with a slash.
 func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http.HandlerFunc {
 	type pageData struct {
 		objectPage
@@ -76,11 +74,8 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 			return
 		}
 
-		bucketName, path, err := parseBucketPath(r.URL.Path)
-		if err != nil {
-			handleHTTPError(w, err)
-			return
-		}
+		bucketName := mux.Vars(r)["bucketName"]
+		path := strings.TrimPrefix(mux.Vars(r)["path"], "/")
 
 		query := parseListingQuery(r.URL.Query())
 		data := pageData{
@@ -104,6 +99,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 		cursorPaging := cursorPagingPossible(query, opts)
 
 		var listing objectListing
+		var err error
 		if cursorPaging {
 			listing, err = listObjectPage(r.Context(), instance.Client, bucketName, path, query.Cursor(), opts.ListRecursive, query.PerPage)
 		} else {
@@ -156,17 +152,6 @@ func cursorPagingPossible(query listingQuery, opts Options) bool {
 		query.SortOrder == "asc"
 }
 
-// parseBucketPath extracts the bucket name and the path within the bucket from
-// a bucket view URL.
-func parseBucketPath(urlPath string) (string, string, error) {
-	matches := bucketPathPattern.FindStringSubmatch(urlPath)
-	if matches == nil {
-		return "", "", fmt.Errorf("invalid bucket path: %s", urlPath)
-	}
-
-	return matches[1], matches[2], nil
-}
-
 // parseListingQuery reads a bucket view request's query parameters, falling
 // back to defaults for missing or invalid values.
 func parseListingQuery(params url.Values) listingQuery {
@@ -203,8 +188,6 @@ func parseListingQuery(params url.Values) listingQuery {
 // listObjectsErrorMessage turns a raw S3 listing error into an actionable,
 // user-facing message for the bucket view's error banner.
 func listObjectsErrorMessage(err error, bucketName, instanceName string) string {
-	msg := err.Error()
-
 	// S3 redirects requests for a bucket in another region. Anonymous
 	// requests cannot look the region up beforehand, so this is how browsing
 	// a public bucket without a matching REGION fails.
@@ -217,12 +200,12 @@ func listObjectsErrorMessage(err error, bucketName, instanceName string) string 
 	}
 
 	switch {
-	case strings.Contains(msg, "AccessDenied"), strings.Contains(msg, "InvalidAccessKeyId"), strings.Contains(msg, "SignatureDoesNotMatch"):
+	case hasS3ErrorCode(err, minio.AccessDenied, minio.InvalidAccessKeyID, minio.SignatureDoesNotMatch):
 		return fmt.Sprintf("Unable to access bucket '%s' on S3 instance '%s'. Please check the credentials and try switching to another instance.", bucketName, instanceName)
-	case strings.Contains(msg, msgBucketDoesNotExist):
+	case hasS3ErrorCode(err, minio.NoSuchBucket):
 		return fmt.Sprintf("Bucket '%s' does not exist on S3 instance '%s'. Please try switching to another instance or go back to the buckets list.", bucketName, instanceName)
 	default:
-		return fmt.Sprintf("Unable to list objects in bucket '%s' on S3 instance '%s': %s", bucketName, instanceName, msg)
+		return fmt.Sprintf("Unable to list objects in bucket '%s' on S3 instance '%s': %s", bucketName, instanceName, err)
 	}
 }
 

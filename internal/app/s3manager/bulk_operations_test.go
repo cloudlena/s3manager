@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/matryer/is"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
 
 func TestHandleBulkDeleteObjects(t *testing.T) {
@@ -38,9 +39,8 @@ func TestHandleBulkDeleteObjects(t *testing.T) {
 				}()
 				return errCh
 			},
-			body:                 `{"keys":["file1.txt","file2.txt"]}`,
-			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: `"success":true`,
+			body:               `{"keys":["file1.txt","file2.txt"]}`,
+			expectedStatusCode: http.StatusNoContent,
 		},
 		{
 			it: "returns error for invalid JSON body",
@@ -132,27 +132,27 @@ func TestHandleBulkDeleteObjectsWithFolders(t *testing.T) {
 			it:                 "deletes everything inside a folder",
 			body:               `{"keys":["photos/"]}`,
 			folders:            map[string][]string{"photos/": {"photos/", "photos/a.jpg", "photos/2024/b.jpg"}},
-			expectedStatusCode: http.StatusOK,
+			expectedStatusCode: http.StatusNoContent,
 			expectedRemoved:    []string{"photos/", "photos/a.jpg", "photos/2024/b.jpg"},
 		},
 		{
 			it:                 "deletes a mix of objects and folders",
 			body:               `{"keys":["readme.txt","photos/","docs/"]}`,
 			folders:            map[string][]string{"photos/": {"photos/a.jpg"}, "docs/": {"docs/b.pdf"}},
-			expectedStatusCode: http.StatusOK,
+			expectedStatusCode: http.StatusNoContent,
 			expectedRemoved:    []string{"readme.txt", "photos/a.jpg", "docs/b.pdf"},
 		},
 		{
 			it:                 "falls back to a V1 listing for a folder that lists empty",
 			body:               `{"keys":["photos/"]}`,
 			v1Folders:          map[string][]string{"photos/": {"photos/a.jpg"}},
-			expectedStatusCode: http.StatusOK,
+			expectedStatusCode: http.StatusNoContent,
 			expectedRemoved:    []string{"photos/a.jpg"},
 		},
 		{
 			it:                 "deletes nothing for an empty folder",
 			body:               `{"keys":["photos/"]}`,
-			expectedStatusCode: http.StatusOK,
+			expectedStatusCode: http.StatusNoContent,
 			expectedRemoved:    nil,
 		},
 		{
@@ -250,7 +250,7 @@ func TestHandleBulkDownloadObjects(t *testing.T) {
 			s3 := &mocks.S3Mock{}
 
 			r := mux.NewRouter()
-			r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3)).Methods(http.MethodGet)
+			r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3, nil)).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
@@ -289,8 +289,12 @@ func TestHandleBulkDownloadObjectsWithFolders(t *testing.T) {
 		},
 	}
 
+	// SSE-C objects can only be read with the key they were stored with.
+	sse, err := encrypt.NewSSEC([]byte("0123456789abcdef0123456789abcdef"))
+	is.NoErr(err)
+
 	r := mux.NewRouter()
-	r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3)).Methods(http.MethodPost)
+	r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3, sse)).Methods(http.MethodPost)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -307,6 +311,7 @@ func TestHandleBulkDownloadObjectsWithFolders(t *testing.T) {
 	var fetched []string
 	for _, call := range s3.GetObjectCalls() {
 		fetched = append(fetched, call.ObjectName)
+		is.Equal(sse, call.Opts.ServerSideEncryption) // encryption key sent along
 	}
 	is.Equal([]string{"readme.txt", "photos/a.jpg", "photos/2024/b.jpg"}, fetched)
 }

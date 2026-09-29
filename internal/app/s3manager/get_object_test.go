@@ -15,15 +15,20 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/matryer/is"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
 
 func TestHandleGetObject(t *testing.T) {
 	t.Parallel()
 
+	sse, err := encrypt.NewSSEC([]byte("0123456789abcdef0123456789abcdef"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	cases := []struct {
 		it                   string
 		getObjectFunc        func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error)
-		statObjectFunc       func(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error)
 		bucketName           string
 		objectName           string
 		queryString          string
@@ -85,44 +90,12 @@ func TestHandleGetObject(t *testing.T) {
 			expectedBodyContains: "mocked s3 error",
 		},
 		{
-			it: "returns error if the metadata of an object to be opened inline can't be read",
-			getObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
-				return nil, nil
-			},
-			statObjectFunc: func(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error) {
-				return minio.ObjectInfo{}, errS3
-			},
-			bucketName:           "BUCKET-NAME",
-			objectName:           "OBJECT-NAME",
-			queryString:          "?inline=true",
-			expectedStatusCode:   http.StatusInternalServerError,
-			expectedBodyContains: "mocked s3 error",
-		},
-		{
-			it: "passes the versionId query param through to StatObjectOptions when opening inline",
-			getObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
-				return nil, errS3
-			},
-			statObjectFunc: func(_ context.Context, _, _ string, opts minio.StatObjectOptions) (minio.ObjectInfo, error) {
-				if opts.VersionID != "VERSION-123" {
-					return minio.ObjectInfo{}, fmt.Errorf("expected VersionID %q, got %q", "VERSION-123", opts.VersionID)
+			it: "passes the server side encryption through to GetObjectOptions",
+			getObjectFunc: func(_ context.Context, _, _ string, opts minio.GetObjectOptions) (*minio.Object, error) {
+				if opts.ServerSideEncryption != sse {
+					return nil, errors.New("expected the configured server side encryption")
 				}
-				return minio.ObjectInfo{ContentType: "application/pdf"}, nil
-			},
-			bucketName:           "BUCKET-NAME",
-			objectName:           "OBJECT-NAME",
-			queryString:          "?inline=true&versionId=VERSION-123",
-			showVersions:         true,
-			expectedStatusCode:   http.StatusInternalServerError,
-			expectedBodyContains: "mocked s3 error",
-		},
-		{
-			it: "doesn't look up the object metadata when not opening inline",
-			getObjectFunc: func(context.Context, string, string, minio.GetObjectOptions) (*minio.Object, error) {
 				return nil, errS3
-			},
-			statObjectFunc: func(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error) {
-				return minio.ObjectInfo{}, errors.New("StatObject should not be called")
 			},
 			bucketName:           "BUCKET-NAME",
 			objectName:           "OBJECT-NAME",
@@ -137,12 +110,11 @@ func TestHandleGetObject(t *testing.T) {
 			is := is.New(t)
 
 			s3 := &mocks.S3Mock{
-				GetObjectFunc:  tc.getObjectFunc,
-				StatObjectFunc: tc.statObjectFunc,
+				GetObjectFunc: tc.getObjectFunc,
 			}
 
 			r := mux.NewRouter()
-			r.Handle("/buckets/{bucketName}/objects/{objectName}", s3manager.HandleGetObject(s3, s3manager.Options{ForceDownload: true, ShowVersions: tc.showVersions})).Methods(http.MethodGet)
+			r.Handle("/buckets/{bucketName}/objects/{objectName}", s3manager.HandleGetObject(s3, s3manager.Options{ShowVersions: tc.showVersions, SSE: sse})).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

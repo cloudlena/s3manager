@@ -18,7 +18,7 @@ import (
 const maxUploadMemory = 32 << 20 // 32 MB
 
 // HandleCreateObject uploads a new object.
-func HandleCreateObject(s3 S3, sse SSEType) http.HandlerFunc {
+func HandleCreateObject(s3 S3, sse encrypt.ServerSide) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 
@@ -39,12 +39,7 @@ func HandleCreateObject(s3 S3, sse SSEType) http.HandlerFunc {
 			}
 		}()
 
-		opts := minio.PutObjectOptions{ContentType: uploadContentType(fileHeader)}
-		opts.ServerSideEncryption, err = serverSideEncryption(sse)
-		if err != nil {
-			handleHTTPError(w, err)
-			return
-		}
+		opts := minio.PutObjectOptions{ContentType: uploadContentType(fileHeader), ServerSideEncryption: sse}
 
 		_, err = s3.PutObject(r.Context(), bucketName, r.FormValue("path"), file, fileHeader.Size, opts)
 		if err != nil {
@@ -70,12 +65,13 @@ func uploadContentType(fileHeader *multipart.FileHeader) string {
 	return contentType
 }
 
-// serverSideEncryption builds the encryption to store an object with, or nil if
-// server side encryption is not configured.
-func serverSideEncryption(sse SSEType) (encrypt.ServerSide, error) {
-	switch sse.Type {
+// NewServerSideEncryption builds the encryption to store objects with from the
+// SSE_TYPE and SSE_KEY configuration values, or nil for any other type, which
+// leaves server side encryption off.
+func NewServerSideEncryption(sseType, key string) (encrypt.ServerSide, error) {
+	switch sseType {
 	case "KMS":
-		encryption, err := encrypt.NewSSEKMS(sse.Key, nil)
+		encryption, err := encrypt.NewSSEKMS(key, nil)
 		if err != nil {
 			return nil, fmt.Errorf("error setting SSE-KMS key: %w", err)
 		}
@@ -83,7 +79,7 @@ func serverSideEncryption(sse SSEType) (encrypt.ServerSide, error) {
 	case "SSE":
 		return encrypt.NewSSE(), nil
 	case "SSE-C":
-		encryption, err := encrypt.NewSSEC([]byte(sse.Key))
+		encryption, err := encrypt.NewSSEC([]byte(key))
 		if err != nil {
 			return nil, fmt.Errorf("error setting SSE-C key: %w", err)
 		}

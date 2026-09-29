@@ -26,6 +26,7 @@ func TestHandleGetObjectMetadata(t *testing.T) {
 		it                 string
 		statObjectFunc     func(context.Context, string, string, minio.StatObjectOptions) (minio.ObjectInfo, error)
 		queryString        string
+		showVersions       bool
 		expectedStatusCode int
 		expectedBody       map[string]any
 		expectedBodyError  string
@@ -68,11 +69,25 @@ func TestHandleGetObjectMetadata(t *testing.T) {
 				}, nil
 			},
 			queryString:        "?versionId=VERSION-123",
+			showVersions:       true,
 			expectedStatusCode: http.StatusOK,
 			expectedBody: map[string]any{
 				"key":       "OBJECT-NAME",
 				"versionId": "VERSION-123",
 				"isLatest":  true,
+			},
+		},
+		{
+			it: "ignores the versionId query param when showVersions is disabled",
+			statObjectFunc: func(_ context.Context, _, _ string, opts minio.StatObjectOptions) (minio.ObjectInfo, error) {
+				is := is.New(t)
+				is.Equal("", opts.VersionID)
+				return minio.ObjectInfo{Key: "OBJECT-NAME", LastModified: lastModified}, nil
+			},
+			queryString:        "?versionId=VERSION-123",
+			expectedStatusCode: http.StatusOK,
+			expectedBody: map[string]any{
+				"key": "OBJECT-NAME",
 			},
 		},
 		{
@@ -112,7 +127,7 @@ func TestHandleGetObjectMetadata(t *testing.T) {
 			}
 
 			r := mux.NewRouter()
-			r.Handle("/api/buckets/{bucketName}/objects/{objectName}/metadata", s3manager.HandleGetObjectMetadata(s3)).Methods(http.MethodGet)
+			r.Handle("/api/buckets/{bucketName}/objects/{objectName}/metadata", s3manager.HandleGetObjectMetadata(s3, s3manager.Options{ShowVersions: tc.showVersions})).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()

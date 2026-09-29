@@ -1,3 +1,5 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
@@ -10,8 +12,12 @@ builds:
       - darwin
 checksum:
   name_template: "checksums.txt"
-dockers:
-  - image_templates:
-      - "cloudlena/s3manager:{{ .Tag }}"
-      - "cloudlena/s3manager:latest"
+dockers_v2:
+  - images:
+      - cloudlena/s3manager
+    tags:
+      - "{{ .Tag }}"
     dockerfile: Containerfile.release
+    platforms:
+      - linux/amd64
+      - linux/arm64

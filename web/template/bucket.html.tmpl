@@ -39,7 +39,9 @@
                         <span>Edit policy</span>
                     </a>
                 </li>
-                {{ if not .Objects }}
+                {{- /* Only an empty bucket can be deleted, which an unsearched
+                    view of its top level shows. */}}
+                {{ if and $.AllowDelete (not .Objects) (not .Search) (not .CurrentPath) }}
                 <li>
                     <a class="error-text" onclick="deleteBucket()">
                         <i>delete</i>
@@ -124,7 +126,7 @@
 
     {{ if .Search }}
     <p class="small-text secondary-text">
-        Showing results for "<strong>{{ .Search }}</strong>"{{ if eq .TotalItems 0 }} — no matches found{{ end }}
+        Showing results for "<strong>{{ .Search }}</strong>"
     </p>
     {{ end }}
 
@@ -181,6 +183,12 @@
                 {{ range $index, $object := .Objects }}
                 {{ $isCollapsedVersion := and $.ShowVersions (not $object.IsPrimaryVersion) }}
                 {{ $objectURL := printf "%s%s/api/buckets/%s/objects/%s" $.RootURL $instancePath $.BucketName (escapeKey $object.Key) }}
+                {{ $openURL := printf "%s?inline=true" $objectURL }}
+                {{ $downloadURL := $objectURL }}
+                {{ if $.ShowVersions }}
+                {{ $openURL = printf "%s&versionId=%s" $openURL (urlquery $object.VersionID) }}
+                {{ $downloadURL = printf "%s?versionId=%s" $downloadURL (urlquery $object.VersionID) }}
+                {{ end }}
                 <tr data-version-group="{{ $object.GroupIndex }}" class="{{ if $isCollapsedVersion }}version-row {{ end }}{{ if $object.IsDeleteMarker }}delete-marker{{ end }}">
                     <td class="min">
                         {{- /* Bulk actions operate on the object key, so only the
@@ -206,7 +214,7 @@
                         </div>
                         {{- else }}
                         {{- /* Clicking the name opens the object in a new tab. */}}
-                        <a class="row" target="_blank" rel="noopener" href="{{ $objectURL }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">
+                        <a class="row" target="_blank" rel="noopener" href="{{ $openURL }}">
                             <i>{{ $object.Icon }}</i>
                             <span class="truncate">{{ $object.DisplayName }}</span>
                         </a>
@@ -214,7 +222,7 @@
                     </td>
                     <td class="min">{{ $object.SizeDisplay }}</td>
                     <td class="min owner-cell"><span class="truncate" title="{{ $object.Owner }}">{{ $object.Owner }}</span></td>
-                    <td class="min">{{ $object.LastModified.Local.Format "2006-01-02 15:04:05 MST" }}</td>
+                    <td class="min">{{ formatTime $object.LastModified }}</td>
                     {{ if $.ShowVersions }}
                     <td class="min"><span title="{{ $object.VersionID }}">{{ printf "%.8s" $object.VersionID }}</span></td>
                     <td class="min">
@@ -231,11 +239,11 @@
                     <td class="right-align">
                         {{ if and (not $object.IsFolder) (not $object.IsDeleteMarker) }}
                         <nav class="no-space right-align no-wrap">
-                            <a class="button circle transparent" target="_blank" rel="noopener" href="{{ $objectURL }}?inline=true{{ if $.ShowVersions }}&versionId={{ $object.VersionID }}{{ end }}">
+                            <a class="button circle transparent" target="_blank" rel="noopener" href="{{ $openURL }}">
                                 <i>open_in_new</i>
                                 <span class="tooltip left">Open</span>
                             </a>
-                            <a class="button circle transparent" target="_blank" href="{{ $objectURL }}{{ if $.ShowVersions }}?versionId={{ $object.VersionID }}{{ end }}">
+                            <a class="button circle transparent" download href="{{ $downloadURL }}">
                                 <i>download</i>
                                 <span class="tooltip left">Download</span>
                             </a>
@@ -257,7 +265,7 @@
                                 <span class="tooltip left">Public link</span>
                             </button>
                             {{- if $.AllowDelete }}
-                            <button class="circle transparent error-text" onclick="deleteObject('{{ $object.Key }}')">
+                            <button class="circle transparent error-text" onclick="deleteKeys(['{{ $object.Key }}'])">
                                 <i>delete</i>
                                 <span class="tooltip left">Delete</span>
                             </button>
@@ -683,16 +691,9 @@
 
     // --- Objects --------------------------------------------------------
 
-    async function deleteObject(objectName) {
-        try {
-            await request("DELETE", objectURL(objectName));
-            location.reload();
-        } catch (e) {
-            toast("Could not delete object: " + e.message, "error");
-        }
-    }
-
     async function deleteBucket() {
+        if (!confirm("Are you sure you want to delete the bucket " + bucketName + "?")) return;
+
         try {
             await request("DELETE", bucketURL);
             window.location.replace(rootURL + instancePath + "/buckets");
@@ -947,7 +948,7 @@
 
         setText("metadata-size", result.size + " bytes");
         setText("metadata-content-type", result.contentType || "-");
-        setText("metadata-last-modified", result.lastModified ? new Date(result.lastModified).toLocaleString() : "-");
+        setText("metadata-last-modified", result.lastModified || "-");
         setText("metadata-etag", result.etag || "-");
         setText("metadata-storage-class", result.storageClass || "");
         setText("metadata-version-id", result.versionId ? result.versionId + (result.isLatest ? " (latest)" : "") : "");

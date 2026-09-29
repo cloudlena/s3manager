@@ -14,7 +14,6 @@ func HandleBucketsView(instances S3Instances, templates fs.FS, opts Options) htt
 	type pageData struct {
 		RootURL      string
 		Buckets      []minio.BucketInfo
-		AllowDelete  bool
 		CurrentS3    *S3Instance
 		S3Instances  S3Instances
 		HasError     bool
@@ -31,7 +30,6 @@ func HandleBucketsView(instances S3Instances, templates fs.FS, opts Options) htt
 
 		data := pageData{
 			RootURL:     opts.RootURL,
-			AllowDelete: opts.AllowDelete,
 			CurrentS3:   instance,
 			S3Instances: instances,
 		}

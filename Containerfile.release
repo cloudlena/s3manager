@@ -4,7 +4,9 @@ RUN addgroup -S s3manager && adduser -S s3manager -G s3manager
 RUN apk add --no-cache \
   ca-certificates \
   dumb-init
-COPY --chown=s3manager:s3manager s3manager ./
+# GoReleaser puts the binary for each platform under its own directory.
+ARG TARGETPLATFORM
+COPY --chown=s3manager:s3manager $TARGETPLATFORM/s3manager ./
 USER s3manager
 EXPOSE 8080
 ENTRYPOINT [ "/usr/bin/dumb-init", "--" ]

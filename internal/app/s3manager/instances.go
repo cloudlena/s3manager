@@ -181,22 +181,3 @@ func resolveInstance(w http.ResponseWriter, r *http.Request, instances S3Instanc
 
 	return instance, true
 }
-
-// HandleGetS3Instances lists all configured S3 instances.
-func HandleGetS3Instances(instances S3Instances) http.HandlerFunc {
-	type instanceInfo struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-
-	return func(w http.ResponseWriter, _ *http.Request) {
-		infos := make([]instanceInfo, len(instances))
-		for i, instance := range instances {
-			infos[i] = instanceInfo{ID: instance.ID, Name: instance.Name}
-		}
-
-		writeJSON(w, http.StatusOK, struct {
-			Instances []instanceInfo `json:"instances"`
-		}{Instances: infos})
-	}
-}

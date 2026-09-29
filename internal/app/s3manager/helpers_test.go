@@ -3,11 +3,13 @@ package s3manager_test
 import (
 	"errors"
 	"net/url"
+
+	"github.com/minio/minio-go/v7"
 )
 
 var (
 	errS3                 = errors.New("mocked s3 error")
-	errBucketDoesNotExist = errors.New("error: The specified bucket does not exist")
+	errBucketDoesNotExist = minio.ErrorResponse{Code: minio.NoSuchBucket, Message: "The specified bucket does not exist"}
 )
 
 // mustParseURLFunc returns a mock's EndpointURL implementation for a fixed URL.

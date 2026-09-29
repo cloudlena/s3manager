@@ -1,7 +1,6 @@
 package s3manager_test
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -271,42 +270,4 @@ func TestWithInstance(t *testing.T) {
 			is.True(strings.Contains(string(body), tc.expectedBodyContains)) // body
 		})
 	}
-}
-
-func TestHandleGetS3Instances(t *testing.T) {
-	t.Parallel()
-	is := is.New(t)
-
-	instances := s3manager.S3Instances{
-		{ID: "1", Name: "first"},
-		{ID: "2", Name: "second"},
-	}
-
-	req, err := http.NewRequest(http.MethodGet, "/api/s3-instances", nil)
-	is.NoErr(err)
-
-	rr := httptest.NewRecorder()
-	s3manager.HandleGetS3Instances(instances).ServeHTTP(rr, req)
-	resp := rr.Result()
-	defer func() {
-		err = resp.Body.Close()
-		is.NoErr(err)
-	}()
-
-	is.Equal(http.StatusOK, resp.StatusCode)
-
-	var result struct {
-		Instances []struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"instances"`
-	}
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	is.NoErr(err)
-
-	is.Equal(2, len(result.Instances))
-	is.Equal("1", result.Instances[0].ID)
-	is.Equal("first", result.Instances[0].Name)
-	is.Equal("2", result.Instances[1].ID)
-	is.Equal("second", result.Instances[1].Name)
 }

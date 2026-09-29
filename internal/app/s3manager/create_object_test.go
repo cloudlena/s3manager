@@ -25,7 +25,6 @@ func TestHandleCreateObject(t *testing.T) {
 		putObjectFunc        func(context.Context, string, string, io.Reader, int64, minio.PutObjectOptions) (minio.UploadInfo, error)
 		fileName             string
 		filePath             string
-		sseInfo              s3manager.SSEType
 		expectedStatusCode   int
 		expectedBodyContains string
 	}{
@@ -80,7 +79,7 @@ func TestHandleCreateObject(t *testing.T) {
 			is.NoErr(err)
 
 			r := mux.NewRouter()
-			r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, tc.sseInfo)).Methods(http.MethodPost)
+			r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, nil)).Methods(http.MethodPost)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
@@ -111,7 +110,7 @@ func TestHandleCreateObjectInvalidRequest(t *testing.T) {
 	s3 := &mocks.S3Mock{}
 
 	r := mux.NewRouter()
-	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, s3manager.SSEType{})).Methods(http.MethodPost)
+	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, nil)).Methods(http.MethodPost)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()

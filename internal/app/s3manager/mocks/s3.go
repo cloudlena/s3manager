@@ -50,9 +50,6 @@ var _ s3manager.S3 = &S3Mock{}
 //			RemoveBucketFunc: func(ctx context.Context, bucketName string) error {
 //				panic("mock out the RemoveBucket method")
 //			},
-//			RemoveObjectFunc: func(ctx context.Context, bucketName string, objectName string, opts minio.RemoveObjectOptions) error {
-//				panic("mock out the RemoveObject method")
-//			},
 //			RemoveObjectsFunc: func(ctx context.Context, bucketName string, objectsCh <-chan minio.ObjectInfo, opts minio.RemoveObjectsOptions) <-chan minio.RemoveObjectError {
 //				panic("mock out the RemoveObjects method")
 //			},
@@ -95,9 +92,6 @@ type S3Mock struct {
 
 	// RemoveBucketFunc mocks the RemoveBucket method.
 	RemoveBucketFunc func(ctx context.Context, bucketName string) error
-
-	// RemoveObjectFunc mocks the RemoveObject method.
-	RemoveObjectFunc func(ctx context.Context, bucketName string, objectName string, opts minio.RemoveObjectOptions) error
 
 	// RemoveObjectsFunc mocks the RemoveObjects method.
 	RemoveObjectsFunc func(ctx context.Context, bucketName string, objectsCh <-chan minio.ObjectInfo, opts minio.RemoveObjectsOptions) <-chan minio.RemoveObjectError
@@ -189,17 +183,6 @@ type S3Mock struct {
 			// BucketName is the bucketName argument value.
 			BucketName string
 		}
-		// RemoveObject holds details about calls to the RemoveObject method.
-		RemoveObject []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// BucketName is the bucketName argument value.
-			BucketName string
-			// ObjectName is the objectName argument value.
-			ObjectName string
-			// Opts is the opts argument value.
-			Opts minio.RemoveObjectOptions
-		}
 		// RemoveObjects holds details about calls to the RemoveObjects method.
 		RemoveObjects []struct {
 			// Ctx is the ctx argument value.
@@ -241,7 +224,6 @@ type S3Mock struct {
 	lockPresignedGetObject sync.RWMutex
 	lockPutObject          sync.RWMutex
 	lockRemoveBucket       sync.RWMutex
-	lockRemoveObject       sync.RWMutex
 	lockRemoveObjects      sync.RWMutex
 	lockSetBucketPolicy    sync.RWMutex
 	lockStatObject         sync.RWMutex
@@ -599,50 +581,6 @@ func (mock *S3Mock) RemoveBucketCalls() []struct {
 	mock.lockRemoveBucket.RLock()
 	calls = mock.calls.RemoveBucket
 	mock.lockRemoveBucket.RUnlock()
-	return calls
-}
-
-// RemoveObject calls RemoveObjectFunc.
-func (mock *S3Mock) RemoveObject(ctx context.Context, bucketName string, objectName string, opts minio.RemoveObjectOptions) error {
-	if mock.RemoveObjectFunc == nil {
-		panic("S3Mock.RemoveObjectFunc: method is nil but S3.RemoveObject was just called")
-	}
-	callInfo := struct {
-		Ctx        context.Context
-		BucketName string
-		ObjectName string
-		Opts       minio.RemoveObjectOptions
-	}{
-		Ctx:        ctx,
-		BucketName: bucketName,
-		ObjectName: objectName,
-		Opts:       opts,
-	}
-	mock.lockRemoveObject.Lock()
-	mock.calls.RemoveObject = append(mock.calls.RemoveObject, callInfo)
-	mock.lockRemoveObject.Unlock()
-	return mock.RemoveObjectFunc(ctx, bucketName, objectName, opts)
-}
-
-// RemoveObjectCalls gets all the calls that were made to RemoveObject.
-// Check the length with:
-//
-//	len(mockedS3.RemoveObjectCalls())
-func (mock *S3Mock) RemoveObjectCalls() []struct {
-	Ctx        context.Context
-	BucketName string
-	ObjectName string
-	Opts       minio.RemoveObjectOptions
-} {
-	var calls []struct {
-		Ctx        context.Context
-		BucketName string
-		ObjectName string
-		Opts       minio.RemoveObjectOptions
-	}
-	mock.lockRemoveObject.RLock()
-	calls = mock.calls.RemoveObject
-	mock.lockRemoveObject.RUnlock()
 	return calls
 }
 

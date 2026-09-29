@@ -55,6 +55,7 @@ func TestHandleBucketView(t *testing.T) {
 		rootURL              string
 		showVersions         bool
 		showMetadata         bool
+		disallowDelete       bool
 		expectedStatusCode   int
 		expectedBodyContains []string
 		unexpectedInBody     []string
@@ -169,6 +170,55 @@ func TestHandleBucketView(t *testing.T) {
 			},
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: []string{"is located in another region", "set the instance"},
+		},
+		{
+			it: "offers to delete an empty bucket",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan()
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"Delete bucket"},
+		},
+		{
+			it: "doesn't offer to delete a bucket that holds objects",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME"})
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"FILE-NAME"},
+			unexpectedInBody:     []string{"Delete bucket"},
+		},
+		{
+			it: "doesn't offer to delete a bucket from an empty folder",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan()
+			},
+			path:                 "FOLDER/",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"No objects in"},
+			unexpectedInBody:     []string{"Delete bucket"},
+		},
+		{
+			it: "doesn't offer to delete a bucket when deleting is disabled",
+			listObjectsFunc: func(context.Context, string, minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				return objectChan()
+			},
+			disallowDelete:       true,
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"No objects in"},
+			unexpectedInBody:     []string{"Delete bucket"},
+		},
+		{
+			it: "escapes version IDs in object links",
+			listObjectsFunc: func(_ context.Context, _ string, opts minio.ListObjectsOptions) <-chan minio.ObjectInfo {
+				if !opts.WithVersions {
+					return objectChan()
+				}
+				return objectChan(minio.ObjectInfo{Key: "FILE-NAME", VersionID: "a+b/c", IsLatest: true})
+			},
+			showVersions:         true,
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: []string{"FILE-NAME?inline=true&amp;versionId=a%2Bb%2Fc", "FILE-NAME?versionId=a%2Bb%2Fc"},
 		},
 		{
 			it:                   "does not show version columns when ShowVersions is disabled",
@@ -345,9 +395,9 @@ func TestHandleBucketView(t *testing.T) {
 			}
 
 			r := mux.NewRouter()
-			r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketView(instances, templates, s3manager.Options{
+			r.Handle("/{instance}/buckets/{bucketName}{path:(?:/.*)?}", s3manager.HandleBucketView(instances, templates, s3manager.Options{
 				RootURL:       tc.rootURL,
-				AllowDelete:   true,
+				AllowDelete:   !tc.disallowDelete,
 				ListRecursive: true,
 				ShowVersions:  tc.showVersions,
 				ShowMetadata:  tc.showMetadata,
@@ -464,7 +514,7 @@ func getBucketView(t *testing.T, listObjects func(context.Context, string, minio
 	templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
 
 	r := mux.NewRouter()
-	r.PathPrefix("/{instance}/buckets/").Handler(s3manager.HandleBucketView(instances, templates, s3manager.Options{
+	r.Handle("/{instance}/buckets/{bucketName}{path:(?:/.*)?}", s3manager.HandleBucketView(instances, templates, s3manager.Options{
 		AllowDelete: true,
 	})).Methods(http.MethodGet)
 
