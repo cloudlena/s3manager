@@ -16,7 +16,10 @@
         header { padding-inline: 0; border-block-end: 0.0625rem solid var(--outline-variant); }
         header > nav { inline-size: 100%; max-inline-size: min(100vw, 75rem); margin-inline: auto; padding-inline: 1rem; }
         header.wide > nav { max-inline-size: none; }
-        main { padding-inline: 1rem; }
+        /* Leave room below the content for the floating action button (3.5rem
+           plus its 1rem margin), so it never covers the pager when scrolled to
+           the end. */
+        main { padding-inline: 1rem; padding-block-end: 6rem; }
 
         /* BeerCSS rounds every surface to 2rem, which reads as very bubbly on
            large panels. Buttons and chips keep their own pill radius, since
