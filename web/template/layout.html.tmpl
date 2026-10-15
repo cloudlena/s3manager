@@ -28,7 +28,13 @@
 
         .truncate { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        /* Lets the browser draw its own colors (autofilled text, scrollbars,
+           native controls) for the active mode instead of always light. */
+        body.dark { color-scheme: dark; }
+        body.light { color-scheme: light; }
         .clickable { cursor: pointer; }
+        /* BeerCSS makes icons inside a field ignore the pointer. */
+        .field > i.clickable { pointer-events: auto; }
         #uploads { position: fixed; inset-block-start: 5rem; inset-inline-end: 1rem; z-index: 20; max-inline-size: 20rem; }
     </style>
 </head>

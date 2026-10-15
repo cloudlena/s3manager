@@ -106,7 +106,11 @@
             <i>warning</i>
             <div class="max">
                 <h6 class="small">Partial listing</h6>
-                <p class="no-margin small-text">This location holds more than {{ .MaxScanObjects }} objects. Sorting, searching and the object count cover only the first {{ .MaxScanObjects }} of them. Narrow the listing down with a search or by opening a folder to reach the rest.</p>
+                {{ if .Search }}
+                <p class="no-margin small-text">This location holds more than {{ .MaxScanObjects }} objects. Keys that start with "{{ .Search }}" are found anywhere in it, but matches further inside a key cover only the first {{ .MaxScanObjects }} objects. Search for the start of the key, or open a folder, to reach the rest.</p>
+                {{ else }}
+                <p class="no-margin small-text">This location holds more than {{ .MaxScanObjects }} objects. Sorting and the object count cover only the first {{ .MaxScanObjects }} of them. Narrow the listing down with a search or by opening a folder to reach the rest.</p>
+                {{ end }}
             </div>
         </nav>
     </article>
@@ -121,7 +125,7 @@
             <i class="clickable" onclick="clearSearch()">close</i>
             {{ end }}
         </div>
-        <button class="small-round" onclick="performSearch()">Search</button>
+        <button class="small-round" id="search-button" onclick="performSearch()">Search</button>
     </nav>
 
     {{ if .Search }}
@@ -620,6 +624,10 @@
 
     function performSearch() {
         const value = document.getElementById("search-input").value.trim();
+        // A search can scan a lot of objects, so show that it is running.
+        const button = document.getElementById("search-button");
+        button.disabled = true;
+        button.textContent = "Searching…";
         navigate(params => {
             value ? params.set("search", value) : params.delete("search");
             resetPaging(params);
