@@ -3,7 +3,7 @@ module github.com/cloudlena/s3manager
 go 1.27.2
 
 require (
-	github.com/cloudlena/adapters v0.0.0-20260927120058-7f932655ef0d
+	github.com/cloudlena/adapters v0.0.0-20261015170557-9257a039ec2c
 	github.com/gorilla/mux v1.8.1
 	github.com/matryer/is v1.4.1
 	github.com/minio/minio-go/v7 v7.4.1
