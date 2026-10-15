@@ -283,6 +283,40 @@ func annotateVersionGroups(objs []listedObject) {
 	}
 }
 
+// searchListing narrows a full listing down to the objects matching search. The
+// listing only covers the first maxScanObjects objects of the prefix, so when it
+// was truncated S3 is additionally asked for the keys starting with the search
+// term, which finds those however far into the prefix they are.
+func searchListing(ctx context.Context, s3 S3, bucketName, prefix, search string, listRecursive bool, listing objectListing) (objectListing, error) {
+	listing.Objects = filterObjects(listing.Objects, search)
+	if !listing.Truncated {
+		return listing, nil
+	}
+
+	opts := minio.ListObjectsOptions{
+		Recursive:    listRecursive,
+		Prefix:       prefix + search,
+		WithVersions: listing.VersionsShown,
+	}
+	matches, err := listWithV1Fallback(ctx, s3, bucketName, prefix, maxScanObjects+1, opts)
+	if err != nil {
+		return objectListing{}, err
+	}
+
+	type id struct{ key, version string }
+	seen := make(map[id]bool, len(listing.Objects))
+	for _, obj := range listing.Objects {
+		seen[id{obj.Key, obj.VersionID}] = true
+	}
+	for _, obj := range matches[:min(len(matches), maxScanObjects)] {
+		if !seen[id{obj.Key, obj.VersionID}] {
+			listing.Objects = append(listing.Objects, obj)
+		}
+	}
+
+	return listing, nil
+}
+
 // filterObjects keeps the objects whose key or display name contains the
 // case-insensitive search term.
 func filterObjects(objs []listedObject, search string) []listedObject {

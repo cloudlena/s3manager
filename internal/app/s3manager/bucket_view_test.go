@@ -485,8 +485,8 @@ func objectStream(ctx context.Context, objects []minio.ObjectInfo) <-chan minio.
 	return objCh
 }
 
-// fakeListing serves a bucket listing of fixed keys, honouring StartAfter the
-// way S3 does, and records the options every call was made with.
+// fakeListing serves a bucket listing of fixed keys, honouring Prefix and
+// StartAfter the way S3 does, and records the options every call was made with.
 type fakeListing struct {
 	mu    sync.Mutex
 	calls []minio.ListObjectsOptions
@@ -503,7 +503,7 @@ func (f *fakeListing) listFunc(keys ...string) func(context.Context, string, min
 
 		var objects []minio.ObjectInfo
 		for _, key := range keys {
-			if key > opts.StartAfter {
+			if key > opts.StartAfter && strings.HasPrefix(key, opts.Prefix) {
 				objects = append(objects, minio.ObjectInfo{Key: key})
 			}
 		}
@@ -679,6 +679,30 @@ func TestHandleBucketViewPaging(t *testing.T) {
 
 		is.True(strings.Contains(body, "Partial listing")) // the listing hit the cap
 		is.True(strings.Contains(body, "of 10000"))        // and counts only what it listed
+	})
+
+	t.Run("finds a key past the cap by its start", func(t *testing.T) {
+		t.Parallel()
+		is := is.New(t)
+
+		keys := append(paddedKeys(10_001), "zz-00054a44-5dab.png", "zz-other.png")
+		listing := &fakeListing{}
+		body := getBucketView(t, listing.listFunc(keys...), url.Values{"search": {"zz-00054a44-5dab"}})
+
+		is.True(strings.Contains(body, "zz-00054a44-5dab.png")) // beyond the scanned objects, found by prefix
+		is.True(!strings.Contains(body, "zz-other.png"))
+		is.True(strings.Contains(body, "Partial listing")) // matches inside keys are still partial
+	})
+
+	t.Run("does not search by prefix when the listing was complete", func(t *testing.T) {
+		t.Parallel()
+		is := is.New(t)
+
+		listing := &fakeListing{}
+		body := getBucketView(t, listing.listFunc(paddedKeys(60)...), url.Values{"search": {"0001"}})
+
+		listing.only(t) // a single listing call
+		is.True(strings.Contains(body, "object-00010"))
 	})
 
 	t.Run("does not call a capped listing partial", func(t *testing.T) {

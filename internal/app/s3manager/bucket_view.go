@@ -118,11 +118,17 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 		if cursorPaging {
 			data.objectPage = cursorPage(listing, query)
 		} else {
+			if query.Search != "" {
+				listing, err = searchListing(r.Context(), instance.Client, bucketName, path, query.Search, opts.ListRecursive, listing)
+				if err != nil {
+					data.HasError = true
+					data.ErrorMessage = listObjectsErrorMessage(err, bucketName, instance.Name)
+					renderer(w, data)
+					return
+				}
+			}
 			if listing.VersionsShown {
 				annotateVersionGroups(listing.Objects)
-			}
-			if query.Search != "" {
-				listing.Objects = filterObjects(listing.Objects, query.Search)
 			}
 			data.objectPage = paginateObjects(listing.Objects, query, listing.VersionsShown)
 		}
