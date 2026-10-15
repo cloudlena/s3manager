@@ -1,9 +1,9 @@
 {{ define "content" }}
-{{ $instancePath := printf "/%s" $.CurrentS3.Name }}
+{{ $instanceURL := printf "%s/%s" $.RootURL $.CurrentS3.Name }}
 
 <header class="fixed surface-container">
     <nav>
-        <a href="{{$.RootURL}}{{$instancePath}}/buckets" class="row no-margin">
+        <a href="{{ $instanceURL }}/buckets" class="row no-margin">
             <i>database</i>
             <h6 class="small no-margin">S3 Manager</h6>
         </a>
@@ -17,7 +17,7 @@
 </header>
 
 <main class="responsive">
-    {{ if .HasError }}
+    {{ if .ErrorMessage }}
     <article class="error-container round border no-elevate">
         <nav>
             <i class="large">error</i>
@@ -37,7 +37,7 @@
         {{ range $bucket := .Buckets }}
         <div class="s12 m6 l4">
             <article class="no-padding round border no-elevate">
-                <a class="row padding wave" href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $bucket.Name }}">
+                <a class="row padding wave" href="{{ $instanceURL }}/buckets/{{ $bucket.Name }}">
                     <i class="large">folder</i>
                     <div class="max">
                         <h6 class="small no-margin truncate">{{ $bucket.Name }}</h6>
@@ -68,7 +68,7 @@
     {{ end }}
 </main>
 
-{{ if not .HasError }}
+{{ if not .ErrorMessage }}
 <button class="circle extra fixed right bottom margin" data-ui="#dialog-create-bucket">
     <i>add</i>
     <span class="tooltip left">Create bucket</span>
@@ -110,7 +110,7 @@
             return;
         }
 
-        location.href = "{{$.RootURL}}{{$instancePath}}/buckets/" + encodeURIComponent(name);
+        location.href = "{{ $instanceURL }}/buckets/" + encodeURIComponent(name);
     }
 
     async function createBucket() {
@@ -124,7 +124,7 @@
         }
 
         try {
-            await request("POST", "{{$.RootURL}}{{$instancePath}}/api/buckets", { json: { name: name } });
+            await request("POST", "{{ $instanceURL }}/api/buckets", { json: { name: name } });
             location.reload();
         } catch (e) {
             error.textContent = e.message;

@@ -16,7 +16,6 @@ func HandleBucketsView(instances S3Instances, templates fs.FS, opts Options) htt
 		Buckets      []minio.BucketInfo
 		CurrentS3    *S3Instance
 		S3Instances  S3Instances
-		HasError     bool
 		ErrorMessage string
 	}
 
@@ -40,7 +39,6 @@ func HandleBucketsView(instances S3Instances, templates fs.FS, opts Options) htt
 			// An unreachable instance is reported on the page itself so that
 			// the user can switch to another one instead of being stuck on an
 			// error page.
-			data.HasError = true
 			data.ErrorMessage = fmt.Sprintf("Unable to connect to S3 instance '%s'. Please check the credentials and try switching to another instance.", instance.Name)
 		case opts.BucketName != "":
 			data.Buckets = filterBuckets(addConfiguredBuckets(buckets, instance.Buckets), opts.BucketName)

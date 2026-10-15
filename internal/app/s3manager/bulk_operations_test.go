@@ -282,7 +282,7 @@ func TestHandleBulkDownloadObjects(t *testing.T) {
 			s3 := &mocks.S3Mock{}
 
 			r := mux.NewRouter()
-			r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3, nil)).Methods(http.MethodGet)
+			r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3, s3manager.Options{})).Methods(http.MethodGet)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
@@ -326,7 +326,7 @@ func TestHandleBulkDownloadObjectsWithFolders(t *testing.T) {
 	is.NoErr(err)
 
 	r := mux.NewRouter()
-	r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3, sse)).Methods(http.MethodPost)
+	r.Handle("/api/buckets/{bucketName}/objects/bulk-download", s3manager.HandleBulkDownloadObjects(s3, s3manager.Options{SSE: sse})).Methods(http.MethodPost)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()

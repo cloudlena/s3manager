@@ -1,10 +1,10 @@
 package s3manager
 
 import (
+	"cmp"
 	"context"
-	"errors"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -184,8 +184,7 @@ func listWithV1Fallback(ctx context.Context, s3 S3, bucketName, prefix string, l
 // with. Older Ceph RGW releases do the latter as soon as a prefix holds more
 // objects than fit on one page.
 func v2ListingUnsupported(err error) bool {
-	var errResp minio.ErrorResponse
-	return errors.As(err, &errResp) && errResp.Code == minio.NotImplemented
+	return hasS3ErrorCode(err, minio.NotImplemented)
 }
 
 // collectObjects drains up to limit objects off an S3 ListObjects channel,
@@ -214,7 +213,7 @@ func collectObjects(ctx context.Context, s3 S3, bucketName, prefix string, limit
 // sortObjectsByKey puts objects into the ascending lexicographic key order S3
 // lists them in.
 func sortObjectsByKey(objs []listedObject) {
-	sort.Slice(objs, func(i, j int) bool { return objs[i].Key < objs[j].Key })
+	slices.SortFunc(objs, func(a, b listedObject) int { return strings.Compare(a.Key, b.Key) })
 }
 
 // toListedObject converts a minio.ObjectInfo into the template-facing listedObject.
@@ -497,22 +496,22 @@ func groupObjects(objs []listedObject, grouped bool) [][]listedObject {
 // comparing groups by their primary row so all versions of a key move as one
 // unit. The stable sort preserves the S3 listing order between equal groups.
 func sortObjectGroups(groups [][]listedObject, sortBy, sortOrder string) {
-	sort.SliceStable(groups, func(i, j int) bool {
-		a := primaryObject(groups[i])
-		b := primaryObject(groups[j])
+	slices.SortStableFunc(groups, func(x, y []listedObject) int {
+		a := primaryObject(x)
+		b := primaryObject(y)
 		if sortOrder == "desc" {
 			a, b = b, a
 		}
 
 		switch sortBy {
 		case "size":
-			return a.Size < b.Size
+			return cmp.Compare(a.Size, b.Size)
 		case "owner":
-			return strings.ToLower(a.Owner) < strings.ToLower(b.Owner)
+			return strings.Compare(strings.ToLower(a.Owner), strings.ToLower(b.Owner))
 		case "lastModified":
-			return a.LastModified.Before(b.LastModified)
+			return a.LastModified.Compare(b.LastModified)
 		default:
-			return strings.ToLower(a.DisplayName) < strings.ToLower(b.DisplayName)
+			return strings.Compare(strings.ToLower(a.DisplayName), strings.ToLower(b.DisplayName))
 		}
 	})
 }

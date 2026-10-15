@@ -1,5 +1,5 @@
 {{ define "content" }}
-{{ $instancePath := printf "/%s" $.CurrentS3.Name }}
+{{ $instanceURL := printf "%s/%s" $.RootURL $.CurrentS3.Name }}
 
 <style>
     #policy { tab-size: 2; }
@@ -19,7 +19,7 @@
 
 <header class="fixed wide surface-container">
     <nav>
-        <a href="{{$.RootURL}}{{$instancePath}}/buckets" class="button circle transparent">
+        <a href="{{ $instanceURL }}/buckets" class="button circle transparent">
             <i>arrow_back</i>
             <span class="tooltip bottom">All buckets</span>
         </a>
@@ -27,7 +27,7 @@
         <h6 class="small no-margin truncate">{{ .BucketName }}</h6>
         <div class="max"></div>
         {{ template "appbar-actions" . }}
-        {{ if not .HasError }}
+        {{ if not .ErrorMessage }}
         <div>
             <button class="circle transparent" data-ui="#bucket-menu">
                 <i>more_vert</i>
@@ -56,7 +56,7 @@
 </header>
 
 <main class="responsive max">
-    {{ if .HasError }}
+    {{ if .ErrorMessage }}
     <article class="error-container round border no-elevate">
         <nav>
             <i class="large">error</i>
@@ -69,7 +69,7 @@
             </div>
         </nav>
         <nav>
-            <a class="button" href="{{$.RootURL}}{{$instancePath}}/buckets">
+            <a class="button" href="{{ $instanceURL }}/buckets">
                 <i>arrow_back</i>
                 <span>Back to buckets</span>
             </a>
@@ -79,7 +79,7 @@
     {{ else }}
 
     <nav class="breadcrumbs wrap no-space small-text">
-        {{ $url := printf "%s%s/buckets/%s/" $.RootURL $instancePath $.BucketName }}
+        {{ $url := printf "%s/buckets/%s/" $instanceURL $.BucketName }}
         <a class="link" href="{{ $url }}">{{ $.BucketName }}</a>
         {{ range $path := .Paths }}
         {{ $url = printf "%s%s/" $url (escapeKey $path) }}
@@ -186,7 +186,7 @@
             <tbody>
                 {{ range $index, $object := .Objects }}
                 {{ $isCollapsedVersion := and $.ShowVersions (not $object.IsPrimaryVersion) }}
-                {{ $objectURL := printf "%s%s/api/buckets/%s/objects/%s" $.RootURL $instancePath $.BucketName (escapeKey $object.Key) }}
+                {{ $objectURL := printf "%s/api/buckets/%s/objects/%s" $instanceURL $.BucketName (escapeKey $object.Key) }}
                 {{ $openURL := printf "%s?inline=true" $objectURL }}
                 {{ $downloadURL := $objectURL }}
                 {{ if $.ShowVersions }}
@@ -207,7 +207,7 @@
                     </td>
                     <td class="min key-cell">
                         {{- if $object.IsFolder }}
-                        <a class="row" href="{{$.RootURL}}{{$instancePath}}/buckets/{{ $.BucketName }}/{{ escapeKey $object.Key }}">
+                        <a class="row" href="{{ $instanceURL }}/buckets/{{ $.BucketName }}/{{ escapeKey $object.Key }}">
                             <i>{{ $object.Icon }}</i>
                             <span class="truncate">{{ $object.DisplayName }}</span>
                         </a>
@@ -362,7 +362,7 @@
 
 <div id="uploads"></div>
 
-{{ if not .HasError }}
+{{ if not .ErrorMessage }}
 <div class="fixed right bottom margin">
     <button class="circle extra" data-ui="#fab-menu">
         <i>add</i>
@@ -585,11 +585,10 @@
 </dialog>
 
 <script>
-    const rootURL = "{{$.RootURL}}";
-    const instancePath = "{{ $instancePath }}";
+    const instanceURL = "{{ $instanceURL }}";
     const bucketName = "{{ .BucketName }}";
     const currentPath = "{{ .CurrentPath }}";
-    const bucketURL = rootURL + instancePath + "/api/buckets/" + bucketName;
+    const bucketURL = instanceURL + "/api/buckets/" + bucketName;
 
     // objectURL addresses an object in the API. Each segment of the key is
     // escaped so that characters such as "#" or "?" stay part of the key.
@@ -704,7 +703,7 @@
 
         try {
             await request("DELETE", bucketURL);
-            window.location.replace(rootURL + instancePath + "/buckets");
+            window.location.replace(instanceURL + "/buckets");
         } catch (e) {
             toast("Could not delete bucket: " + e.message, "error");
         }
@@ -1160,10 +1159,11 @@
         show("simple-editor", false);
         show("advanced-editor", false);
 
+        // request parses the policy, or hands back the raw text if it isn't
+        // JSON, which has no Statement either.
         let policy = null;
         try {
-            const result = await request("GET", bucketURL + "/policy");
-            policy = typeof result === "string" ? JSON.parse(result) : result;
+            policy = await request("GET", bucketURL + "/policy");
         } catch (e) {
             policy = null;
         }

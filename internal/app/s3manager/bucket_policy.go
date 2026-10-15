@@ -3,6 +3,7 @@ package s3manager
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -19,8 +20,10 @@ func HandleGetBucketPolicy(s3 S3) http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
+		// The response is already under way once writing starts, so an error
+		// can only be logged.
 		if _, err = w.Write([]byte(policy)); err != nil {
-			handleHTTPError(w, fmt.Errorf("error writing response: %w", err))
+			log.Printf("error writing bucket policy of %s: %v", bucketName, err)
 		}
 	}
 }

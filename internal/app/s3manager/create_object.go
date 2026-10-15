@@ -18,7 +18,7 @@ import (
 const maxUploadMemory = 32 << 20 // 32 MB
 
 // HandleCreateObject uploads a new object.
-func HandleCreateObject(s3 S3, sse encrypt.ServerSide) http.HandlerFunc {
+func HandleCreateObject(s3 S3, opts Options) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
 
@@ -39,9 +39,9 @@ func HandleCreateObject(s3 S3, sse encrypt.ServerSide) http.HandlerFunc {
 			}
 		}()
 
-		opts := minio.PutObjectOptions{ContentType: uploadContentType(fileHeader), ServerSideEncryption: sse}
+		putOpts := minio.PutObjectOptions{ContentType: uploadContentType(fileHeader), ServerSideEncryption: opts.SSE}
 
-		_, err = s3.PutObject(r.Context(), bucketName, r.FormValue("path"), file, fileHeader.Size, opts)
+		_, err = s3.PutObject(r.Context(), bucketName, r.FormValue("path"), file, fileHeader.Size, putOpts)
 		if err != nil {
 			handleHTTPError(w, fmt.Errorf("error putting object: %w", err))
 			return

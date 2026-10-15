@@ -39,8 +39,9 @@ func parseConfiguration() configuration {
 	viper.SetDefault("TIMEOUT", 600)
 
 	// A root URL lets the app be served behind a reverse proxy under a path
-	// prefix. It is inserted into every link the templates render.
-	rootURL := viper.GetString("ROOT_URL")
+	// prefix. It is inserted into every link the templates render, right
+	// before a slash, so a trailing slash of its own would double that one.
+	rootURL := strings.TrimRight(viper.GetString("ROOT_URL"), "/")
 	if rootURL != "" && !strings.HasPrefix(rootURL, "/") {
 		rootURL = "/" + rootURL
 	}
@@ -156,6 +157,11 @@ func main() {
 	withInstance := func(handler func(s3manager.S3) http.HandlerFunc) http.Handler {
 		return s3manager.WithInstance(instances, handler)
 	}
+	// withInstanceAndOptions does the same for a handler that also needs the
+	// options.
+	withInstanceAndOptions := func(handler func(s3manager.S3, s3manager.Options) http.HandlerFunc) http.Handler {
+		return withInstance(func(s3 s3manager.S3) http.HandlerFunc { return handler(s3, opts) })
+	}
 
 	r := mux.NewRouter()
 
@@ -167,22 +173,14 @@ func main() {
 	r.Handle("/{instance}/buckets", s3manager.HandleBucketsView(instances, templates, opts)).Methods(http.MethodGet)
 	r.Handle("/{instance}/buckets/{bucketName}{path:(?:/.*)?}", s3manager.HandleBucketView(instances, templates, opts)).Methods(http.MethodGet)
 	r.Handle("/{instance}/api/buckets", withInstance(s3manager.HandleCreateBucket)).Methods(http.MethodPost)
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects", withInstance(func(s3 s3manager.S3) http.HandlerFunc {
-		return s3manager.HandleCreateObject(s3, opts.SSE)
-	})).Methods(http.MethodPost)
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-download", withInstance(func(s3 s3manager.S3) http.HandlerFunc {
-		return s3manager.HandleBulkDownloadObjects(s3, opts.SSE)
-	})).Methods(http.MethodPost)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects", withInstanceAndOptions(s3manager.HandleCreateObject)).Methods(http.MethodPost)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-download", withInstanceAndOptions(s3manager.HandleBulkDownloadObjects)).Methods(http.MethodPost)
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/url", withInstance(s3manager.HandleGenerateURL)).Methods(http.MethodGet)
 	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/public-access", s3manager.HandleCheckPublicAccess(instances)).Methods(http.MethodGet)
 	if opts.ShowMetadata {
-		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", withInstance(func(s3 s3manager.S3) http.HandlerFunc {
-			return s3manager.HandleGetObjectMetadata(s3, opts)
-		})).Methods(http.MethodGet)
+		r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}/metadata", withInstanceAndOptions(s3manager.HandleGetObjectMetadata)).Methods(http.MethodGet)
 	}
-	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", withInstance(func(s3 s3manager.S3) http.HandlerFunc {
-		return s3manager.HandleGetObject(s3, opts)
-	})).Methods(http.MethodGet)
+	r.Handle("/{instance}/api/buckets/{bucketName}/objects/{objectName:.*}", withInstanceAndOptions(s3manager.HandleGetObject)).Methods(http.MethodGet)
 	if opts.AllowDelete {
 		r.Handle("/{instance}/api/buckets/{bucketName}", withInstance(s3manager.HandleDeleteBucket)).Methods(http.MethodDelete)
 		r.Handle("/{instance}/api/buckets/{bucketName}/objects/bulk-delete", withInstance(s3manager.HandleBulkDeleteObjects)).Methods(http.MethodPost)

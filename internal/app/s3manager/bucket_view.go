@@ -1,11 +1,13 @@
 package s3manager
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -54,7 +56,6 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 		AllowDelete         bool
 		CurrentS3           *S3Instance
 		S3Instances         S3Instances
-		HasError            bool
 		ErrorMessage        string
 		SortBy              string
 		SortOrder           string
@@ -93,43 +94,19 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 			MaxScanObjects: maxScanObjects,
 		}
 
-		// The default view is served one page at a time straight from S3, which
-		// keeps its cost independent of how many objects the bucket holds. Every
-		// other view needs the whole prefix in memory to do its job.
-		cursorPaging := cursorPagingPossible(query, opts)
-
-		var listing objectListing
-		var err error
-		if cursorPaging {
-			listing, err = listObjectPage(r.Context(), instance.Client, bucketName, path, query.Cursor(), opts.ListRecursive, query.PerPage)
-		} else {
-			listing, err = listAllObjects(r.Context(), instance.Client, bucketName, path, opts.ListRecursive, opts.ShowVersions)
-		}
+		listing, err := listBucketView(r.Context(), instance.Client, bucketName, path, query, opts)
 		if err != nil {
 			// A failed listing is reported on the page itself so that the user
 			// can switch instances or go back instead of being stuck on an
 			// error page.
-			data.HasError = true
 			data.ErrorMessage = listObjectsErrorMessage(err, bucketName, instance.Name)
 			renderer(w, data)
 			return
 		}
 
-		if cursorPaging {
+		if cursorPagingPossible(query, opts) {
 			data.objectPage = cursorPage(listing, query)
 		} else {
-			if query.Search != "" {
-				listing, err = searchListing(r.Context(), instance.Client, bucketName, path, query.Search, opts.ListRecursive, listing)
-				if err != nil {
-					data.HasError = true
-					data.ErrorMessage = listObjectsErrorMessage(err, bucketName, instance.Name)
-					renderer(w, data)
-					return
-				}
-			}
-			if listing.VersionsShown {
-				annotateVersionGroups(listing.Objects)
-			}
 			data.objectPage = paginateObjects(listing.Objects, query, listing.VersionsShown)
 		}
 
@@ -141,6 +118,32 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 
 		renderer(w, data)
 	}
+}
+
+// listBucketView lists the objects a bucket view request shows. The default
+// view is served one page at a time straight from S3, which keeps its cost
+// independent of how many objects the bucket holds. Every other view needs the
+// whole prefix in memory to do its job.
+func listBucketView(ctx context.Context, s3 S3, bucketName, prefix string, query listingQuery, opts Options) (objectListing, error) {
+	if cursorPagingPossible(query, opts) {
+		return listObjectPage(ctx, s3, bucketName, prefix, query.Cursor(), opts.ListRecursive, query.PerPage)
+	}
+
+	listing, err := listAllObjects(ctx, s3, bucketName, prefix, opts.ListRecursive, opts.ShowVersions)
+	if err != nil {
+		return objectListing{}, err
+	}
+	if query.Search != "" {
+		listing, err = searchListing(ctx, s3, bucketName, prefix, query.Search, opts.ListRecursive, listing)
+		if err != nil {
+			return objectListing{}, err
+		}
+	}
+	if listing.VersionsShown {
+		annotateVersionGroups(listing.Objects)
+	}
+
+	return listing, nil
 }
 
 // cursorPagingPossible reports whether a request can be served by listing only
@@ -217,12 +220,5 @@ func listObjectsErrorMessage(err error, bucketName, instanceName string) string 
 
 // removeEmptyStrings drops the empty segments of a split path.
 func removeEmptyStrings(input []string) []string {
-	result := make([]string, 0, len(input))
-	for _, str := range input {
-		if str != "" {
-			result = append(result, str)
-		}
-	}
-
-	return result
+	return slices.DeleteFunc(input, func(str string) bool { return str == "" })
 }

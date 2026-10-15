@@ -79,7 +79,7 @@ func TestHandleCreateObject(t *testing.T) {
 			is.NoErr(err)
 
 			r := mux.NewRouter()
-			r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, nil)).Methods(http.MethodPost)
+			r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, s3manager.Options{})).Methods(http.MethodPost)
 
 			ts := httptest.NewServer(r)
 			defer ts.Close()
@@ -110,7 +110,7 @@ func TestHandleCreateObjectInvalidRequest(t *testing.T) {
 	s3 := &mocks.S3Mock{}
 
 	r := mux.NewRouter()
-	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, nil)).Methods(http.MethodPost)
+	r.Handle("/api/buckets/{bucketName}/objects", s3manager.HandleCreateObject(s3, s3manager.Options{})).Methods(http.MethodPost)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
