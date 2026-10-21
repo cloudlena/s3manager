@@ -368,6 +368,7 @@
         <i>add</i>
     </button>
     <menu id="fab-menu" class="top left no-wrap right-align transparent no-elevate">
+        {{ if .CanWrite }}
         <li>
             <button class="round" onclick="document.getElementById('upload-file-input').click()">
                 <i>upload</i>
@@ -380,6 +381,7 @@
                 <span>Upload folder</span>
             </button>
         </li>
+        {{ end }}
         <li>
             <button class="round" data-ui="#dialog-change-path">
                 <i>create_new_folder</i>
@@ -580,7 +582,9 @@
 
     <nav class="right-align no-space">
         <button class="transparent link" data-ui="#dialog-edit-policy">Cancel</button>
+        {{ if .CanWrite }}
         <button id="save-policy-btn" onclick="savePolicy()">Save policy</button>
+        {{ end }}
     </nav>
 </dialog>
 
@@ -1099,7 +1103,9 @@
             && !isPublicPolicy()
             && !document.getElementById("policy-user").value.trim();
         document.getElementById("advanced-editor-toggle").disabled = incomplete;
-        document.getElementById("save-policy-btn").disabled = incomplete;
+        // The button is absent for users who may not write.
+        const saveButton = document.getElementById("save-policy-btn");
+        if (saveButton) saveButton.disabled = incomplete;
     }
 
     function handlePolicyEditorToggle() {

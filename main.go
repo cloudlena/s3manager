@@ -41,7 +41,7 @@ func parseConfiguration() configuration {
 	viper.SetDefault("PORT", "8080")
 	viper.SetDefault("TIMEOUT", 600)
 	viper.SetDefault("AUTH_PROVIDER", auth.ProviderNone)
-	viper.SetDefault("AUTH_ANONYMOUS_ROLE", "viewer")
+	viper.SetDefault("AUTH_ANONYMOUS_ROLE", "writer")
 	viper.SetDefault("SESSION_MAX_AGE", 28800)
 	viper.SetDefault("SESSION_COOKIE_SECURE", true)
 	viper.SetDefault("OIDC_SCOPES", "profile,email")
@@ -240,6 +240,10 @@ func main() {
 	// Everything below is authenticated, and every request carries a role.
 	app := r.NewRoute().Subrouter()
 	app.Use(auth.Middleware(authenticator))
+	// Defense in depth: whatever the authenticator lets through, a request
+	// without at least the viewer role never reaches a handler, so a role of
+	// none cannot read anything even if a route forgets its own guard.
+	app.Use(auth.RequireRole(auth.RoleViewer))
 
 	// The root redirects to the first instance's bucket list.
 	app.Handle("/", http.RedirectHandler(opts.RootURL+"/"+instances[0].Name+"/buckets", http.StatusPermanentRedirect)).Methods(http.MethodGet)

@@ -24,6 +24,14 @@ func effectiveOptions(ctx context.Context, opts Options) Options {
 	return opts
 }
 
+// canWrite reports whether the pages should offer actions that change data
+// other than deletion, which AllowDelete covers. The configuration has no
+// switch for these, so the role alone decides, and it is the same writer
+// requirement the guarded routes enforce.
+func canWrite(ctx context.Context) bool {
+	return auth.RoleFrom(ctx) >= auth.RoleWriter
+}
+
 // userName is the name the pages label the session with. It is empty when the
 // deployment authenticates nobody, which is what hides the log out action.
 func userName(ctx context.Context) string {

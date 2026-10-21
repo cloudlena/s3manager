@@ -57,24 +57,27 @@
         <div class="center-align">
             <i class="extra secondary-text">folder_open</i>
             <h6>No buckets yet</h6>
-            <p class="secondary-text">Create your first bucket to get started.</p>
+            <p class="secondary-text">{{ if .CanWrite }}Create your first bucket to get started.{{ else }}There are no buckets to show.{{ end }}</p>
+            {{ if .CanWrite }}
             <div class="space"></div>
             <button class="round" data-ui="#dialog-create-bucket">
                 <i>add</i>
                 <span>Create bucket</span>
             </button>
+            {{ end }}
         </div>
     </div>
     {{ end }}
 </main>
 
-{{ if not .ErrorMessage }}
+{{ if and .CanWrite (not .ErrorMessage) }}
 <button class="circle extra fixed right bottom margin" data-ui="#dialog-create-bucket">
     <i>add</i>
     <span class="tooltip left">Create bucket</span>
 </button>
 {{ end }}
 
+{{ if .CanWrite }}
 <dialog class="modal" id="dialog-create-bucket">
     <h5>Create bucket</h5>
     <div class="field label border">
@@ -87,6 +90,7 @@
         <button onclick="createBucket()">Create</button>
     </nav>
 </dialog>
+{{ end }}
 
 <dialog class="modal" id="dialog-open-bucket">
     <h5>Open bucket</h5>

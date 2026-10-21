@@ -54,6 +54,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 		CurrentPath         string
 		Paths               []string
 		AllowDelete         bool
+		CanWrite            bool
 		UserName            string
 		CurrentS3           *S3Instance
 		S3Instances         S3Instances
@@ -87,6 +88,7 @@ func HandleBucketView(instances S3Instances, templates fs.FS, opts Options) http
 			CurrentPath:    path,
 			Paths:          removeEmptyStrings(strings.Split(path, "/")),
 			AllowDelete:    opts.AllowDelete,
+			CanWrite:       canWrite(r.Context()),
 			UserName:       userName(r.Context()),
 			CurrentS3:      instance,
 			S3Instances:    instances,

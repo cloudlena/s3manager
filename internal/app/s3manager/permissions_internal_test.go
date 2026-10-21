@@ -53,6 +53,15 @@ func TestEffectiveOptionsDeleteNeedsWriter(t *testing.T) {
 	}
 }
 
+func TestCanWriteNeedsWriter(t *testing.T) {
+	is := is.New(t)
+
+	is.True(canWrite(contextWithRole(auth.RoleWriter)))  // writer may write
+	is.True(!canWrite(contextWithRole(auth.RoleViewer))) // viewer may not write
+	is.True(!canWrite(contextWithRole(auth.RoleNone)))   // unauthenticated may not write
+	is.True(!canWrite(context.Background()))             // no identity at all may not write
+}
+
 // TestEffectiveOptionsKeepsPresentation makes sure the settings that only
 // decide how something is shown stay out of the authorization path.
 func TestEffectiveOptionsKeepsPresentation(t *testing.T) {

@@ -177,9 +177,12 @@
         <i>person</i>
         <span>{{ .UserName }}</span>
     </div>
-    <a class="button circle transparent" href="{{ .RootURL }}/auth/logout">
-        <i>logout</i>
-        <span class="tooltip bottom">Log out</span>
-    </a>
+    {{/* Logging out changes state, so it is a POST rather than a link. */}}
+    <form method="post" action="{{ .RootURL }}/auth/logout">
+        <button class="circle transparent" type="submit">
+            <i>logout</i>
+            <span class="tooltip bottom">Log out</span>
+        </button>
+    </form>
     {{ end }}
 {{ end }}

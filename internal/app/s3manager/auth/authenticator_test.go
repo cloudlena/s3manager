@@ -79,6 +79,19 @@ func TestAnonymousGrantsConfiguredRole(t *testing.T) {
 	is.Equal(identity.Role, auth.RoleWriter)
 }
 
+// TestNewRejectsAnonymousRoleNone makes sure an open deployment cannot be
+// configured to refuse everybody, since there is no login to get past it.
+func TestNewRejectsAnonymousRoleNone(t *testing.T) {
+	is := is.New(t)
+
+	_, err := auth.New(context.Background(), auth.Config{
+		Provider:      auth.ProviderNone,
+		AnonymousRole: auth.RoleNone,
+	})
+
+	is.True(err != nil) // a role of none without a login should fail at start-up
+}
+
 func TestNewRejectsUnknownProvider(t *testing.T) {
 	is := is.New(t)
 

@@ -104,7 +104,7 @@ func NewOIDC(ctx context.Context, config OIDCConfig) (Authenticator, error) {
 			RedirectURL:  config.RedirectURL,
 			Scopes:       append([]string{oidc.ScopeOpenID}, config.Scopes...),
 		},
-		sessions:      newSessionStore(config.SessionKey, config.RootURL, config.CookieSecure),
+		sessions:      newSessionStore(config.SessionKey, config.RootURL, config.CookieSecure, config.SessionMaxAge),
 		endSessionURL: discovery.EndSessionEndpoint,
 	}, nil
 }
@@ -132,7 +132,9 @@ func (a *oidcAuthenticator) Authenticate(w http.ResponseWriter, r *http.Request)
 func (a *oidcAuthenticator) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc(LoginPath, a.handleLogin).Methods(http.MethodGet)
 	router.HandleFunc(CallbackPath, a.handleCallback).Methods(http.MethodGet)
-	router.HandleFunc(LogoutPath, a.handleLogout).Methods(http.MethodGet, http.MethodPost)
+	// Logout changes state, so it is POST only: a GET could be triggered
+	// cross site by an image tag or a link prefetcher and log the user out.
+	router.HandleFunc(LogoutPath, a.handleLogout).Methods(http.MethodPost)
 }
 
 // handleLogin starts the authorization code flow.
@@ -214,7 +216,7 @@ func (a *oidcAuthenticator) handleCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := a.sessions.saveIdentity(w, r, identity, a.config.SessionMaxAge); err != nil {
+	if err := a.sessions.saveIdentity(w, r, identity); err != nil {
 		httpError(w, "error opening session", err)
 		return
 	}
@@ -249,13 +251,13 @@ func (a *oidcAuthenticator) identityFromToken(idToken *oidc.IDToken) (*Identity,
 		Subject: idToken.Subject,
 		Name:    firstString(claims, "name", "preferred_username", "email"),
 		Email:   firstString(claims, "email"),
-		Groups:  claimStrings(claims[a.config.RoleClaim]),
 	}
 	// The pages show the name, so there always has to be something to show.
 	if identity.Name == "" {
 		identity.Name = idToken.Subject
 	}
-	identity.Role = a.role(identity.Groups)
+	// The groups only decide the role here and are not kept on the identity.
+	identity.Role = a.role(claimStrings(claims[a.config.RoleClaim]))
 
 	return identity, nil
 }

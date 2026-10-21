@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gorilla/mux"
 	"github.com/matryer/is"
 )
 
@@ -161,7 +162,7 @@ func TestAuthenticateWithoutSession(t *testing.T) {
 
 	authenticator := &oidcAuthenticator{
 		config:   OIDCConfig{RootURL: "/s3"},
-		sessions: newSessionStore(deriveSessionKey("secret"), "/s3", true),
+		sessions: newSessionStore(deriveSessionKey("secret"), "/s3", true, 3600),
 	}
 
 	t.Run("page is redirected", func(t *testing.T) {
@@ -186,4 +187,26 @@ func TestAuthenticateWithoutSession(t *testing.T) {
 		is.Equal(resp.Code, http.StatusUnauthorized)
 		is.Equal(strings.TrimSpace(resp.Body.String()), `{"error":"unauthenticated","loginUrl":"/s3/auth/login"}`)
 	})
+}
+
+// TestLogoutIsPostOnly makes sure logging out cannot be triggered by a plain
+// link or image, which a cross site page could embed.
+func TestLogoutIsPostOnly(t *testing.T) {
+	is := is.New(t)
+
+	authenticator := &oidcAuthenticator{
+		config:   OIDCConfig{RootURL: "/s3"},
+		sessions: newSessionStore(deriveSessionKey("secret"), "/s3", true, 3600),
+	}
+	router := mux.NewRouter()
+	authenticator.RegisterRoutes(router)
+
+	get := httptest.NewRecorder()
+	router.ServeHTTP(get, httptest.NewRequest(http.MethodGet, LogoutPath, nil))
+	is.Equal(get.Code, http.StatusMethodNotAllowed) // a GET must not log anyone out
+
+	post := httptest.NewRecorder()
+	router.ServeHTTP(post, httptest.NewRequest(http.MethodPost, LogoutPath, nil))
+	is.Equal(post.Code, http.StatusFound)
+	is.Equal(post.Header().Get("Location"), "/s3/")
 }

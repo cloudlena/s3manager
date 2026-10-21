@@ -112,7 +112,7 @@ same configured credentials.
 - `OIDC_VIEWER_GROUPS`: Comma separated claim values granting the viewer role
 - `OIDC_WRITER_GROUPS`: Comma separated claim values granting the writer role
 - `OIDC_DEFAULT_ROLE`: Role for a user matching none of those groups (defaults to `none`, which denies access)
-- `AUTH_ANONYMOUS_ROLE`: Role everyone gets when `AUTH_PROVIDER` is `none` (defaults to `writer`, which is the historical behaviour)
+- `AUTH_ANONYMOUS_ROLE`: Role everyone gets when `AUTH_PROVIDER` is `none` (`viewer` or `writer`, defaults to `writer`, which is the historical behaviour). `none` is refused at start-up, as nobody could log in to lift it; use `AUTH_PROVIDER=oidc` to restrict access
 
 ##### Roles
 

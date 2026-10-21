@@ -3,7 +3,9 @@ package auth
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/matryer/is"
 )
@@ -24,17 +26,16 @@ func replay(t *testing.T, resp *httptest.ResponseRecorder) *http.Request {
 func TestSessionIdentityRoundTrip(t *testing.T) {
 	is := is.New(t)
 
-	store := newSessionStore(deriveSessionKey("secret"), "/", true)
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 3600)
 	identity := &Identity{
 		Subject: "abc-123",
 		Name:    "Jane Doe",
 		Email:   "jane@example.com",
-		Groups:  []string{"s3-admins"},
 		Role:    RoleWriter,
 	}
 
 	resp := httptest.NewRecorder()
-	is.NoErr(store.saveIdentity(resp, httptest.NewRequest(http.MethodGet, "/", nil), identity, 3600))
+	is.NoErr(store.saveIdentity(resp, httptest.NewRequest(http.MethodGet, "/", nil), identity))
 
 	is.Equal(store.identity(replay(t, resp)), identity)
 }
@@ -42,7 +43,7 @@ func TestSessionIdentityRoundTrip(t *testing.T) {
 func TestSessionWithoutCookie(t *testing.T) {
 	is := is.New(t)
 
-	store := newSessionStore(deriveSessionKey("secret"), "/", true)
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 3600)
 
 	is.Equal(store.identity(httptest.NewRequest(http.MethodGet, "/", nil)), (*Identity)(nil))
 }
@@ -53,10 +54,10 @@ func TestSessionRejectsForeignKey(t *testing.T) {
 	is := is.New(t)
 
 	resp := httptest.NewRecorder()
-	writer := newSessionStore(deriveSessionKey("one secret"), "/", true)
-	is.NoErr(writer.saveIdentity(resp, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: RoleWriter}, 3600))
+	writer := newSessionStore(deriveSessionKey("one secret"), "/", true, 3600)
+	is.NoErr(writer.saveIdentity(resp, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: RoleWriter}))
 
-	reader := newSessionStore(deriveSessionKey("another secret"), "/", true)
+	reader := newSessionStore(deriveSessionKey("another secret"), "/", true, 3600)
 
 	is.Equal(reader.identity(replay(t, resp)), (*Identity)(nil))
 }
@@ -64,9 +65,9 @@ func TestSessionRejectsForeignKey(t *testing.T) {
 func TestSessionCookieAttributes(t *testing.T) {
 	is := is.New(t)
 
-	store := newSessionStore(deriveSessionKey("secret"), "/s3", true)
+	store := newSessionStore(deriveSessionKey("secret"), "/s3", true, 3600)
 	resp := httptest.NewRecorder()
-	is.NoErr(store.saveIdentity(resp, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: RoleViewer}, 3600))
+	is.NoErr(store.saveIdentity(resp, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: RoleViewer}))
 
 	cookie := resp.Result().Cookies()[0]
 
@@ -77,12 +78,70 @@ func TestSessionCookieAttributes(t *testing.T) {
 	is.Equal(cookie.SameSite, http.SameSiteLaxMode) // strict would break the redirect back from the provider
 }
 
+// TestSessionExpires makes sure the server refuses a session older than the
+// configured maximum age, rather than trusting the browser to drop the cookie.
+func TestSessionExpires(t *testing.T) {
+	is := is.New(t)
+
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 1)
+	resp := httptest.NewRecorder()
+	is.NoErr(store.saveIdentity(resp, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: RoleWriter}))
+
+	is.True(store.identity(replay(t, resp)) != nil) // a fresh session should be accepted
+
+	// The timestamp inside the cookie has a resolution of one second, so
+	// waiting just over two guarantees it is older than the one second limit.
+	time.Sleep(2100 * time.Millisecond)
+
+	// A new request is needed, as the store caches what it decoded per request.
+	is.Equal(store.identity(replay(t, resp)), (*Identity)(nil)) // an expired session should be refused
+}
+
+// TestSessionMaxAgeAppliesToCookie makes sure the configured age reaches the
+// cookie, and that the short lived login state keeps its own, shorter age.
+func TestSessionMaxAgeAppliesToCookie(t *testing.T) {
+	is := is.New(t)
+
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 1234)
+
+	session := httptest.NewRecorder()
+	is.NoErr(store.saveIdentity(session, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: RoleViewer}))
+	is.Equal(session.Result().Cookies()[0].MaxAge, 1234)
+
+	pending := httptest.NewRecorder()
+	is.NoErr(store.saveLogin(pending, httptest.NewRequest(http.MethodGet, "/", nil), login{State: "state-value"}))
+	is.Equal(pending.Result().Cookies()[0].MaxAge, loginMaxAge)
+	is.Equal(store.logins.Options.MaxAge, loginMaxAge)
+	is.Equal(store.users.Options.MaxAge, 1234)
+}
+
+// TestSessionIgnoresGroups makes sure a user in a great many groups can still
+// log in. Storing the groups would push the cookie past the 4096 bytes
+// securecookie allows and fail the login.
+func TestSessionIgnoresGroups(t *testing.T) {
+	is := is.New(t)
+
+	var groups []string
+	for i := 0; i < 500; i++ {
+		groups = append(groups, "group-"+strconv.Itoa(i))
+	}
+	authenticator := &oidcAuthenticator{config: OIDCConfig{WriterGroups: []string{"group-499"}}}
+	role := authenticator.role(groups)
+	is.Equal(role, RoleWriter) // the role is still derived from the groups
+
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 3600)
+	resp := httptest.NewRecorder()
+	is.NoErr(store.saveIdentity(resp, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: role}))
+
+	is.Equal(store.identity(replay(t, resp)).Role, RoleWriter)
+}
+
 func TestClearIdentity(t *testing.T) {
 	is := is.New(t)
 
-	store := newSessionStore(deriveSessionKey("secret"), "/", true)
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 3600)
 	saved := httptest.NewRecorder()
-	is.NoErr(store.saveIdentity(saved, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: RoleWriter}, 3600))
+	is.NoErr(store.saveIdentity(saved, httptest.NewRequest(http.MethodGet, "/", nil), &Identity{Subject: "abc", Role: RoleWriter}))
 
 	cleared := httptest.NewRecorder()
 	is.NoErr(store.clearIdentity(cleared, replay(t, saved)))
@@ -93,7 +152,7 @@ func TestClearIdentity(t *testing.T) {
 func TestLoginRoundTrip(t *testing.T) {
 	is := is.New(t)
 
-	store := newSessionStore(deriveSessionKey("secret"), "/", true)
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 3600)
 	pending := login{State: "state-value", Nonce: "nonce-value", Verifier: "verifier-value", ReturnTo: "/minio/buckets"}
 
 	saved := httptest.NewRecorder()
@@ -110,7 +169,7 @@ func TestLoginRoundTrip(t *testing.T) {
 func TestTakeLoginWithoutCookie(t *testing.T) {
 	is := is.New(t)
 
-	store := newSessionStore(deriveSessionKey("secret"), "/", true)
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 3600)
 
 	_, err := store.takeLogin(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
 
@@ -121,7 +180,7 @@ func TestTakeLoginWithoutCookie(t *testing.T) {
 func TestTakeLoginIsSingleUse(t *testing.T) {
 	is := is.New(t)
 
-	store := newSessionStore(deriveSessionKey("secret"), "/", true)
+	store := newSessionStore(deriveSessionKey("secret"), "/", true, 3600)
 	saved := httptest.NewRecorder()
 	is.NoErr(store.saveLogin(saved, httptest.NewRequest(http.MethodGet, "/", nil), login{State: "state-value"}))
 

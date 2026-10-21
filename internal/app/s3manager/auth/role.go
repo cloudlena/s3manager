@@ -66,8 +66,6 @@ type Identity struct {
 	Name string
 	// Email is the user's email address, if the provider supplied one.
 	Email string
-	// Groups are the raw claim values the role was derived from.
-	Groups []string
 	// Role is what the user may do in the app.
 	Role Role
 }

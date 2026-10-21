@@ -35,6 +35,13 @@ type Config struct {
 func New(ctx context.Context, config Config) (Authenticator, error) {
 	switch strings.ToLower(config.Provider) {
 	case "", ProviderNone:
+		// Nobody can log in to an open deployment, so a role of none would
+		// lock out every user, a misconfiguration rather than a way to
+		// restrict access.
+		if config.AnonymousRole == RoleNone {
+			return nil, errors.New("AUTH_ANONYMOUS_ROLE=none would refuse everyone; set AUTH_PROVIDER=oidc to restrict access")
+		}
+
 		return NewAnonymous(config.AnonymousRole), nil
 	case ProviderOIDC:
 		return newOIDCFromConfig(ctx, config)
