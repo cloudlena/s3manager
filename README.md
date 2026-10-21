@@ -83,7 +83,7 @@ These variables apply to the whole app and are never prefixed:
 - `SHOW_VERSIONS`: Show all object versions in bucket view and enable version-specific downloads (defaults to `false`; bucket must have versioning enabled)
 - `SHOW_METADATA`: Show the object metadata action and enable the metadata endpoint (defaults to `true`)
 - `TZ`: IANA timezone used when displaying object Last Modified times (defaults to UTC; for example `Europe/Berlin`)
-- `BUCKET_NAME`: Show only this bucket in the bucket list of every instance (defaults to unset, showing all buckets). It only filters the list: other buckets can still be opened by name or URL, so it is not an access restriction
+- `BUCKET_NAME`: Show only this bucket, or these comma-separated buckets, in the bucket list of every instance (defaults to unset, showing all buckets). It only filters the list: other buckets can still be opened by name or URL, so it is not an access restriction
 - `SSE_TYPE`: The server side encryption applied to uploaded objects (defaults to unset, which leaves it off; valid values are `SSE`, `KMS` and `SSE-C`)
 - `SSE_KEY`: The key for `KMS` (a key ID) or `SSE-C` (exactly 32 bytes). With `SSE-C` the key is also sent when reading objects, since they can't be read without it; download links and public links don't carry it and so don't work for such objects
 - `TIMEOUT`: The read and write timeout in seconds (defaults to `600`, i.e. 10 minutes)

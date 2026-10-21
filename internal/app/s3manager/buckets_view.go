@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -64,14 +65,23 @@ func addConfiguredBuckets(buckets []minio.BucketInfo, names []string) []minio.Bu
 	return buckets
 }
 
-// filterBuckets narrows a bucket listing down to the single bucket the app is
-// restricted to, if that bucket exists.
-func filterBuckets(buckets []minio.BucketInfo, name string) []minio.BucketInfo {
+// filterBuckets narrows a bucket listing down to the buckets the app is
+// restricted to. allowed is a single bucket name, or a comma-separated list
+// of names for an app restricted to more than one bucket. The result keeps
+// the order ListBuckets returned, not the order in allowed.
+func filterBuckets(buckets []minio.BucketInfo, allowed string) []minio.BucketInfo {
+	names := strings.Split(allowed, ",")
+	for i, name := range names {
+		names[i] = strings.TrimSpace(name)
+	}
+
+	var filtered []minio.BucketInfo
+
 	for _, bucket := range buckets {
-		if bucket.Name == name {
-			return []minio.BucketInfo{bucket}
+		if slices.Contains(names, bucket.Name) {
+			filtered = append(filtered, bucket)
 		}
 	}
 
-	return nil
+	return filtered
 }

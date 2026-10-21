@@ -32,7 +32,8 @@ type S3 interface {
 type Options struct {
 	// RootURL is the path prefix the app is served under, for reverse proxying.
 	RootURL string
-	// BucketName restricts the bucket list to a single bucket if set.
+	// BucketName restricts the bucket list, if set. It is a single bucket
+	// name, or a comma-separated list to restrict to more than one bucket.
 	BucketName string
 	// AllowDelete enables the delete actions.
 	AllowDelete bool
