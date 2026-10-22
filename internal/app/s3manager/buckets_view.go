@@ -17,6 +17,8 @@ func HandleBucketsView(instances S3Instances, templates fs.FS, opts Options) htt
 		Buckets      []minio.BucketInfo
 		CurrentS3    *S3Instance
 		S3Instances  S3Instances
+		UserName     string
+		CanWrite     bool
 		ErrorMessage string
 	}
 
@@ -28,10 +30,13 @@ func HandleBucketsView(instances S3Instances, templates fs.FS, opts Options) htt
 			return
 		}
 
+		opts := effectiveOptions(r.Context(), opts)
 		data := pageData{
 			RootURL:     opts.RootURL,
 			CurrentS3:   instance,
 			S3Instances: instances,
+			UserName:    userName(r.Context()),
+			CanWrite:    canWrite(r.Context()),
 		}
 
 		buckets, err := instance.Client.ListBuckets(r.Context())

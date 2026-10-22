@@ -2,6 +2,7 @@ package s3manager_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cloudlena/s3manager/internal/app/s3manager"
+	"github.com/cloudlena/s3manager/internal/app/s3manager/auth"
 	"github.com/cloudlena/s3manager/internal/app/s3manager/mocks"
 	"github.com/gorilla/mux"
 	"github.com/matryer/is"
@@ -151,6 +153,45 @@ func TestHandleBucketsView(t *testing.T) {
 			for text, count := range tc.expectedCount {
 				is.Equal(count, strings.Count(string(body), text)) // occurrences of text
 			}
+		})
+	}
+}
+
+func TestHandleBucketsViewCreateBucketNeedsWriter(t *testing.T) {
+	for _, role := range []auth.Role{auth.RoleNone, auth.RoleViewer, auth.RoleWriter} {
+		t.Run(fmt.Sprintf("role %d", role), func(t *testing.T) {
+			is := is.New(t)
+
+			s3 := &mocks.S3Mock{
+				ListBucketsFunc: func(context.Context) ([]minio.BucketInfo, error) {
+					return []minio.BucketInfo{{Name: "BUCKET-NAME"}}, nil
+				},
+			}
+			instances := s3manager.S3Instances{{ID: "1", Name: "primary", Client: s3}}
+			templates := os.DirFS(filepath.Join("..", "..", "..", "web", "template"))
+
+			r := mux.NewRouter()
+			r.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+					next.ServeHTTP(w, req.WithContext(auth.WithIdentity(req.Context(), &auth.Identity{Role: role})))
+				})
+			})
+			r.Handle("/{instance}/buckets", s3manager.HandleBucketsView(instances, templates, s3manager.Options{})).Methods(http.MethodGet)
+
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			resp, err := http.Get(ts.URL + "/primary/buckets")
+			is.NoErr(err)
+			defer func() {
+				err = resp.Body.Close()
+				is.NoErr(err)
+			}()
+			body, err := io.ReadAll(resp.Body)
+			is.NoErr(err)
+
+			is.Equal(resp.StatusCode, http.StatusOK)                                                             // status code
+			is.Equal(strings.Contains(string(body), `data-ui="#dialog-create-bucket"`), role == auth.RoleWriter) // create bucket offered to writers only
 		})
 	}
 }

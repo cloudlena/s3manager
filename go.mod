@@ -4,18 +4,23 @@ go 1.27.2
 
 require (
 	github.com/cloudlena/adapters v0.0.0-20261015170557-9257a039ec2c
+	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/gorilla/mux v1.8.1
+	github.com/gorilla/sessions v1.4.0
 	github.com/matryer/is v1.4.1
 	github.com/minio/minio-go/v7 v7.4.1
 	github.com/spf13/viper v1.21.0
+	golang.org/x/oauth2 v0.37.0
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.1 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
