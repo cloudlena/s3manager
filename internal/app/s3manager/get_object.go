@@ -14,9 +14,7 @@ import (
 )
 
 // renderableContentTypes are the content types a browser can display without
-// being able to run scripts in the app's origin. Anything else (most notably
-// HTML, SVG and XML, which can carry scripts or stylesheets) is served as plain
-// text so that opening an object can never turn into stored XSS.
+// being able to run scripts in the app's origin.
 var renderableContentTypes = []string{
 	"application/json",
 	"application/pdf",
@@ -34,22 +32,51 @@ var renderableContentTypes = []string{
 	"video/",
 }
 
+// textualContentTypes are the content types that aren't safe to render (most
+// notably HTML, SVG and XML, which can carry scripts or stylesheets) but are
+// still readable as plain text.
+var textualContentTypes = []string{
+	"application/javascript",
+	"application/toml",
+	"application/x-sh",
+	"application/x-yaml",
+	"application/xml",
+	"application/yaml",
+	"text/",
+}
+
 // inlineContentType maps the content type stored in S3 to the one used when
-// displaying an object in the browser.
-func inlineContentType(contentType string) string {
+// displaying an object in the browser. Textual objects that the browser can't
+// render safely are shown as plain text so that opening an object can never
+// turn into stored XSS. Any other object, such as a spreadsheet or an archive,
+// can't be displayed at all, which is reported by returning false.
+func inlineContentType(contentType string) (string, bool) {
 	base := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
-	for _, renderable := range renderableContentTypes {
-		if base == renderable || (strings.HasSuffix(renderable, "/") && strings.HasPrefix(base, renderable)) {
-			return contentType
+	if matchesContentType(base, renderableContentTypes) {
+		return contentType, true
+	}
+	if matchesContentType(base, textualContentTypes) || strings.HasSuffix(base, "+xml") || strings.HasSuffix(base, "+json") {
+		return "text/plain; charset=utf-8", true
+	}
+
+	return "", false
+}
+
+// matchesContentType reports whether a lowercase base content type is one of
+// the given ones, where an entry ending in a slash stands for its whole type.
+func matchesContentType(base string, contentTypes []string) bool {
+	for _, ct := range contentTypes {
+		if base == ct || (strings.HasSuffix(ct, "/") && strings.HasPrefix(base, ct)) {
+			return true
 		}
 	}
 
-	return "text/plain; charset=utf-8"
+	return false
 }
 
 // HandleGetObject serves an object to the client. It is downloaded as an
 // attachment unless the inline query parameter is set, in which case it is
-// served for display in the browser.
+// served for display in the browser if the browser can display it.
 func HandleGetObject(s3 S3, opts Options) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucketName := mux.Vars(r)["bucketName"]
@@ -77,7 +104,9 @@ func HandleGetObject(s3 S3, opts Options) http.HandlerFunc {
 		// body, which could turn an HTML object into stored XSS.
 		disposition, contentType := "attachment", "application/octet-stream"
 		if r.URL.Query().Get("inline") == "true" {
-			disposition, contentType = "inline", inlineContentType(info.ContentType)
+			if inlineType, ok := inlineContentType(info.ContentType); ok {
+				disposition, contentType = "inline", inlineType
+			}
 		}
 		w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": path.Base(objectName)}))
 		w.Header().Set("Content-Type", contentType)

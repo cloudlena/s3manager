@@ -25,7 +25,7 @@ Static assets and templates are embedded into the binary via `//go:embed`, and B
 
 - `HandleBucketView` has two listing paths, picked by `cursorPagingPossible`: the default name-ascending view is listed one page at a time through S3's own `StartAfter`/`MaxKeys` paging (`listObjectPage`), which is why it has no total count; every other view (other sorts, search, `All`, versions) needs the whole prefix and falls back to a scan capped at `maxScanObjects` (`listAllObjects`).
 - Objects are only deleted through the bulk endpoint. In the bulk endpoints, a key ending in `/` stands for the whole folder.
-- Objects served inline get a content type that can't run scripts (`inlineContentType`).
+- Objects served inline get a content type that can't run scripts, and binary ones the browser can't display are downloaded instead (`inlineContentType`).
 - `versionId` is honored only when `SHOW_VERSIONS` is on.
 - The environment variables are documented in the README.
 
